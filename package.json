@@ -1,0 +1,33 @@
+{
+  "name": "visual",
+  "productName": "VisUAL2 Easter 18",
+  "main": "main.js",
+  "scripts": {
+    "start": "cd src/Main && dotnet fable webpack --port free -- -w --config webpack.config.js",
+    "build": "cd src/Main && dotnet fable webpack --port free -- -p --config webpack.config.js",
+    "package": "electron-packager . visual2 --all --out=dist --no-prune --ignore=/node_modules --ignore=/src --overwrite",
+    "launch": "electron ."
+  },
+  "dependencies": {
+    "babel-plugin-transform-runtime": "^6.23.0",
+    "babel-runtime": "^6.26.0",
+    "electron-context-menu": "^0.9.1",
+    "electron-settings": "^3.1.4",
+    "electron-tabs": "^0.9.1",
+    "monaco-editor": "^0.10.1",
+    "requirejs": "^2.3.5"
+  },
+  "devDependencies": {
+    "babel-core": "^6.26.0",
+    "babel-loader": "^7.1.2",
+    "babel-preset-es2015": "6.24.1",
+    "babel-standalone": "^6.26.0",
+    "babel-template": "^6.26.0",
+    "electron": "^1.7.5",
+    "electron-packager": "^12.0.0",
+    "fable-loader": "^1.0.7",
+    "fable-utils": "^1.0.2",
+    "loglevel": "^1.4.1",
+    "webpack": "^3.11.0"
+  }
+}

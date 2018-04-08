@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+  </PropertyGroup>
+  <ItemGroup>
+<Compile Include="EEExtensions.fs" />
+<Compile Include="CommonData.fs" />
+<Compile Include="Errors.fs" />
+<Compile Include="Expressions.fs" />
+    <Compile Include="CommonLex.fs" />
+    <Compile Include="Helpers.fs" />
+    <Compile Include="Memory.fs" />
+    <Compile Include="DP.fs" />
+    <Compile Include="Branch.fs" />
+    <Compile Include="Misc.fs" />
+    <Compile Include="ParseTop.fs" />
+    <Compile Include="ExecutionTop.fs" />
+  </ItemGroup>
+  <Import Project="..\..\.paket\Paket.Restore.targets" />
+</Project>

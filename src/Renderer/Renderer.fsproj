@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Ref.fs" />
+    <Compile Include="Editor.fs" />
+    <Compile Include="Tabs.fs" />
+    <Compile Include="Settings.fs" />
+    <Compile Include="Update.fs" />
+    <Compile Include="MenuBar.fs" />
+    <Compile Include="Integration.fs" />
+    <Compile Include="Renderer.fs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Emulator\Emulator.fsproj" />
+  </ItemGroup>
+  <Import Project="..\..\.paket\Paket.Restore.targets" />
+</Project>
