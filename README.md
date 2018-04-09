@@ -133,6 +133,7 @@ The `js` scripts loaded by the `index.html`, **after** the DOM elements (statica
 
 ## Getting Started
 
+1. Install [yarn](https://yarnpkg.com/lang/en/docs/install/).
 
 1. Fetch `npm` packages by executing `yarn install`. This project consistently uses `yarn` Node package manager instead of the older and less competent `npm`.
 
