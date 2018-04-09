@@ -167,7 +167,7 @@ let loadProgram (lines: string list) (lim: LoadImage)   =
         | hb, 0 -> blkSize * hb
         | hb, _ -> blkSize * (hb+1u)
     let setDStart lim = {lim with LoadP = {lim.LoadP with DStart = roundUpHBound lim.LoadP.PosI}}
-    let initLim = initLoadImage (setDStart lim).LoadP.DStart ([] |> Map.ofList)
+    let initLim = initLoadImage (setDStart lim).LoadP.DStart lim.SymInf.SymTab
     List.fold loadLine initLim (lines |> List.indexed |> List.map (fun (i,s) -> s,i+1))
     |> addTermination
 
@@ -202,11 +202,11 @@ let reLoadProgram (lines: string list) =
     let errs lim = lim.Errors |> List.map snd
     let rec pass lim1 lim2 =
         match unres lim1, unres lim2 with
-        | n1,n2 when (n2=0 && lim1.LoadP.PosI <= lim2.LoadP.DStart) || n1 = n2
+        | n1,n2 when (n2=0 && (lim1.LoadP.PosI <= lim2.LoadP.DStart)) || n1 = n2
             -> lim2
         | n1,n2 when n1 = n2 && lim2.Errors = [] -> failwithf "What? %d unresolved refs in load image with no errors" n1
         | _ -> pass lim2 (next lim2)
-    let final = pass lim1 (next lim1)
+    let final = pass lim1 (next lim1) |> next
     final, indentProgram final lines
 
 

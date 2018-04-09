@@ -29,7 +29,7 @@ module ParseTop
 
     /// Split line on whitespace into an list
     let splitIntoWords ( line:string ) =
-        line.Split( ([||] : char array), 
+        line.Split( ([|' ';'\t';'\f';'\r';'\n';'\b'|] : char array), 
           System.StringSplitOptions.RemoveEmptyEntries)
         |> Array.collect (function |"" -> [||] | s -> [|s|])
         |> Array.map (fun s -> s.Trim())
@@ -104,11 +104,12 @@ module ParseTop
             match [""] @ words @ [""] with
                 | "" :: TRYPARSE  pa -> pa
                 | TRYPARSE pa -> pa
-                | [label] ->  defParse (Some label) (EMPTY |> Ok)
+                | ["";label;""] ->  defParse (Some label) (EMPTY |> Ok)
+                | ["";""] -> defParse None (EMPTY |> Ok)
                 | opc :: _ ->
                     let eMess = sprintf "'%s' is an unimplemented opcode in: '%s'" opc asmLine
                     defParse None (makePE ``Unimplemented instruction`` opc eMess)
-                | [] -> defParse None (EMPTY |> Ok)
+                | _ -> failwithf "What: should not be possible!"
         asmLine
         |> removeComment
         |> splitIntoWords

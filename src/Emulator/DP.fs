@@ -5,6 +5,7 @@ open CommonData
 open Errors
 open Expressions
 open CommonLex
+open System.Xml.Linq
 
 let failDiag() = 
     failwithf "OK so far at %s:%s done!" __SOURCE_FILE__ __LINE__
@@ -43,7 +44,7 @@ type ArmShiftType = LSL | ASR | LSR | ROR
 
 /// ARM flexible operand 2
 type Op2 =
-    | NumberLiteral of K: uint32 * Rot: int * Sub: InstrNegativeLiteralMode
+    | NumberLiteral of K: int64 * Rot: int * Sub: InstrNegativeLiteralMode
     | RegisterWithShift of RName * ArmShiftType * uint32
     | RegisterWithRRX of RName
     | RegisterWithRegisterShift of RName * ArmShiftType * RName
@@ -81,8 +82,8 @@ let evalOp2 op2 d =
         // carry is always false if no shift happens
         newVal, if shiftBy <> 0u then carryBit else d.Fl.C
 
-    let evalNumberLiteral l rot sub =
-        let u, carry = evalShift l ROR rot
+    let evalNumberLiteral (l:int64) rot sub =
+        let u, carry = evalShift (uint32 l) ROR rot
         match sub with
         | NoNegLit -> u
         | InvertedLit -> ~~~u
@@ -197,52 +198,54 @@ let parseRegister (str : string) =
 
 /// Map of allowed literals mapped to corresponding (K,rotate)
 let OkLitMap = 
-    let rotateLeft (value:uint32) amt = 
-        ((value >>> (32 - amt)) ||| (value <<< amt))
+    let mask = ((1L <<< 32) - 1L)
+    let rotateLeft (value:int64) amt = 
+        ((value >>> (32 - amt)) ||| (value <<< amt)) &&& mask
 
     let possibleLiterals K =
         [0..2..30]
-        |> List.map (fun rot -> rotateLeft K rot, (K,(32-rot)%32))
-    [0u..255u] // workaround FABLE bug with long unsigned int ranges
+        |> List.map (fun rot -> rotateLeft K rot, (K,(32 - rot) % 32))
+    [0..255] // workaround FABLE bug with long unsigned int ranges
+    |> List.map (fun x -> int64 x)
     |> List.collect possibleLiterals
+    |> List.map (fun (x, (K, r)) -> (x, (K,r)))
     |> Map.ofList
+   
 
 
 
 let parseOp2 (subMode: InstrNegativeLiteralMode) (symTable : SymbolTable) (args : string list) =
     /// make ARM literal from uint32
-    let makeImmediate (num:uint32) =
-        printfn "Making immediate: %d,Mode=%s" num ( 
-                                    match subMode with 
-                                    |NegatedLit ->"Neg"
-                                    |InvertedLit -> "Inv"
-                                    |NoNegLit -> "No")
-        let mask = 0xffffffffUL
-
-        let substitutes: (uint32 * InstrNegativeLiteralMode) list = 
-            let norm = num,NoNegLit
+    let makeImmediate (num:int64) =
+        let mask = 0xFFFFFFFFL
+        let num64 = int64 (int num) &&& mask    
+        let substitutes: (int64 * InstrNegativeLiteralMode) list = 
+            let norm = num64,NoNegLit
             match subMode, num with
-            | InvertedLit, _ -> [norm ; (((~~~num)) , InvertedLit)]
+            | InvertedLit, _ -> [norm ; ((~~~num64) &&& mask , InvertedLit)]
             | NoNegLit, _
-            | NegatedLit, 0u -> [norm]
-            | NegatedLit, _  -> [norm ; ((uint32 (-(int num))) , NegatedLit)]
+            | NegatedLit, 0L -> [norm]
+            | NegatedLit, _  -> 
+                let u = ( (1L <<< 32) - num64) &&& mask
+                [norm ; ( u , NegatedLit)]
          
         let posLits = 
-            let checkSub (k:uint32,sub) =
+            let checkSub (k,sub) =
                 Map.tryFind k OkLitMap
-                |> function Some (k,r)-> [(k,r,sub)] | None -> []
+                |> function Some (k,r)-> [(k,r,sub)] | fNone -> []
             substitutes 
             |> List.collect checkSub
             |> List.sortBy (fun (k,r,sub) -> r)
 
 
-        let isZeroNegated = List.exists (fun (_,_,sub) -> sub = NegatedLit) posLits
+        
+        let isZeroNegated = List.exists (function (0L,_,sub) -> sub = NegatedLit | _ -> false) posLits
 
         match posLits  with
         | [] -> makeDPE <| sprintf "Invalid ARM immediate value %d. Immediates are formed as 32-bit numbers: N ROR (2M), 0 <= N <= 256, 0 <= M <= 15" num
-        | _ when isZeroNegated -> Ok (NumberLiteral(0u,0,NoNegLit)) // multiple zero representations
-        | [K,rot,sub] -> Ok (NumberLiteral(uint32 K,rot,sub))
-        | _ -> failwithf "What? More than one literal representation should be impossible!"
+        | _ when isZeroNegated -> Result.Ok (NumberLiteral(0L,0,NoNegLit)) // multiple zero representations
+        | [K,rot,sub] -> Result.Ok (NumberLiteral(K,rot,sub))
+        | (K,rot,sub) :: _ ->  Result.Ok (NumberLiteral(K,rot,NoNegLit))
 
     /// apply shift expression to register
     let parseShiftExpression (str : string) reg =
@@ -272,6 +275,7 @@ let parseOp2 (subMode: InstrNegativeLiteralMode) (symTable : SymbolTable) (args 
     | [imm] when imm.StartsWith("#") -> 
         imm.Substring(1) 
         |> parseNumberExpression symTable 
+        |> Result.map (fun (n:uint32) -> int64 n)
         |> Result.bind makeImmediate
     | [reg] -> 
         parseRegister reg 

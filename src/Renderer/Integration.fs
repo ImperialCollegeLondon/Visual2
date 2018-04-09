@@ -8,6 +8,7 @@ open Expressions
 open CommonLex
 open ParseTop
 open ExecutionTop
+open DP
 
 open Errors
 open Ref
@@ -233,3 +234,4 @@ let resetEmulator () =
     resetFlags()
     currentPInfo <- fNone
     setNoStatus ()
+

@@ -93,7 +93,7 @@ module CommonLex
     /// Note "" is a valid condition string (always execute condition)
     let condMap = [ "EQ",Ceq ; "NE",Cne ; "MI",Cmi ; "PL",Cpl ; "HI", Chi ; 
                     "HS",Chs ; "LO",Clo ; "LS",Cls ; "GE",Cge ; "GT", Cgt ; 
-                    "LE", Cle ; "LT", Clt ; "VS",Cvs ;  "VC",Cvc ;
+                    "LE", Cle ; "LT", Clt ; "VS",Cvs ;  "VC",Cvc ;"CC", Clo ; "CS", Chs
                     "NV",Cnv ; "AL",Cal ; "",Cal; "",Cal] |> Map.ofList
 
     /// list of all strings representing execution conditions
