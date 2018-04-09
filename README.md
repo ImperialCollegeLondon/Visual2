@@ -9,6 +9,9 @@ Acknowledgements:
 * Lorenzo Silvestri
 * Filos Angelo.
 
+**See the [Wiki](https://github.com/ImperialCollegeLondon/Visual2/wiki)** before you contribute seriously.
+
+
 ## Introduction
 
 This project is based on a starter template from https://github.com/filangel/arm-monaco.
