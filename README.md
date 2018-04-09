@@ -6,7 +6,7 @@ Acknowledgements:
 
 * HLP 2018 class
 * Thomas Carotti
-* Lorenzo Sylvestri
+* Lorenzo Silvestri
 * Filos Angelo.
 
 ## Introduction
