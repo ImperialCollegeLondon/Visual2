@@ -1,15 +1,8 @@
 # VisUAL2
 
-Coordinating Author: Tom Clarke, EEE Dept, Imperial College London
+[**Acknowledgements**](https://github.com/ImperialCollegeLondon/Visual2/wiki/Acknowledgements)
 
-Acknowledgements: 
-
-* HLP 2018 class
-* Thomas Carotti
-* Lorenzo Silvestri
-* Filos Angelo.
-
-**See the [Wiki](https://github.com/ImperialCollegeLondon/Visual2/wiki)** before you contribute seriously.
+Read the [**Wiki**](https://github.com/ImperialCollegeLondon/Visual2/wiki)** before you contribute seriously.
 
 
 ## Introduction
