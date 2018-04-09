@@ -11,6 +11,7 @@
   "dependencies": {
     "babel-plugin-transform-runtime": "^6.23.0",
     "babel-runtime": "^6.26.0",
+    "copyfiles": "^2.0.0",
     "electron-context-menu": "^0.9.1",
     "electron-settings": "^3.1.4",
     "electron-tabs": "^0.9.1",
