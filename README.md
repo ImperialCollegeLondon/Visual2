@@ -2,7 +2,7 @@
 
 [**Acknowledgements**](https://github.com/ImperialCollegeLondon/Visual2/wiki/Acknowledgements)
 
-Read the [**Wiki**](https://github.com/ImperialCollegeLondon/Visual2/wiki)** before you contribute seriously.
+Read the [**Wiki**](https://github.com/ImperialCollegeLondon/Visual2/wiki) before you contribute seriously.
 
 
 ## Introduction
