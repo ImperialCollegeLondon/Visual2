@@ -2,8 +2,11 @@
 
 [**Acknowledgements**](https://github.com/ImperialCollegeLondon/Visual2/wiki/Acknowledgements)
 
-Read the [**Wiki**](https://github.com/ImperialCollegeLondon/Visual2/wiki) before you contribute seriously.
+Read the [**Wiki**](https://github.com/ImperialCollegeLondon/Visual2/wiki) before you contribute, or for background info.
 
+For a quick start go straight to [Getting Started](#getting-started).
+
+The rest of the README gives a project and code overview.
 
 ## Introduction
 
