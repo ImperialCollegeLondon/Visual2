@@ -46,6 +46,8 @@ var basicConfig = {
   }
 };
 
+const CopyWebpackPlugin = require('copy-webpack-plugin');
+
 var mainConfig = Object.assign({
   target: "electron-main",
   entry: resolve("src/Main/Main.fsproj"),
@@ -56,6 +58,14 @@ var mainConfig = Object.assign({
 }, basicConfig);
 
 var rendererConfig = Object.assign({
+  plugins: [
+    new CopyWebpackPlugin([
+      {
+        from: 'node_modules/monaco-editor/min/vs',
+        to: 'vs',
+      }
+    ])
+  ],
   target: "electron-renderer",
   devtool: "source-map",
   entry: resolve("src/Renderer/Renderer.fsproj"),

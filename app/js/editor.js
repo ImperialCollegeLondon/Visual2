@@ -1,6 +1,21 @@
+//export default class CodeEditor extends Component {
+//  render() {
+//    return (
+//        <MonacoEditor
+//          requireConfig={{
+//            url: `${appPath}/vs/loader.js`,
+//            baseUrl: `${appPath}`
+//          }}
+//        />
+//    )
+//  }
+//}
+
+
 // Save Monaco's amd require and restore Node's require
 var amdRequire = global.require;
 global.require = nodeRequire;
+
 
 // require node modules before loader.js comes in
 var path = require('path');
@@ -12,7 +27,9 @@ function uriFromPath(_path) {
   return encodeURI('file://' + pathName);
 }
 amdRequire.config({
-  baseUrl: uriFromPath(path.join(__dirname, '../node_modules/monaco-editor/min'))
+  //baseUrl: uriFromPath(path.join(__dirname, '../node_modules/monaco-editor/min'))
+  baseUrl: uriFromPath(path.join(__dirname, 'js'))
+
 });
 // workaround monaco-css not understanding the environment
 self.module = undefined;
