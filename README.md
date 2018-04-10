@@ -135,12 +135,16 @@ The `js` scripts loaded by the `index.html`, **after** the DOM elements (statica
 
 1. Install [yarn](https://yarnpkg.com/lang/en/docs/install/).
 
-1. Fetch `npm` packages by executing `yarn install`. This project consistently uses `yarn` Node package manager instead of the older and less competent `npm`.
+2. Download & unzip the Visual2 project, or if contributing clone locally, or fork on github and then clone locally, the repo.
 
-2. Run `setup.bat` (on Windows). This downloads and updates the submodules, and installs their packages individually (necessary because of the submodule structure), then restores the global packages. In particular this code will install a copy of .Net Core on which the FABLE compiler can run.
+3. Navigate to the project root directory (which contains this README) in a command-line interpreter. For Windows usage make sure if possible for convenience that you have a _tabbed_ command-line interpreter that can be started direct from file explorer within a specific directory (by right-clicking on the explorer directory view). That makes things a lot more pleasant. One free option is the excellent [hyper](https://github.com/zeit/hyper).
 
-3. Compile `fsharp` code to `javascript` using `webpack` by executing `yarn run start`. This script compiles everything once and then watches source files recompiling whenever any change, so it is normally run continuously through development.
+4. Fetch the required `npm` packages by executing `yarn install`. This project consistently uses `yarn` Node package manager instead of the older and less competent `npm`.
 
-4. Open `electron` application at a new terminal tab by running `yarn run launch`. This command will start the application and also hot reload it whenever source files are recompiled. Therefore it normally runs continuously through development.
+5. Run `setup.bat` (on Windows). This downloads and updates the submodules, and installs their packages individually (necessary because of the submodule structure), then restores the global packages. In particular this code will install a copy of .Net Core on which the FABLE compiler can run.
 
-5. To see debug printout etc press <F12> to toggle electron dev tools on and note that any F# printout and errors will be displayed under the console tab.
+6. Compile `fsharp` code to `javascript` using `webpack` by executing `yarn run start`. This script compiles everything once and then watches source files recompiling whenever any change, so it normally runs continuously throughout development.
+
+7. Open `electron` application at a new terminal tab by running `yarn run launch`. This command will start the application and also _hot reload_ it whenever source files are recompiled. Therefore it normally runs continuously through development. _Hyper_, for example runs multiple tabs and will split window between two tabs, great for running start and launch scripts concurrently in a single window. 
+
+8. To see debug printout etc press <F12> to toggle electron dev tools on and note that any F# printout and errors will be displayed under the console tab.
