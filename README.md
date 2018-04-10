@@ -155,3 +155,5 @@ The `js` scripts loaded by the `index.html`, **after** the DOM elements (statica
 ### Packaging VisUAL2 as binaries
 
 After you have compiled code (and checked it works) `yarn run package` will run electron packager and generate `./dist/os-name/*` files. See [the packaging issue](https://github.com/ImperialCollegeLondon/Visual2/issues/7) for more details.
+
+For windows hosts the packager requires admin priviledges. `./run-packager.bat` will provide these.
