@@ -147,4 +147,4 @@ The `js` scripts loaded by the `index.html`, **after** the DOM elements (statica
 
 7. Open `electron` application at a new terminal tab by running `yarn run launch`. This command will start the application and also _hot reload_ it whenever source files are recompiled. Therefore it normally runs continuously through development. _Hyper_, for example runs multiple tabs and will split window between two tabs, great for running start and launch scripts concurrently in a single window. 
 
-8. To see debug printout etc press <F12> to toggle electron dev tools on and note that any F# printout and errors will be displayed under the console tab.
+8. To see debug printout etc press F12 to toggle electron dev tools on and note that any F# printout and errors will be displayed under the console tab.
