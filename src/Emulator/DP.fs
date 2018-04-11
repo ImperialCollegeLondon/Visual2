@@ -197,26 +197,33 @@ let parseRegister (str : string) =
 
 
 /// Map of allowed literals mapped to corresponding (K,rotate)
-let OkLitMap = 
-    let mask = ((1L <<< 32) - 1L)
-    let rotateLeft (value:int64) amt = 
-        ((value >>> (32 - amt)) ||| (value <<< amt)) &&& mask
+/// Mutability to reduce startup time
+let mutable OkLitMap = None
 
-    let possibleLiterals K =
-        [0..2..30]
-        |> List.map (fun rot -> rotateLeft K rot, (K,(32 - rot) % 32))
-    [0..255] // workaround FABLE bug with long unsigned int ranges
-    |> List.map (fun x -> int64 x)
-    |> List.collect possibleLiterals
-    |> List.map (fun (x, (K, r)) -> (x, (K,r)))
-    |> Map.ofList
-   
+let makeOkLitMap() = 
+    match OkLitMap with 
+    | Some map -> map
+    | None -> 
+        let map = 
+            let mask = ((1L <<< 32) - 1L)
+            let rotateLeft (value:int64) amt = 
+                ((value >>> (32 - amt)) ||| (value <<< amt)) &&& mask
 
-
+            let possibleLiterals K =
+                [0..2..30]
+                |> List.map (fun rot -> rotateLeft K rot, (K,(32 - rot) % 32))
+            [0..255] // workaround FABLE bug with long unsigned int ranges
+            |> List.map (fun x -> int64 x)
+            |> List.collect possibleLiterals
+            |> List.map (fun (x, (K, r)) -> (x, (K,r)))
+            |> Map.ofList
+        OkLitMap <- Some map
+        map
 
 let parseOp2 (subMode: InstrNegativeLiteralMode) (symTable : SymbolTable) (args : string list) =
     /// make ARM literal from uint32
     let makeImmediate (num:int64) =
+        let okMap = makeOkLitMap()
         let mask = 0xFFFFFFFFL
         let num64 = int64 (int num) &&& mask    
         let substitutes: (int64 * InstrNegativeLiteralMode) list = 
@@ -231,7 +238,7 @@ let parseOp2 (subMode: InstrNegativeLiteralMode) (symTable : SymbolTable) (args 
          
         let posLits = 
             let checkSub (k,sub) =
-                Map.tryFind k OkLitMap
+                Map.tryFind k okMap
                 |> function Some (k,r)-> [(k,r,sub)] | fNone -> []
             substitutes 
             |> List.collect checkSub
