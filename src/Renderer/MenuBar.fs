@@ -81,11 +81,12 @@ let viewMenu =
             makeItem "Toggle Dev Tools" (Some "F12") (electron.remote.getCurrentWebContents()).toggleDevTools
         ]
 
-let helpMenu =
+let helpMenu runTests =
         let runPage page () = electron.shell.openExternal page |> ignore ; ()
         makeMenu "Help" [
             makeItem "Website" Core.Option.None (runPage "https://intranet.ee.ic.ac.uk/t.clarke/hlp/")
             makeItem "ARM documentation" Core.Option.None (runPage "http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.ddi0234b/i1010871.html")
+            makeItem "Run Emulator Tests" Core.Option.None runTests
             makeItem "About" Core.option.None ( fun () -> 
                 electron.remote.dialog.showMessageBox (
                       let opts = createEmpty<ShowMessageBoxOptions>
@@ -99,13 +100,13 @@ let helpMenu =
                 ) |> ignore; () )
          ]   
 
-let setMainMenu () =
+let setMainMenu runTests =
     let template = 
         ResizeArray<MenuItemOptions> [
             fileMenu
             editMenu
             viewMenu
-            helpMenu
+            helpMenu runTests
         ]
     template
     |> electron.remote.Menu.buildFromTemplate

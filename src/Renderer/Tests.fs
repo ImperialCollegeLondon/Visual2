@@ -1,0 +1,214 @@
+﻿module Tests
+open System
+open System.IO
+open ExecutionTop
+open Integration
+open Errors
+open EEExtensions
+open Fable.Core
+open Fable.Core.JsInterop
+open Fable.Import
+open Fable.Import.Electron
+open Fable.Import.Browser
+open Node.Exports
+open Fable.PowerPack.Keyboard
+
+
+let fNone = Core.Option.None
+
+let projectDir = __SOURCE_DIRECTORY__ + @"/../../"
+
+type Flags = {
+    FN: bool
+    FZ: bool
+    FC: bool
+    FV: bool
+}
+   
+type DPath = { 
+    TRegs : uint32 list ; 
+    TFlags : Flags 
+    }
+
+type TestSetup = { 
+    Before: DPath ; 
+    Asm: string; 
+    After: DPath option; 
+    Name: string
+    }
+
+type TestT = OkTests | ErrorTests | BetterThanModelTests
+
+let readFileViaNode (path:string) : string =
+    (fs.readFileSync path).toString("utf8")
+
+let writeFileViaNode path str =
+    let errorHandler _err = // TODO: figure out how to handle errors which can occur
+        ()
+    fs.writeFileSync( path, str) |> ignore
+
+
+let loadStateFile (fName:string) =
+    let lines = 
+        readFileViaNode fName
+        |> fun s -> s.Split('\n')
+        |> Array.map (fun s -> s.Trim())
+        |> Array.map (fun s -> s.Split([|' ';'\t'|]) |> Array.filter ((<>) ""))
+        |> Array.filter (Array.isEmpty >> not)
+        |> Array.map Array.toList
+        |> Array.toList
+    let toDP rLst n z c v =
+        let fl f = match f with 
+                    |"0" -> false 
+                    | "1" -> true 
+                    | _ -> failwithf "Parse error expecting '1' or '0' as flag value"
+        { 
+            TRegs = rLst |> List.map ((fun s -> printfn "RN=%s" s ; s) >> uint32); 
+            TFlags = { FN = fl n; FC = fl c; FZ = fl z; FV = fl v}
+        }
+    let (|GetASM|_|) lines =
+        printfn "GETASM:%A\n\n" lines
+        let n = List.findIndex ((=) ["..."]) lines
+        let toStr lst = String.concat " " lst
+        (String.concat "\r\n" (lines.[0..n-1] |> List.map toStr) , lines.[n+1..]) |> Some
+                       
+    let (|Test1|_|) lines =
+        printfn "Test1\n%A\n------------\n" lines
+        let (|DP|_|) lines =
+            printfn "DP: %A\n\n" lines
+            match lines with
+            | ("Regs" :: rLst) :: [ "NZCV"; n; z; c; v ] :: rst -> (toDP rLst n z c v |> Some  , rst) |> Some
+            | ["ERROR"] :: rst -> (fNone, rst) |> Some
+            | _ -> failwithf "Parse error reading DP"
+        match lines with
+        | [name ; numb] :: DP (Some before, (["..."] :: GetASM (asm,  (DP (after, rst))))) -> 
+            Some (
+                {
+                    Before=before; 
+                    After=after; 
+                    Asm=asm
+                    Name = name + " " + numb
+                }, rst
+            )
+        | _ -> failwithf "Parse error reading file (1)" 
+    let rec testN tsts = function
+        | [] -> tsts
+        | Test1 (tst,rst) -> testN (tst :: tsts) rst
+        | _ -> failwithf "Parse error reading file (2)"
+    testN [] lines
+
+let handleTestRunError e (pInfo:RunInfo) (ts: TestSetup) =
+    let regs = 
+        pInfo.dp.Regs
+        |> Map.toList
+        |> List.sortBy (fun (r,u) -> r.RegNum)
+        |> List.map (fun (r,u) -> u)
+        |> List.take 15
+    let flags =
+        match pInfo.dp.Fl with
+        | {N = n ; C = c; V = v; Z = z} -> {FN=n;FC=c;FV=v;FZ=z}
+    match e with
+    | EXIT ->
+        match ts.After with
+        | fNone -> BetterThanModelTests, ts, pInfo, "Visual2 runs when VisuAL gives an error?"
+        | Some {TRegs=tr ; TFlags=fl} when tr = regs && fl = flags-> 
+            OkTests, ts, pInfo,"Ok"
+        | Some {TRegs=tr ; TFlags=fl} when tr <> regs -> 
+            ErrorTests,ts,pInfo, sprintf "Registers %A do not match model regs %A" regs tr
+        | Some {TRegs=tr ; TFlags=fl} when fl <> flags -> 
+            ErrorTests,ts,pInfo, sprintf "Flags %A do not match model flags %A" flags fl
+        | _ -> failwithf "What? Can't happen!"
+
+    | NotInstrMem x -> 
+        match ts.After with
+        | Core.Option.None -> OkTests, ts, pInfo, "Both VisUAL and VisUAL2 give errors"
+        | Some _ -> ErrorTests, ts, pInfo, "Error: trying to execute instruction memory"
+
+    | ``Run time error`` (pos,msg) -> 
+        match ts.After with
+        | Core.Option.None -> OkTests, ts, pInfo, "Both VisUAL and VisUAL2 give errors"
+        | Some _ -> ErrorTests, ts, pInfo, sprintf "Error on line %d: %s" pos msg
+
+    | ``Unknown symbol runtime error`` undefs -> 
+        ErrorTests, ts, pInfo, "Unknown symbol runtime error: should never happen!"
+
+let writeResultsToFile rt resL =
+
+    let nameOfCode = 
+        function | OkTests -> "OKs.txt" 
+                 | ErrorTests -> "ERRORs.txt" 
+                 | _ -> "BETTERs.txt"
+
+    let fName = projectDir + @"test-results/" + nameOfCode rt
+
+    let toText (ts,ri,mess) =
+        ts.Name + "\n" +
+        mess + "\n" +
+        "ASM\n" +
+        ts.Asm +
+        "----------------------------------\n"
+
+    match resL with
+    | [] -> if fs.existsSync (U2.Case1 fName) then fs.unlinkSync (U2.Case1 fName)
+    | _ -> 
+        resL
+        |> List.map (fun (tt,ts,ri,mess) -> toText (ts,ri,mess))
+        |> String.concat "\n"
+        |> (fun txt -> writeFileViaNode fName  txt)
+
+
+
+let processTestResults (res: Map<TestT,(TestT*TestSetup*RunInfo*string) list>) =
+    let getNum rt = 
+        let resL = Map.findWithDefault rt res []
+        writeResultsToFile rt resL
+        resL.Length
+
+    printfn "Test Results: Ok: %d ; Better: %d ; Errors: %d" 
+        (getNum OkTests) (getNum BetterThanModelTests) (getNum ErrorTests)
+
+
+let RunEmulatorTest ts =
+    let maxSteps = 1000
+
+    let asm = 
+        ts.Asm.Split([|'\r';'\n'|]) 
+        |> Array.filter (fun s -> s <> "")
+        |> Array.toList
+
+    let lim, indentedCode = reLoadProgram asm
+    let ri = lim |> getRunInfoFromState
+
+    if lim.Errors <> [] then 
+        match ts.After with
+        | Some _ -> ErrorTests, ts, ri, "Visual2 cannot parse test assembler"
+        | fNone -> OkTests, ts, ri, "Visual2 cannot parse assembler: however this test returns an error in the model"
+    else
+        match pExecute maxSteps ri with
+        | {RunErr = Some e;  dp=dp} as ri' -> handleTestRunError e ri' ts
+        | {dp=dp} as ri' -> 
+            ErrorTests, ts, ri', sprintf "Test code timed out after %d Visual2 instructions" maxSteps
+
+let runEmulatorTestFile testF =
+
+    let testResults =
+        loadStateFile testF
+        |> List.map RunEmulatorTest
+        |> List.groupBy (fun (rt,_,_,_) -> rt)
+        |> Map.ofList
+
+    processTestResults testResults
+
+let runAllEmulatorTests () =
+    let files = fs.readdirSync (U2.Case1 (projectDir + "test-data"))
+    printfn "%A" (files)
+    List.iter runEmulatorTestFile (files |> Seq.toList)
+    
+ 
+    
+
+
+
+
+
+

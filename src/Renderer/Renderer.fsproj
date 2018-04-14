@@ -11,6 +11,7 @@
     <Compile Include="Update.fs" />
     <Compile Include="MenuBar.fs" />
     <Compile Include="Integration.fs" />
+    <Compile Include="Tests.fs" />
     <Compile Include="Renderer.fs" />
   </ItemGroup>
   <ItemGroup>

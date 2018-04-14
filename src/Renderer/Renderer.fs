@@ -81,7 +81,7 @@ let init () =
     createFileTab ()
 
 
-setMainMenu ()
+setMainMenu Tests.runAllEmulatorTests
 
 let handleMonacoReady (_: Event) = init ()
 
