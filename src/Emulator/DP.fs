@@ -190,7 +190,7 @@ let parseNumberExpression (symTable) (str : string) =
     resolveOp symTable str
 
 let parseRegister (str : string) =
-    match Map.tryFind (str.ToUpper()) regNames with
+    match Map.tryFind (str.ToUpper().Trim()) regNames with
     | Some r -> Ok r
     | None -> makeDPE <| sprintf "Invalid register name '%s'" str
 
@@ -265,7 +265,7 @@ let parseOp2 (subMode: InstrNegativeLiteralMode) (symTable : SymbolTable) (args 
         if str.ToUpper() = "RRX" then
             Ok (RegisterWithRRX reg)
         else
-            match getShiftType (str.ToUpper().Substring(0, 3)), str.ToUpper().Substring(3) with
+            match getShiftType (str.ToUpper().Substring(0, 3)), str.ToUpper().Substring(3).Trim() with
             | Ok shiftType, imm when imm.StartsWith("#") -> 
                 imm.Substring(1) 
                 |> parseNumberExpression symTable 
