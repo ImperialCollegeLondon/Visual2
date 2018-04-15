@@ -82,16 +82,16 @@ let evalOp2 op2 d =
         // carry is always false if no shift happens
         newVal, if shiftBy <> 0u then carryBit else d.Fl.C
 
-    let evalNumberLiteral (l:int64) rot sub =
+    let evalNumberLiteral (l:int64) rot sub oldC =
         let u, carry = evalShift (uint32 l) ROR rot
         match sub with
         | NoNegLit -> u
         | InvertedLit -> ~~~u
         | NegatedLit -> (uint32 -(int u))
-        |> fun u -> u,carry
+        |> fun u -> u, if rot = 0u then oldC else carry
     
     match op2 with
-    | NumberLiteral (l,rot,sub) -> evalNumberLiteral l (uint32 rot) sub // carry possibly is changed
+    | NumberLiteral (l,rot,sub) -> evalNumberLiteral l (uint32 rot) sub d.Fl.C // carry possibly is changed
     | RegisterWithShift (rSrc, shiftType, shiftBy) -> evalShift d.Regs.[rSrc] shiftType shiftBy
     | RegisterWithRRX rSrc -> evalRrx d.Regs.[rSrc] d.Fl.C
     | RegisterWithRegisterShift (rSrc, shiftType, rShiftBy) -> evalShift d.Regs.[rSrc] shiftType d.Regs.[rShiftBy]
@@ -158,13 +158,13 @@ let execAdr
 // ///////////// simulator functions /////////////////////////////
 
 let simMathWithCarry a b cIn =
-    let mask32 = ((1UL <<< 32) - 1UL)
+    let mask32 = ((1L <<< 32) - 1L)
     let bit n (x:int64) = (x >>> n) &&& 1L
-    let unsignedTrueRes = (uint64 a) + (uint64 b) + (uint64 cIn)
+    let unsignedTrueRes = (int64 a &&& mask32) + (int64 b &&& mask32) + (int64 (int cIn))
     let res = (unsignedTrueRes &&& mask32) |> uint32
     let signedTrueRes = (int64 (int a)) + (int64 (int b)) + int64 cIn
     let overflow = bit 31 signedTrueRes <> bit 32 signedTrueRes
-    let carry = unsignedTrueRes >= (1UL <<< 32)
+    let carry = unsignedTrueRes >= (1L <<< 32)
     Ok (res, { N = setFlagN res;
                 Z = setFlagZ res;
                 C = carry;
@@ -173,7 +173,7 @@ let simMathWithCarry a b cIn =
 let to64s (u32:uint32) = u32 |> int32 |> int64
 // basic add
 let simADD a b flags op2carry = simMathWithCarry a b 0u
-let simSUB a b flags op2carry = simMathWithCarry a (~~~b) 1u
+let simSUB a b flags op2carry = simMathWithCarry a (~~~(int64 b) |> uint32) 1u
 
 // add / sub with carry
 let simADC a b flags op2carry = simMathWithCarry a b (if flags.C then 1u else 0u)
@@ -185,8 +185,10 @@ let simRSC a b = simSBC b a
 
 // any bitwise logic (and, orr, eor...)
 let simBitwiseLogic op a b flags op2carry =
-    let res = op a b
-    Ok (res, {flags with N = setFlagN res ; Z = setFlagZ res ; C = op2carry})
+    let mask = (1L <<< 32)-1L
+    let res:int64 = (op (int64 a) (int64 b)) &&& mask
+    let ures = uint32 res
+    Ok (ures, {flags with N = setFlagN ures ; Z = setFlagZ ures ; C = op2carry})
 
 
 // ///////////// parsing functions ///////////////////////////////
@@ -234,7 +236,7 @@ let parseOp2 (subMode: InstrNegativeLiteralMode) (symTable : SymbolTable) (args 
         let substitutes: (int64 * InstrNegativeLiteralMode) list = 
             let norm = num64,NoNegLit
             match subMode, num with
-            | InvertedLit, _ -> [norm ; ((~~~num64) &&& mask , InvertedLit)]
+            | InvertedLit, _ -> [norm ; ((~~~num) &&& mask , InvertedLit)]
             | NoNegLit, _
             | NegatedLit, 0L -> [norm]
             | NegatedLit, _  -> 
@@ -247,7 +249,10 @@ let parseOp2 (subMode: InstrNegativeLiteralMode) (symTable : SymbolTable) (args 
                 |> function Some (k,r)-> [(k,r,sub)] | fNone -> []
             substitutes 
             |> List.collect checkSub
-            |> List.sortBy (fun (k,r,sub) -> r)
+            |> List.sortBy (fun (k,r,sub) -> match sub with | NoNegLit -> 0,r | _ -> 1,r)
+
+        //printfn "substitutes=%A" substitutes
+        //printfn "Poslits=%A" posLits
 
 
         
@@ -255,9 +260,7 @@ let parseOp2 (subMode: InstrNegativeLiteralMode) (symTable : SymbolTable) (args 
 
         match posLits  with
         | [] -> makeDPE <| sprintf "Invalid ARM immediate value %d. Immediates are formed as 32-bit numbers: N ROR (2M), 0 <= N <= 256, 0 <= M <= 15" num
-        | _ when isZeroNegated -> Result.Ok (NumberLiteral(0L,0,NoNegLit)) // multiple zero representations
-        | [K,rot,sub] -> Result.Ok (NumberLiteral(K,rot,sub))
-        | (K,rot,sub) :: _ ->  Result.Ok (NumberLiteral(K,rot,NoNegLit))
+        | (K,rot,sub) :: _ ->  Result.Ok (NumberLiteral(K,rot,sub))
 
     /// apply shift expression to register
     let parseShiftExpression (str : string) reg =

@@ -135,7 +135,7 @@ let rec pExecute (numSteps: int) (ri:RunInfo) =
                 Browser.window.setTimeout(
                     (fun () -> pExecute currentStep pi), 0) |> ignore
     setState()
-    printfn "Pexecute dp=%A" pi.dp
+    //printfn "Pexecute dp=%A" pi.dp
     {pi with RunErr = err}
 
 

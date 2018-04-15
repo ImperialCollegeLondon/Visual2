@@ -82,13 +82,13 @@ let loadStateFile (fName:string) =
             | ["ERROR"] :: rst -> (fNone, rst) |> Some
             | _ -> failwithf "Parse error reading DP"
         match lines with
-        | [name ; numb] :: DP (Some before, (["..."] :: GetASM (asm,  (DP (after, rst))))) -> 
+        | [name] :: DP (Some before, (["..."] :: GetASM (asm,  (DP (after, rst))))) -> 
             Some (
                 {
-                    Before=before; 
-                    After=after; 
+                    Before=before 
+                    After=after
                     Asm=asm
-                    Name = name + " " + numb
+                    Name = name
                 }, rst
             )
         | _ -> failwithf "Parse error reading file (1)" 
@@ -156,7 +156,7 @@ let writeResultsToFile rt resL =
         "ASM\n" +
         ts.Asm +
         "\n----------------------------------\n"
-    printfn "Writing result file\n%s." fName
+    //printfn "Writing result file\n%s." fName
     match resL with
     | [] -> if fs.existsSync (U2.Case1 fName) then fs.unlinkSync (U2.Case1 fName)
     | _ -> 
@@ -207,7 +207,7 @@ let RunEmulatorTest ts =
             }
 
         let ri' = pTestExecute maxSteps { ri with dp = dpBefore}
-        printfn "RI':%A" ri'
+
         match ri' with
         | {RunErr = Some e;  dp=dp} as ri' -> handleTestRunError e ri' ts
         | {dp=dp} as ri' -> 
