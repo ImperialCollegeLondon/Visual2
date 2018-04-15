@@ -116,6 +116,7 @@ let rec pExecute (numSteps: int) (ri:RunInfo) =
     let lastStep = numSteps - stepsBeforeDisplay
     let mutable pi = {ri with RunErr=FSharp.Core.Option.None}
     let mutable dp = ri.dp
+    let mutable err = fNone
     let setState() =
         showInfo pi
         updateRegisters()
@@ -123,6 +124,7 @@ let rec pExecute (numSteps: int) (ri:RunInfo) =
         dp <- ri.dp
         match dataPathStep (pi.dp,pi.IMem) with
         | Result.Error e -> 
+            err <- Some e
             handleRunTimeError e pi
             currentStep <- 0
         | Result.Ok ndp ->
@@ -133,8 +135,19 @@ let rec pExecute (numSteps: int) (ri:RunInfo) =
                 Browser.window.setTimeout(
                     (fun () -> pExecute currentStep pi), 0) |> ignore
     setState()
-    {pi with dp=dp}
+    printfn "Pexecute dp=%A" pi.dp
+    {pi with RunErr = err}
 
+
+let rec pTestExecute numSteps ri =
+    match numSteps, dataPathStep (ri.dp,ri.IMem) with
+    | 0, _ -> { ri with RunErr = fNone}
+    | _, Result.Error e -> 
+        {ri with RunErr = Some e }
+    | _, Result.Ok ndp ->
+       pTestExecute (numSteps - 1) { ri with dp = ndp}
+   
+    
 let tryParseCode tId =
 
     let asm = 

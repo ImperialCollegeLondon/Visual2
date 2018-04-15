@@ -157,22 +157,27 @@ let execAdr
 
 // ///////////// simulator functions /////////////////////////////
 
-let simMathWithCarry op_u32 op_u64 op_i64 a b cIn cOutTransform =
-    let res = op_u32 (op_u32 a b) cIn |> (&&&) 4294967295u
-    let unsignedCarry = op_u64 (op_u64 (uint64 a) (uint64 b)) (uint64 cIn) <> (uint64 res)
-    let overflow = op_i64  (op_i64 (int64 (int a)) (int64 (int b)))  (int64 (int cIn)) <> (int64 (int res))
+let simMathWithCarry a b cIn =
+    let mask32 = ((1UL <<< 32) - 1UL)
+    let bit n (x:int64) = (x >>> n) &&& 1L
+    let unsignedTrueRes = (uint64 a) + (uint64 b) + (uint64 cIn)
+    let res = (unsignedTrueRes &&& mask32) |> uint32
+    let signedTrueRes = (int64 (int a)) + (int64 (int b)) + int64 cIn
+    let overflow = bit 31 signedTrueRes <> bit 32 signedTrueRes
+    let carry = unsignedTrueRes >= (1UL <<< 32)
     Ok (res, { N = setFlagN res;
                 Z = setFlagZ res;
-                C = cOutTransform unsignedCarry;
+                C = carry;
                 V = overflow })
 
+let to64s (u32:uint32) = u32 |> int32 |> int64
 // basic add
-let simADD a b flags op2carry = simMathWithCarry (+) (+) (+) a b 0u (fun x -> x)
-let simSUB a b flags op2carry = simMathWithCarry (-) (-) (-) a b 0u (not)
+let simADD a b flags op2carry = simMathWithCarry a b 0u
+let simSUB a b flags op2carry = simMathWithCarry a (~~~b) 1u
 
 // add / sub with carry
-let simADC a b flags op2carry = simMathWithCarry (+) (+) (+) a b (if flags.C then 1u else 0u) (fun x -> x)
-let simSBC a b flags op2carry = simMathWithCarry (-) (-) (-) a b (if flags.C then 0u else 1u) (not)
+let simADC a b flags op2carry = simMathWithCarry a b (if flags.C then 1u else 0u)
+let simSBC a b flags op2carry = simMathWithCarry a (~~~b) (if flags.C then 1u else 0u)
 
 // reverse subtract
 let simRSB a b = simSUB b a

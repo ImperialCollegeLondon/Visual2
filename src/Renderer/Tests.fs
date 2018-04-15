@@ -12,6 +12,7 @@ open Fable.Import.Electron
 open Fable.Import.Browser
 open Node.Exports
 open Fable.PowerPack.Keyboard
+open CommonData
 
 
 let fNone = Core.Option.None
@@ -63,19 +64,19 @@ let loadStateFile (fName:string) =
                     | "1" -> true 
                     | _ -> failwithf "Parse error expecting '1' or '0' as flag value"
         { 
-            TRegs = rLst |> List.map ((fun s -> printfn "RN=%s" s ; s) >> uint32); 
+            TRegs = rLst |> List.map (uint32); 
             TFlags = { FN = fl n; FC = fl c; FZ = fl z; FV = fl v}
         }
     let (|GetASM|_|) lines =
-        printfn "GETASM:%A\n\n" lines
+        //printfn "GETASM:%A\n\n" lines
         let n = List.findIndex ((=) ["..."]) lines
         let toStr lst = String.concat " " lst
         (String.concat "\r\n" (lines.[0..n-1] |> List.map toStr) , lines.[n+1..]) |> Some
                        
     let (|Test1|_|) lines =
-        printfn "Test1\n%A\n------------\n" lines
+        //printfn "Test1\n%A\n------------\n" lines
         let (|DP|_|) lines =
-            printfn "DP: %A\n\n" lines
+            //printfn "DP: %A\n\n" lines
             match lines with
             | ("Regs" :: rLst) :: [ "NZCV"; n; z; c; v ] :: rst -> (toDP rLst n z c v |> Some  , rst) |> Some
             | ["ERROR"] :: rst -> (fNone, rst) |> Some
@@ -98,6 +99,13 @@ let loadStateFile (fName:string) =
     testN [] lines
 
 let handleTestRunError e (pInfo:RunInfo) (ts: TestSetup) =
+    let matchMess actual model =
+        List.zip actual model 
+        |> List.indexed
+        |> List.filter (fun (_, (a,m)) -> a <> m)
+        |> List.map (fun (r,(a,m)) -> sprintf "Bad output:R%d is 0x%x should be 0x%x" r (uint64 a) (uint64 m))
+        |> String.concat "\n"
+ 
     let regs = 
         pInfo.dp.Regs
         |> Map.toList
@@ -109,14 +117,15 @@ let handleTestRunError e (pInfo:RunInfo) (ts: TestSetup) =
         | {N = n ; C = c; V = v; Z = z} -> {FN=n;FC=c;FV=v;FZ=z}
     match e with
     | EXIT ->
+        //printfn "ts.After=%A" ts.After
         match ts.After with
-        | fNone -> BetterThanModelTests, ts, pInfo, "Visual2 runs when VisuAL gives an error?"
+        | Core.Option.None -> BetterThanModelTests, ts, pInfo, "Visual2 runs when VisuAL gives an error?"
         | Some {TRegs=tr ; TFlags=fl} when tr = regs && fl = flags-> 
             OkTests, ts, pInfo,"Ok"
         | Some {TRegs=tr ; TFlags=fl} when tr <> regs -> 
-            ErrorTests,ts,pInfo, sprintf "Registers %A do not match model regs %A" regs tr
+            ErrorTests,ts,pInfo, matchMess regs tr
         | Some {TRegs=tr ; TFlags=fl} when fl <> flags -> 
-            ErrorTests,ts,pInfo, sprintf "Flags %A do not match model flags %A" flags fl
+            ErrorTests,ts,pInfo, sprintf "Flags:\n%A\ndo not match model flags\n%A" flags fl
         | _ -> failwithf "What? Can't happen!"
 
     | NotInstrMem x -> 
@@ -146,8 +155,8 @@ let writeResultsToFile rt resL =
         mess + "\n" +
         "ASM\n" +
         ts.Asm +
-        "----------------------------------\n"
-
+        "\n----------------------------------\n"
+    printfn "Writing result file\n%s." fName
     match resL with
     | [] -> if fs.existsSync (U2.Case1 fName) then fs.unlinkSync (U2.Case1 fName)
     | _ -> 
@@ -184,7 +193,22 @@ let RunEmulatorTest ts =
         | Some _ -> ErrorTests, ts, ri, "Visual2 cannot parse test assembler"
         | fNone -> OkTests, ts, ri, "Visual2 cannot parse assembler: however this test returns an error in the model"
     else
-        match pExecute maxSteps ri with
+        let dpBefore =
+            {ri.dp with 
+                Regs = 
+                    ts.Before.TRegs 
+                    |> List.indexed 
+                    |> fun lis -> (15,0u) :: lis
+                    |> List.map (fun (n,u) -> inverseRegNums.[n], u)
+                    |> Map.ofList
+                Fl =
+                    match ts.Before.TFlags with
+                    | {FC=c;FV=v;FZ=z;FN=n} -> {C=c;V=v;N=n;Z=z}
+            }
+
+        let ri' = pTestExecute maxSteps { ri with dp = dpBefore}
+        printfn "RI':%A" ri'
+        match ri' with
         | {RunErr = Some e;  dp=dp} as ri' -> handleTestRunError e ri' ts
         | {dp=dp} as ri' -> 
             ErrorTests, ts, ri', sprintf "Test code timed out after %d Visual2 instructions" maxSteps
@@ -201,8 +225,12 @@ let runEmulatorTestFile testF =
 
 let runAllEmulatorTests () =
     let files = fs.readdirSync (U2.Case1 (projectDir + "test-data"))
-    printfn "%A" (files)
-    List.iter runEmulatorTestFile (files |> Seq.toList)
+    let paths = 
+        files 
+        |> Seq.toList 
+        |> List.map (fun fn-> printfn "%A" fn ; projectDir + @"test-data/" + fn)
+    printfn "%A" paths
+    List.iter runEmulatorTestFile paths
     
  
     
