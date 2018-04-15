@@ -17,6 +17,10 @@ type InstrNegativeLiteralMode =
     | InvertedLit
     | NoNegLit
 
+/// deal with bug in FABLE uint32 handling
+let trimUint32 u = ((int64 u) &&& ((1L <<< 32) - 1L)) |> uint32
+
+
 // ///////////// runtime types ///////////////////////////////////
 
 let makeDPE s = makePE ``Invalid syntax`` "" s
@@ -108,7 +112,7 @@ let execArithmetic
 
     let val1 = evalRegister op1 d
     let val2, carry = evalOp2 op2 d
-    let result = fn val1 val2 d.Fl carry
+    let result = fn val1 (trimUint32 val2) d.Fl carry
 
     result |> Result.map (fun (n, flags) -> writeBack n dst flags updateFlags d)
 
@@ -135,7 +139,8 @@ let execMove
         (d : DataPath) =
 
     let op2val, carry = evalOp2 src d
-    let result = if negated then ~~~op2val else op2val
+    let result = trimUint32 <| if negated then ~~~op2val else op2val
+        
 
     let flags = {d.Fl with N = setFlagN result ; Z = setFlagZ result ; C = carry }
 
@@ -152,7 +157,7 @@ let execAdr
 
     match op2val with
     | op when int64 (d.Regs.[R15]+8u) - int64 (op) |> abs < 0x400L -> 
-        Ok (writeBack op2val dst flags updateFlags d)         
+        Ok (writeBack (trimUint32 op2val) dst flags updateFlags d)         
     | _ -> sprintf "Out of range operand %d in ADR instruction" op2val |> Error
 
 // ///////////// simulator functions /////////////////////////////
@@ -161,7 +166,7 @@ let simMathWithCarry a b cIn =
     let mask32 = ((1L <<< 32) - 1L)
     let bit n (x:int64) = (x >>> n) &&& 1L
     let unsignedTrueRes = (int64 a &&& mask32) + (int64 b &&& mask32) + (int64 (int cIn))
-    let res = (unsignedTrueRes &&& mask32) |> uint32
+    let res = trimUint32 (uint32 unsignedTrueRes)
     let signedTrueRes = (int64 (int a)) + (int64 (int b)) + int64 cIn
     let overflow = bit 31 signedTrueRes <> bit 32 signedTrueRes
     let carry = unsignedTrueRes >= (1L <<< 32)

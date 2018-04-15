@@ -139,13 +139,17 @@ let rec pExecute (numSteps: int) (ri:RunInfo) =
     {pi with RunErr = err}
 
 
-let rec pTestExecute numSteps ri =
+let rec pTestExecute more numSteps ri =
+    if more then printfn "Initial\nregs=%A\nflags=%A\nMem=%A\n" ri.dp.Regs ri.dp.Fl ri.IMem
     match numSteps, dataPathStep (ri.dp,ri.IMem) with
-    | 0, _ -> { ri with RunErr = fNone}
+    | 0, _ -> 
+        if more then printfn "Terminating with no error\nregs=%A\nflags=%A\n" ri.dp.Regs ri.dp.Fl
+        { ri with RunErr = fNone}
     | _, Result.Error e -> 
+        if more then printfn "Terminating\nregs=%A\nflags=%A\nError=%A\n" ri.dp.Regs ri.dp.Fl e
         {ri with RunErr = Some e }
     | _, Result.Ok ndp ->
-       pTestExecute (numSteps - 1) { ri with dp = ndp}
+        pTestExecute more (numSteps - 1) { ri with dp = ndp}
    
     
 let tryParseCode tId =

@@ -112,6 +112,8 @@ let handleTestRunError e (pInfo:RunInfo) (ts: TestSetup) =
         |> List.sortBy (fun (r,u) -> r.RegNum)
         |> List.map (fun (r,u) -> u)
         |> List.take 15
+    
+
     let flags =
         match pInfo.dp.Fl with
         | {N = n ; C = c; V = v; Z = z} -> {FN=n;FC=c;FV=v;FZ=z}
@@ -141,14 +143,14 @@ let handleTestRunError e (pInfo:RunInfo) (ts: TestSetup) =
     | ``Unknown symbol runtime error`` undefs -> 
         ErrorTests, ts, pInfo, "Unknown symbol runtime error: should never happen!"
 
-let writeResultsToFile rt resL =
+let writeResultsToFile fn rt resL =
 
     let nameOfCode = 
-        function | OkTests -> "OKs.txt" 
-                 | ErrorTests -> "ERRORs.txt" 
-                 | _ -> "BETTERs.txt"
+        function | OkTests -> "OKs" 
+                 | ErrorTests -> "ERRORs" 
+                 | _ -> "BETTERs"
 
-    let fName = projectDir + @"test-results/" + nameOfCode rt
+    let fName = projectDir + @"test-results/" + (nameOfCode rt + fn)
 
     let toText (ts,ri,mess) =
         ts.Name + "\n" +
@@ -167,18 +169,20 @@ let writeResultsToFile rt resL =
 
 
 
-let processTestResults (res: Map<TestT,(TestT*TestSetup*RunInfo*string) list>) =
+let processTestResults (fn: string) (res: Map<TestT,(TestT*TestSetup*RunInfo*string) list>) =
     let getNum rt = 
         let resL = Map.findWithDefault rt res []
-        writeResultsToFile rt resL
+        writeResultsToFile fn rt resL
         resL.Length
 
-    printfn "Test Results: Ok: %d ; Better: %d ; Errors: %d" 
-        (getNum OkTests) (getNum BetterThanModelTests) (getNum ErrorTests)
+    printfn "Test Results from '%s': Ok: %d ; Better: %d ; Errors: %d" 
+        fn (getNum OkTests) (getNum BetterThanModelTests) (getNum ErrorTests)
 
-
-let RunEmulatorTest ts =
+/// on small test files print more info
+let RunEmulatorTest ts size =
     let maxSteps = 1000
+
+    let more = size < 4
 
     let asm = 
         ts.Asm.Split([|'\r';'\n'|]) 
@@ -186,6 +190,9 @@ let RunEmulatorTest ts =
         |> Array.toList
 
     let lim, indentedCode = reLoadProgram asm
+
+    if more then printfn "\n\nIndented ASM:\n%s\n" (indentedCode |> String.concat "\n")
+
     let ri = lim |> getRunInfoFromState
 
     if lim.Errors <> [] then 
@@ -206,31 +213,37 @@ let RunEmulatorTest ts =
                     | {FC=c;FV=v;FZ=z;FN=n} -> {C=c;V=v;N=n;Z=z}
             }
 
-        let ri' = pTestExecute maxSteps { ri with dp = dpBefore}
+        let ri' = pTestExecute more maxSteps { ri with dp = dpBefore}
 
         match ri' with
         | {RunErr = Some e;  dp=dp} as ri' -> handleTestRunError e ri' ts
         | {dp=dp} as ri' -> 
             ErrorTests, ts, ri', sprintf "Test code timed out after %d Visual2 instructions" maxSteps
 
-let runEmulatorTestFile testF =
-
+let runEmulatorTestFile fn =
+    let testF = projectDir + @"test-data/" + fn
     let testResults =
         loadStateFile testF
-        |> List.map RunEmulatorTest
+        |> (fun tsLis ->
+                printfn "Running test file %s with %d tests..." fn tsLis.Length
+                List.map (fun ts -> ts, tsLis.Length) tsLis)
+        |> List.map (fun (ts, n) -> RunEmulatorTest ts n )
         |> List.groupBy (fun (rt,_,_,_) -> rt)
         |> Map.ofList
 
-    processTestResults testResults
+    processTestResults fn testResults
 
 let runAllEmulatorTests () =
-    let files = fs.readdirSync (U2.Case1 (projectDir + "test-data"))
-    let paths = 
-        files 
+    let files = 
+        fs.readdirSync (U2.Case1 (projectDir + "test-data"))
         |> Seq.toList 
-        |> List.map (fun fn-> printfn "%A" fn ; projectDir + @"test-data/" + fn)
-    printfn "%A" paths
-    List.iter runEmulatorTestFile paths
+        |> (fun lis ->        
+                if List.contains "focus.txt" lis 
+                then ["focus.txt"]
+                else lis)
+
+    List.iter runEmulatorTestFile files
+    printfn "Finished running tests: see './test-results' for result files"
     
  
     
