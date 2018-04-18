@@ -1698,17 +1698,17 @@ amdRequire(['vs/editor/editor.main'], function () {
 
 
   // window.code = monaco.editor.create(document.getElementById('editor'), {
-  //   value: [
-  //     'mov r0, #5',
-  //     'mov r1, r0'
-  //   ].join('\n'),
-  //   language: 'arm',
-  //   theme: 'vs-light',
-  //   renderWhitespace: 'all',
-  //   roundedSelection: false,
-  //   scrollBeyondLastLine: false,
-  //   automaticLayout: true
-  // });
+   //  value: [
+   //    'mov r0, #5',
+   //    'mov r1, r0'
+    // ].join('\n'),
+    // language: 'arm',
+    // theme: 'vs-light',
+    // renderWhitespace: 'all',
+    // roundedSelection: false,
+    // scrollBeyondLastLine: false,
+    // automaticLayout: true
+   //});
 
   var mevent = new CustomEvent("monaco-ready", { "detail": "ready now!" });
 

@@ -25,7 +25,7 @@ open System.IO
 
 
 let errUnpacker (eName, eTxt, eMess) tId lineNo =
-    makeErrorInEditor tId lineNo ("*"+eName + "*\n" + eTxt + eMess) 
+    makeErrorInEditor tId lineNo (""+eName + "\n\n" + eTxt + "\n\n" + eMess) 
 
 let highlightErrorParse ((err:ParseError), lineNo) tId = 
     let errCode, errStr, errMess = err

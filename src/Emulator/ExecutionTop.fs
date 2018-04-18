@@ -62,23 +62,26 @@ let makeLocI (pa: Parse<Instr>) =
     | Ok ins -> Code (pa.PCond, ins)
     | Error _ -> failwithf "What? can't put invalid instruction into memory"
 
-let makeLocD (pa: Parse<Instr>) : Data list=
+let makeLocD (pa: Parse<Instr>) : Data list =
     let makeW (bl:uint32 list) =
         let rec makeW' (b: uint32 list) locs =
             let CH (b:uint32) n = (b &&& 0xffu) <<< n
             match b with
-            | [] -> List.rev locs
+            | [] -> 
+                List.rev locs
             | bls :: b1 :: b2 :: bms :: rest ->
-                makeW' rest ((CH bls 0 ||| CH bls 8 ||| CH bls 16 ||| CH bls 24) :: locs)
+                makeW' rest ((CH bls 0 ||| CH b1 8 ||| CH b2 16 ||| CH bms 24) :: locs)
             | r -> failwithf "What? can't make words from list with length %d not divisible by 4: %A" (List.length bl) bl
         makeW' bl []  |> List.map Dat  
         
     match pa.PInstr with
     | Ok (IMISC (DCD dl)) ->
+        printfn "DCD dl=%A" dl
         if List.length dl * 4 <> int pa.DSize then 
             failwithf "What? DCD Data size %d does not match data list %A" pa.DSize dl
         dl |> List.map Dat
     | Ok (IMISC (DCB dl)) -> 
+        printfn "DCB dl=%A" dl
         if List.length dl <> int pa.DSize then 
             failwithf "What? DCB Data size %d does not match data list %A" pa.DSize dl
         dl |> makeW 
@@ -89,11 +92,11 @@ let makeLocD (pa: Parse<Instr>) : Data list=
     | Ok _ -> failwithf "What? Undefined data directive!"
     | Error _ -> failwithf "What? Can't load data memory from error!"
 
-let addDataListToMem (dStart:uint32) (mm: DataMemory) (dl:Data list) = 
+let addWordDataListToMem (dStart:uint32) (mm: DataMemory) (dl:Data list) = 
     let folder mm (n,loc) = Map.add n loc mm
     dl
     |> List.indexed
-    |> List.map (fun (n,loc) -> (uint32 n + dStart) |> WA,loc)
+    |> List.map (fun (n,loc) -> (uint32 (n*4) + dStart) |> WA,loc)
     |> List.fold folder mm 
     
 
@@ -129,7 +132,9 @@ let loadLine (lim:LoadImage) ((line,lineNum) : string * int) =
     let m,c =
         match pa.ISize, pa.DSize with
         | 0u,0u -> lim.Mem, lim.Code
-        | 0u, _ -> addDataListToMem  lp.PosD lim.Mem (makeLocD pa), lim.Code
+        | 0u, _ -> 
+            printfn "makeLoc output: %A" (makeLocD pa)
+            addWordDataListToMem   lp.PosD lim.Mem (makeLocD pa), lim.Code
         | 4u, 0u -> 
                 match pa.PInstr with
                 | Ok pai -> 
@@ -206,7 +211,7 @@ let reLoadProgram (lines: string list) =
             -> lim2
         | n1,n2 when n1 = n2 && lim2.Errors = [] -> failwithf "What? %d unresolved refs in load image with no errors" n1
         | _ -> pass lim2 (next lim2)
-    let final = pass lim1 (next lim1) |> next
+    let final = pass lim1 (next lim1) |> next |> next
     final, indentProgram final lines
 
 
@@ -229,6 +234,7 @@ let dataPathStep (dp : DataPath, code:CodeMemory<CondInstr*int>) =
             | IBRANCH instr' ->
                 executeBranch instr' dp
             | IMISC (Misc.ADR adrInstr) ->
+                printfn "Executing ADR"
                 executeADR adrInstr dp |> Ok
             | IMISC ( x) -> (``Run time error`` ( dp.Regs.[R15], sprintf "Can't execute %A" x)) |> Error
             | ParseTop.EMPTY _ -> failwithf "Shouldn't be executing empty instruction"

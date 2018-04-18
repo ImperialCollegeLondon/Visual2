@@ -41,6 +41,7 @@ module Misc
             | Error st -> Error st
             | Ok st -> Result.map (fun r -> r :: st) r
         List.fold folder (Ok []) lst
+        |> Result.map List.rev
 
     let parseExprList symTab lst =
         List.map (resolveOp symTab) lst
@@ -85,8 +86,15 @@ module Misc
 
         let makeFILL ops =
             match resolvedOpLst with
-            | Ok [nBytes; fillVal] ->  makeDataDirective nBytes (FILL {NumBytes = nBytes; FillValue = fillVal} |> Ok)
-            | _ -> makeDataDirective 0u (makePE ``Invalid instruction`` ls.Operands "Fill operands must be defined")
+            | Ok [nBytes] when nBytes % 4u = 0u -> 
+                makeDataDirective nBytes (FILL {NumBytes = nBytes; FillValue = 0u} |> Ok)
+            | Ok [nBytes; fillVal] when nBytes % 4u = 0u  ->  
+                makeDataDirective nBytes (FILL {NumBytes = nBytes; FillValue = fillVal} |> Ok)
+            | Ok [ nBytes]
+            | Ok [ nBytes; _] ->
+                makeDataDirective 0u (makePE ``Invalid instruction`` ls.Operands <| 
+                        sprintf "%d FILL bytes is invalid. Fill must have a number of bytes divisible by 4" nBytes)
+            | _ -> makeDataDirective 0u (makePE ``Invalid instruction`` ls.Operands "Fill must have 1 or 2 operands")
        
         let makeEQU (op: Resolvable) =
             match op with
@@ -97,7 +105,10 @@ module Misc
         let pa = copyDefault ls Cal
         match opCode, opLst with
         | "DCD", RESOLVEALL ops -> makeDataDirective (opNum*4u) (makeDataInstr DCD) 
-        | "DCB", RESOLVEALL ops -> makeDataDirective opNum (makeDataInstr DCB) 
+        | "DCB", RESOLVEALL ops when ops.Length % 4 = 0 -> makeDataDirective opNum (makeDataInstr DCB) 
+        | "DCB", _ -> 
+            makePE ``Invalid instruction`` ls.Operands "DCB must have a number of parameters divisible by 4"
+            |> makeDataDirective 0u
         | "FILL", RESOLVEALL [op] -> makeFILL [op,0u]
         | "FILL", RESOLVEALL ops  -> makeFILL ops
         | "ADR", RegMatch (Ok rn) :: RESOLVEALL [addr] ->
