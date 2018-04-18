@@ -76,12 +76,12 @@ let makeLocD (pa: Parse<Instr>) : Data list =
         
     match pa.PInstr with
     | Ok (IMISC (DCD dl)) ->
-        printfn "DCD dl=%A" dl
+        //printfn "DCD dl=%A" dl
         if List.length dl * 4 <> int pa.DSize then 
             failwithf "What? DCD Data size %d does not match data list %A" pa.DSize dl
         dl |> List.map Dat
     | Ok (IMISC (DCB dl)) -> 
-        printfn "DCB dl=%A" dl
+        //printfn "DCB dl=%A" dl
         if List.length dl <> int pa.DSize then 
             failwithf "What? DCB Data size %d does not match data list %A" pa.DSize dl
         dl |> makeW 
@@ -133,7 +133,7 @@ let loadLine (lim:LoadImage) ((line,lineNum) : string * int) =
         match pa.ISize, pa.DSize with
         | 0u,0u -> lim.Mem, lim.Code
         | 0u, _ -> 
-            printfn "makeLoc output: %A" (makeLocD pa)
+            //printfn "makeLoc output: %A" (makeLocD pa)
             addWordDataListToMem   lp.PosD lim.Mem (makeLocD pa), lim.Code
         | 4u, 0u -> 
                 match pa.PInstr with
@@ -234,7 +234,7 @@ let dataPathStep (dp : DataPath, code:CodeMemory<CondInstr*int>) =
             | IBRANCH instr' ->
                 executeBranch instr' dp
             | IMISC (Misc.ADR adrInstr) ->
-                printfn "Executing ADR"
+                //printfn "Executing ADR"
                 executeADR adrInstr dp |> Ok
             | IMISC ( x) -> (``Run time error`` ( dp.Regs.[R15], sprintf "Can't execute %A" x)) |> Error
             | ParseTop.EMPTY _ -> failwithf "Shouldn't be executing empty instruction"
