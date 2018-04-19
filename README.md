@@ -6,16 +6,21 @@ Read the [**Wiki**](https://github.com/ImperialCollegeLondon/Visual2/wiki) befor
 
 For a quick start go straight to [Getting Started](#getting-started).
 
+For HLP students thinking parts of their code are better than what is collected here: you are probably correct. The code here was pulled together quickly and mix and match was not attempted much. Put forward a proposal to replace part of this with your code by raising an issue; I will comment and almost certainly agree if you are willing to do the interface work.
+
 The rest of the README gives a project and code overview.
 
 ## Introduction
 
 This project is based on a starter template from https://github.com/filangel/arm-monaco.
+
 The target language is `F#`, which is transpiled to `Javascript` (`js`) thanks to [Fable](https://fable.io).
 [Github Electron](https://electronjs.org/) is then used to convert the developed web-app to a cross-platform native application,
 providing access to platform-level commands (i.e. file-system, path, multiple processes), which are unavailable to
 (vanilla) browser web-apps.
+
 [Webpack](https://webpack.js.org/) is the module bundler, responsible for the transpilation and automated building process.
+
 Finally, [Monaco Editor](https://microsoft.github.io/monaco-editor/) is used for as a self-contained javascript component that implements an editor window which your `F#` code can interact with.
 
 ## Features
@@ -23,6 +28,8 @@ Finally, [Monaco Editor](https://microsoft.github.io/monaco-editor/) is used for
 This GUI seeks to reimplement in F# the [VisUAL implementation](https://salmanarif.bitbucket.io/visual/) while making many improvements and changes.  The code in this project is designed to be platform-independent with minimal hassle, as was VisUAL, and will be distributed as separate binaries for each of the main desktop platforms.
 
 Whereas VisUAL uses java to achieve platform-independence this project uses Javascipt/HTML. However, in order to make code maintainable nearly all of the source is written in F#.
+
+The project uses automated tests for its ARM emulator that are constructed using the (open) [VisualRandomTestGen](https://github.com/ImperialCollegeLondon/VisualRandomTestGen) project. See testing in the wiki.
 
 
 
