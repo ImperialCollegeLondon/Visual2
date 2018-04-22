@@ -47,6 +47,7 @@ var basicConfig = {
 };
 
 const CopyWebpackPlugin = require('copy-webpack-plugin');
+//const UglifyJSPlugin = require('uglifyjs-webpack-plugin')
 
 var mainConfig = Object.assign({
   target: "electron-main",
@@ -59,6 +60,9 @@ var mainConfig = Object.assign({
 
 var rendererConfig = Object.assign({
   plugins: [
+
+    //new UglifyJSPlugin(),
+
     new CopyWebpackPlugin([
       {
         from: 'node_modules/monaco-editor/min/vs',

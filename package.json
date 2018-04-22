@@ -30,6 +30,7 @@
     "fable-loader": "^1.0.7",
     "fable-utils": "^1.0.2",
     "loglevel": "^1.4.1",
+    "uglifyjs-webpack-plugin": "^1.2.5",
     "webpack": "^3.11.0"
   }
 }
