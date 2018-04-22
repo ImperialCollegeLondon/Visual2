@@ -4,7 +4,7 @@ app/js/*.js*
 app/js/vs
 node_modules
 paket-files
-dist
+dist/*
 !dist/visual2-darwin-x64
 test-results
 
