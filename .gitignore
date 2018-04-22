@@ -5,6 +5,7 @@ app/js/vs
 node_modules
 paket-files
 dist
+!dist/visual2-darwin-x64
 test-results
 
 ## Ignore Visual Studio temporary files, build results, and
