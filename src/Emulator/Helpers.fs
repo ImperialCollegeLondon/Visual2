@@ -26,6 +26,8 @@ module Helpers
     let qp item = printfn "%A" item
     let qpl lst = List.map (qp) lst
 
+
+
     /// Partial Active pattern for regexes. 
     /// Returns the 1st () element in the group
     let (|ParseRegex|_|) (regex: string) (str: string) =
@@ -38,7 +40,7 @@ module Helpers
     /// Returns the 1st and 2nd () elements in the group
     let (|ParseRegex2|_|) (regex: string) (str: string) =
        let m = Regex("^" + regex + "[\\s]*" + "$").Match(str)
-       if m.Success
+       if m.Success && m.Groups.Count >= 2
        then Some (m.Groups.[1].Value, m.Groups.[2].Value)
        else None
 
@@ -62,13 +64,64 @@ module Helpers
 
     let uppercase (x: string) = x.ToUpper()
 
+    let trim (x:string) = x.Trim()
+
     /// Split an input string at the provided charater.
     /// Return as a string list.
+    let splitAnyKeepSpaces (str: string) char =                                   
+        str.Split [|char|]              
+        |> Array.map (uppercase)
+        |> List.ofArray
+
+
+    /// Split an input string at the provided charater.
+    /// Return as a string list with spaces removed
     let splitAny (str: string) char =
         let nospace = str.Replace(" ", "")                                    
-        nospace.Split([|char|])              
-        |> Array.map uppercase    
-        |> List.ofArray
+        splitAnyKeepSpaces nospace char
+
+
+    let (|FINDBRACKETED|_|) bra ket txt =
+        match splitAnyKeepSpaces bra txt with
+        | before :: afterBra :: rest -> 
+            match splitAnyKeepSpaces afterBra ket with
+            | inside :: after -> 
+                Some (before |> trim, inside |> trim, String.concat (ket.ToString()) after |> trim)
+            | _ -> None
+        | _ -> None
+
+    let (|SPLITCOMMAS|_|) txt = Some (splitAnyKeepSpaces txt ',')
+    let (|SPLITSPACES|_|) txt = Some (splitAnyKeepSpaces txt ' ')
+
+    let (|REMOVEPREFIX|_|) (prefix:string) (txt:string) =
+        if EEExtensions.String.startsWith prefix txt then
+            Some txt.[prefix.Length..txt.Length]
+        else None
+            
+    let (|TRIM|_|) (x:string) = Some (x.Trim())
+
+    let (|LITERALNUMB|_|) txt = 
+        match txt with
+        | Expressions.RegexPrefix "0[xX][0-9a-fA-F]+" (num, rst) 
+        | Expressions.RegexPrefix "0[bB][0-1]+" (num, rst)
+        | Expressions.RegexPrefix "[0-9]+" (num, rst) -> 
+            try
+                (uint32 (num.ToLower()), rst) |> Some
+            with
+                | e -> failwithf "Exception in Expr: uint32(%A)" num
+        | Expressions.RegexPrefix "&[0-9a-fA-F]+" (num, rst) -> 
+            ("0x" + (num.Trim()).[1..] |> uint32, rst) |> Some
+        | _ -> None
+
+
+
+    let (|IMM|_|) = function
+        | REMOVEPREFIX "#" (LITERALNUMB (n,"")) -> Some n
+        | REMOVEPREFIX "#-" (LITERALNUMB (n,"")) -> Some (uint32 ((0 - (int n)) &&& 0xFFFFFFFF))
+        | _ -> None
+
+
+  
 
     let checkValid2 opList =
         match opList with

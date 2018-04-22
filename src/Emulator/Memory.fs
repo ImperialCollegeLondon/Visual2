@@ -311,7 +311,6 @@ module Memory
             copyParse ls (Result.map memTypeMultMap.[root] ops) pCond
 
         let parseSingle (root: string) suffix pCond : Parse<Instr> =         
-
             /// split operands at ','
             let splitOps = splitAny ls.Operands ','
 

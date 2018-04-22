@@ -39,7 +39,7 @@ type RunInfo = {
     st: SymbolTable
     }
 
-let dataSectionAlignment = 0x100u
+let dataSectionAlignment = 0x200u
 
 let initLoadImage dStart symTab = 
     {
