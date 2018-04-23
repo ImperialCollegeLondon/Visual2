@@ -101,8 +101,8 @@ module Memory
     ///
     let (|REGMATCH|_|) (txt:string) =
         match txt with
-        | ParseRegex2 @"\w*[rR]([0-9]+|PC|SP|LR)(.*$)" (txt,TRIM rst) -> 
-            match Map.tryFind txt regNames with
+        | ParseRegex2 @"\s*([rR][0-9]+|PC|SP|LR)(.*$)" (txt,TRIM rst) -> 
+            match Map.tryFind (txt.ToUpper()) regNames with
             | Some rn -> (Some (rn, rst))
             | None -> None
         | _ -> None          
@@ -176,6 +176,7 @@ module Memory
                     (Result.map makeOffsetFunc offset, s) |> Some
                 | COMMA ( R (rx, (TRIM s))) when not (s.StartsWith ",") -> Some (Ok (fun (dp:DataPath) -> int dp.Regs.[rx]),s)
                 | COMMA (R (rx, ( COMMA( SHIFT (shift,(SHIFTIMM (sftAmt,txt))))))) -> Some (Result.map (makeScaled rx shift) sftAmt,txt)
+                | _ -> Some (makePE ``Invalid second operand`` txt "Can't parse memory offset", txt)
                 // include base register value as second parameter of returned function
                 |> mapOptHeadResult (fun fo -> fun dp rbv -> fo dp + rbv)
 
@@ -189,6 +190,7 @@ module Memory
 
             match ls.Operands with
             | REGMATCH(rd, ( REMOVEPREFIX "," txt)) -> 
+                //printfn "LDRSTR matching %s" txt
                 match PreIndex, PostIndex, txt with 
                 | indexType, _, BRACKETED '[' ']' (REGMATCH( rb, (OFFSET(spf,""))) ,  WRITEBACK w)
                 | _, indexType, BRACKETED '[' ']' ((REGMATCH( rb,""), OFFSET(spf, WRITEBACK w))) -> 
@@ -210,7 +212,7 @@ module Memory
                             MemSize = match uSuffix with "B" -> MByte | _ -> MWord
                         }
                 | _ -> makeError txt
-            | _ -> makeError ls.Operands
+            | _ -> printfn "No Rd found"; makeError ls.Operands
             |> fun ins -> copyParse ls (Result.map memTypeSingleMap.[uRoot] ins) pCond
 
         /// parse for LDM, STM
@@ -343,17 +345,25 @@ module Memory
 
     let executeLDRSTR (ins:InstrMemSingle) (dp:DataPath) =
         let addr = ins.MAddr dp (int32 dp.Regs.[ins.Rb]) |> uint32
+        let rbv = dp.Regs.[ins.Rb]
         let ef = 
             match ins.MemMode with
             | NoIndex 
             | PreIndex -> uint32 addr
-            | PostIndex -> dp.Regs.[ins.Rb]
+            | PostIndex -> rbv
         dp
-        |> updateReg (uint32 addr &&& 0xFFFFFFFFu) ins.Rd
+        |> updateReg (uint32 (if ins.MemMode = NoIndex then rbv else addr &&& 0xFFFFFFFFu)) ins.Rb
         |> (fun dp -> 
-                match ins.MemSize with 
-                | MWord -> updateMemData (Dat dp.Regs.[ins.Rd]) ef dp 
-                | MByte -> updateMemByte (dp.Regs.[ins.Rd] |> byte) ef dp)               
+                match ins.LSType with
+                | LOAD -> 
+                     match ins.MemSize with 
+                     | MWord -> (getDataMemWord ef dp) 
+                     | MByte -> (getDataMemByte ef dp)  
+                     |> Result.map (fun dat -> updateReg dat ins.Rd dp)
+                | STORE ->
+                    match ins.MemSize with 
+                    | MWord -> updateMemData (Dat dp.Regs.[ins.Rd]) ef dp 
+                    | MByte -> updateMemByte (dp.Regs.[ins.Rd] |> byte) ef dp)               
 
     let executeMem instr (cpuData: DataPath) =
         

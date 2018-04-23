@@ -3,21 +3,10 @@ module Helpers
     open System.Text.RegularExpressions
     open CommonLex
     open Errors
+    open System.Xml.Linq
 
-    /// A function to check the validity of literals according to the ARM spec.
-    (*let checkLiteral lit =
-        let lst = [0..2..30] 
-                    |> List.map (fun x -> rotRight lit x, x)
-                    |> List.filter (fun (x, _) -> x < 256u)
-        match lst with
-        | [] ->
-            let txt = lit |> string
-            (txt, notValidLiteralEM)
-            ||> makeError
-            |> ``Invalid literal``
-            |> Error
-        | (x, r) :: _ -> Ok (byte x, r)
-    *)
+    let pipeShow mess x = printfn "%s:%A" mess x; x
+
     /// Visuals apparent minimum data address may be useful?
     let minAddress = 0x100u
     /// Word Length 4 bytes
@@ -80,6 +69,9 @@ module Helpers
         let nospace = str.Replace(" ", "")                                    
         splitAnyKeepSpaces nospace char
 
+    let (|TRIM|_|) (x:string) = Some (x.Trim())
+
+
     /// match bracketed item, ignoring initial space
     /// return (insideBracketsText, textAfterBrackets)
     /// force text after brackets to be "", or start with ' ' or '\t' or '!'
@@ -93,12 +85,13 @@ module Helpers
         | _ -> false
 
         match splitAnyKeepSpaces txt bra with
-        | "" :: afterBra :: rest -> 
+        | (TRIM "") :: afterBra :: rest -> 
             match splitAnyKeepSpaces afterBra ket with
             | inside :: after when hasSeparator <| String.concat (ket.ToString()) after -> 
                 Some (inside |> trim, String.concat (ket.ToString()) after |> trim)
             | _ -> None
         | _ -> None
+      
 
     let (|SPLITCOMMAS|_|) txt = Some (splitAnyKeepSpaces txt ',')
     let (|SPLITSPACES|_|) txt = Some (splitAnyKeepSpaces txt ' ')
@@ -110,8 +103,8 @@ module Helpers
         if EEExtensions.String.startsWith prefix trimTxt then
             Some trimTxt.[prefix.Length..trimTxt.Length]
         else None
+       
             
-    let (|TRIM|_|) (x:string) = Some (x.Trim())
 
     /// unusually this match requires no initial space
     let (|LITERALNUMB|_|) txt = 
@@ -148,7 +141,7 @@ module Helpers
     /// A partially active pattern to check validity of a register passed as a string,
     /// and return an `RName` if it is valid.
     let (|RegMatch|_|) txt =
-        match Map.tryFind txt regNames with
+        match Map.tryFind ((trim txt).ToUpper()) regNames with
         | Some reg ->
             reg |> Ok |> Some
         | _ ->
