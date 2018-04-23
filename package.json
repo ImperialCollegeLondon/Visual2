@@ -4,7 +4,7 @@
   "main": "main.js",
   "scripts": {
     "start": "cd src/Main && dotnet fable webpack --port free -- -w --config webpack.config.js",
-    "build": "cd src/Main && dotnet fable webpack --port free -- -p --config webpack.config.js",
+    "build": "cd src/Main && dotnet fable webpack --port free -- --config webpack.config.js",
     "package": "electron-packager . visual2 --all --out=dist --no-prune --ignore=/node_modules --ignore=/src --overwrite",
     "launch": "electron ."
   },
