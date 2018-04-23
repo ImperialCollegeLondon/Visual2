@@ -7,18 +7,23 @@ module Memory
   
     /// Suffix of LDR and STR instructions
     type MSize = 
-        | MWord
-        | MByte
+        | MWord /// LDRB,STRB
+        | MByte /// LDR,STR
 
-    type LSType = | LOAD | STORE
+    type LSType = 
+        | LOAD /// LDR,LDRB
+        | STORE /// STR,STRB
 
     /// Type of memory instruction
     type MMode =
-        | PostIndex
-        | PreIndex
-        | NoIndex
+        | PostIndex /// change base register after memory access
+        | PreIndex /// change base register before memory access
+        | NoIndex /// no chnage to base register
     
-    type ScaledShiftCode = SASR | SLSR | SLSL
+    type ScaledShiftCode = 
+        | SASR /// ASR scaling
+        | SLSR /// LSR scaling
+        | SLSL /// LSL scaling
 
     /// Single Store/Load memory instruction. LDR, LDRB, STR, STRB
     /// op{type}{cond} Rt, [Rn {, #offset}]        ; immediate offset
@@ -34,10 +39,6 @@ module Memory
             MemMode: MMode
             MemSize: MSize
         }
-    
-    // *********** //
-    // LDM AND STM //
-    // *********** //
 
     /// Suffixes for LDM and STM
     type MultSuffix = 
@@ -47,7 +48,11 @@ module Memory
     /// Multiple Store/Load memory instruction. LDM, STM
     /// op{addr_mode}{cond} Rn{!}, reglist
     [<Struct>]
-    type InstrMemMult = {Rn: RName; rList: List<RName>; suff: Option<MultSuffix>}
+    type InstrMemMult = {
+        Rn: RName; 
+        rList: List<RName>; 
+        suff: Option<MultSuffix>
+        }
 
     type Instr = 
         | LDR of InstrMemSingle
