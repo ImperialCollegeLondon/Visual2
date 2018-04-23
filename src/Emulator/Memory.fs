@@ -4,36 +4,7 @@ module Memory
     open Errors
     open Expressions
     open Helpers
-    open System.Xml.Linq
-
-   
-
-    // *********** //
-    // LDR AND STR //
-    // *********** //
-
-    /// either a number or a register
-    type OffsetType =
-        | ImmPre of uint32
-        | RegPre of RName
-    
-    /// Address consisting of register for base
-    /// and an pre index offset of OffsetType
-    /// being either a register or number
-    [<Struct>]
-    type Address = 
-        {
-            addrReg: RName; 
-            offset: Option<OffsetType>;
-        }
-    
-    /// post index
-    /// either register or number
-    /// ldr r0, [r1], PostIndex
-    type PostIndex =
-        | ImmPost of uint32
-        | RegPost of RName
-    
+  
     /// Suffix of LDR and STR instructions
     type MSize = 
         | MWord
@@ -242,7 +213,6 @@ module Memory
             | _ -> makeError ls.Operands
             |> fun ins -> copyParse ls (Result.map memTypeSingleMap.[uRoot] ins) pCond
 
-
         /// parse for LDM, STM
         let parseMult (root: string) suffix pCond : Parse<Instr> =
 
@@ -334,29 +304,26 @@ module Memory
 
             copyParse ls (Result.map memTypeMultMap.[root] ops) pCond
 
-
         let parse' (_instrC, (root : string,suffix : string,pCond)) =
             let uRoot = root.ToUpper()
             let uSuffix = suffix.ToUpper()
-            match root.ToUpper() with
-            | "LDR" -> parseSingle LOAD uRoot uSuffix pCond
-            | "STR" -> parseSingle STORE uRoot uSuffix pCond
-            | "LDM" -> parseMult uRoot uSuffix pCond
-            | "STM" -> parseMult uRoot uSuffix pCond
-            | _ -> failwith "What? We appear to have an impossible root"
+            let singleSuffix = match uSuffix with | "" | "B" -> true | _ -> false
+            match singleSuffix, uRoot with
+            | true, "LDR" -> parseSingle LOAD uRoot uSuffix pCond
+            | true, "STR" -> parseSingle STORE uRoot uSuffix pCond
+            | false, "LDM" -> parseMult uRoot uSuffix pCond
+            | false, "STM" -> parseMult uRoot uSuffix pCond
+            | _ -> failwithf "What? We appear to have an impossible memory root and suffix: %s %s" root suffix
            
-
         Map.tryFind (uppercase ls.OpCode) opCodes
         |> Option.map parse'
 
     /// Parse Active Pattern used by top-level code
     let (|IMatch|_|)  = parse
 
-
 //*******************************************************************************************
 //                                      Memory execution
 //*******************************************************************************************
-
 
     let getDataMemWord (ef:uint32) (dp:DataPath) =
         if ef % 4u <> 0u then 
@@ -386,9 +353,7 @@ module Memory
         |> (fun dp -> 
                 match ins.MemSize with 
                 | MWord -> updateMemData (Dat dp.Regs.[ins.Rd]) ef dp 
-                | MByte -> updateMemByte (dp.Regs.[ins.Rd] |> byte) ef dp)
-
-                
+                | MByte -> updateMemByte (dp.Regs.[ins.Rd] |> byte) ef dp)               
 
     let executeMem instr (cpuData: DataPath) =
         
