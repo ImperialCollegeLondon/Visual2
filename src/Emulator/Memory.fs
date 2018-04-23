@@ -50,6 +50,7 @@ module Memory
     [<Struct>]
     type InstrMemMult = {
         Rn: RName; 
+        WB: bool
         rList: List<RName>; 
         suff: Option<MultSuffix>
         }
@@ -84,9 +85,10 @@ module Memory
 
     
     /// Contructs an Instruction of InstrMemMult for LDM, STM
-    let consMemMult reg rLst suffix =
+    let consMemMult wb reg rLst suffix =
             {
                 Rn = reg;
+                WB = wb
                 rList = rLst;
                 suff = suffix;
             }
@@ -277,10 +279,11 @@ module Memory
                     ||> makePE ``Invalid suffix``
 
             let ops = 
-                match splitMult with
-                | [rOp1; rlst] -> // LDM, STM
-                    let regList = splitAny (rlst.Replace("}", "")) ','
-                    let reg = rOp1.Replace(",", "")
+                match true, false, ls.Operands with
+                | wb, _, REGMATCH (rOp1, ( REMOVEPREFIX "!" (REMOVEPREFIX "," (BRACKETED '{' '}' (rl,TRIM "")))))
+                | _, wb, REGMATCH (rOp1, (REMOVEPREFIX "," (BRACKETED '{' '}' (rl,TRIM "")))) ->
+
+                    let regList = splitAny rl ','
 
                     let matcher = function
                         | RegListMatch x -> x 
@@ -290,21 +293,17 @@ module Memory
                         | RegCheck x -> x
                         | _ -> failwith alwaysMatchesFM
 
-                    let rec applyToAll f list =
-                        match list with
-                        | [] -> []
-                        | head :: tail -> f head :: applyToAll f tail
-
-                    let allRegs = regList |> applyToAll matcher |> List.concat
                     let checkedRegs = 
-                        allRegs
-                        |> (applyToAll checker) 
+                        regList
+                        |> List.collect matcher
+                        |> List.map checker
                         |> condenseResultList (id)
-                    match reg with
-                    | RegCheck r' -> 
-                        combineErrorMapResult r' checkedRegs consMemMult
-                        |> mapErrorApplyResult (checkMultSuffix suffix)
-                    | _ -> failwith alwaysMatchesFM     
+                        |> Result.map (List.sortBy (fun rn -> rn.RegNum))
+
+
+                    checkedRegs 
+                    |> Result.map (consMemMult wb rOp1 )
+                    |> mapErrorApplyResult (checkMultSuffix suffix)    
                 | _ ->
                     (ls.Operands, notValidFormatEM)
                     ||> makePE ``Invalid instruction``
@@ -387,9 +386,9 @@ module Memory
             | _ :: tail -> (start + incr) |> makeOffsetList tail (start :: outlist) incr
             | [] -> outlist
         
-        let executeLDM suffix rn rl cpuData =
+        let executeLDM wb suffix rn rl cpuData =
             let offsetList start = 
-                let lst =
+                let lst, rDiff =
                     match suffix with
                     | None | Some IA -> 0, 4
                     | Some IB -> 4, 4
@@ -401,18 +400,21 @@ module Memory
                     | Some EA -> -4, -4
                     |> fun (st,chg) -> 
                         makeOffsetList rl [] chg (start + st)
-                        |> if chg < 0 then id else List.rev      
+                        |> if chg < 0 then id else List.rev
+                        |> (fun lst -> lst, if wb then chg * lst.Length else 0)
 
-                List.map (fun el -> el |> uint32) lst
+                List.map (fun el -> el |> uint32) lst, rDiff
             let baseAddrInt = (cpuData.Regs.[rn]) |> int32
-            let contents = getMemMult (offsetList baseAddrInt) [] cpuData
+            let lst, rEnd = offsetList baseAddrInt
+            let contents = getMemMult lst [] cpuData
             let condensedContents = condenseResultList (id) contents
             Result.map (fun conts -> setMultRegs rl conts cpuData) condensedContents
+            |> Result.map (fun dp -> setReg rn ((dp.Regs.[rn] + uint32 rEnd) &&& 0xFFFFFFFFu) dp)
 
-        let executeSTM suffix rn rl cpuData = 
+        let executeSTM wb suffix rn rl cpuData = 
             let getReg rn = cpuData.Regs.[rn]
             let offsetList start = 
-                let lst =
+                let lst,rDiff =
                     match suffix with
                     | None | Some IA -> 0, 4
                     | Some IB ->  4, 4
@@ -425,15 +427,18 @@ module Memory
                     |> fun (st, chg) ->  
                          makeOffsetList rl [] chg (start+st)
                          |> (if chg < 0 then id else List.rev)
+                         |> (fun lst -> lst, if wb then chg * lst.Length else 0)
 
-                List.map (fun el -> el |> uint32) lst
+                List.map (fun el -> el |> uint32) lst, rDiff
             let baseAddrInt = (getReg rn) |> int32
             let regContentsList = List.map (getReg) rl
-            setMultMem (regContentsList |> List.map Dat) (offsetList baseAddrInt) cpuData
+            let lst, rEnd = offsetList baseAddrInt
+            setMultMem (regContentsList |> List.map Dat) lst cpuData
+            |> Result.map (fun dp -> setReg rn ((dp.Regs.[rn] + uint32 rEnd) &&& 0xFFFFFFFFu) dp)
  
         match instr with
         | LDR ins | STR ins -> executeLDRSTR ins cpuData
         | LDM operands ->
-            executeLDM operands.suff operands.Rn operands.rList cpuData
+            executeLDM operands.WB operands.suff operands.Rn operands.rList cpuData
         | STM operands ->
-            executeSTM operands.suff operands.Rn operands.rList cpuData
+            executeSTM operands.WB operands.suff operands.Rn operands.rList cpuData
