@@ -391,8 +391,7 @@ module Memory
             let offsetList start = 
                 let lst =
                     match suffix with
-                    | None -> 0, 4
-                    | Some IA -> 0, 4
+                    | None | Some IA -> 0, 4
                     | Some IB -> 4, 4
                     | Some DA -> 0, -4
                     | Some DB -> -4, -4
@@ -402,7 +401,7 @@ module Memory
                     | Some EA -> -4, -4
                     |> fun (st,chg) -> 
                         makeOffsetList rl [] chg (start + st)
-                    |> if start < 0 then id else List.rev      
+                        |> if chg < 0 then id else List.rev      
 
                 List.map (fun el -> el |> uint32) lst
             let baseAddrInt = (cpuData.Regs.[rn]) |> int32
@@ -415,8 +414,7 @@ module Memory
             let offsetList start = 
                 let lst =
                     match suffix with
-                    | None -> 0, 4
-                    | Some IA ->  0, 4
+                    | None | Some IA -> 0, 4
                     | Some IB ->  4, 4
                     | Some DA -> 0, -4
                     | Some DB -> -4, -4
