@@ -58,6 +58,7 @@ let loadStateFile (fName:string) =
         |> Array.filter (Array.isEmpty >> not)
         |> Array.map Array.toList
         |> Array.toList
+
     let toDP rLst n z c v =
         let fl f = match f with 
                     |"0" -> false 
@@ -67,6 +68,7 @@ let loadStateFile (fName:string) =
             TRegs = rLst |> List.map (uint32); 
             TFlags = { FN = fl n; FC = fl c; FZ = fl z; FV = fl v}
         }
+
     let (|GetASM|_|) lines =
         //printfn "GETASM:%A\n\n" lines
         let n = List.findIndex ((=) ["..."]) lines
@@ -96,6 +98,8 @@ let loadStateFile (fName:string) =
         | [] -> tsts
         | Test1 (tst,rst) -> testN (tst :: tsts) rst
         | _ -> failwithf "Parse error reading file (2)"
+    
+    
     testN [] lines
 
 let handleTestRunError e (pInfo:RunInfo) (ts: TestSetup) =
