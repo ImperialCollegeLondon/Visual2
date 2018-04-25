@@ -156,18 +156,58 @@ let writeResultsToFile fn rt resL =
 
     let fName = projectDir + @"test-results/" + (nameOfCode rt + fn)
 
-    let toText (ts,ri,mess) =
+    let displayState (ts:TestSetup) (outDp: DataPath) =
+
+        let getFlags (a:Flags) = [ a.FN; a.FZ; a.FC; a.FV]
+        let getFlagsActual (a:CommonData.Flags) =  [ a.N; a.Z; a.C; a.V]
+
+        let dispFlags (before:DPath) (after:DataPath) (model:DPath) =
+            let dispFlag bf af mf n =
+                let bToInt = function | true -> "1" | false -> "0"
+                let bfv = bToInt (getFlags bf).[n]
+                let afv = bToInt (getFlagsActual af).[n]
+                let mfv = bToInt (getFlags mf).[n]
+                sprintf "%-11c%11s%11s%11s" "NZCV".[n]  bfv afv (if afv <> mfv then mfv else "")
+            "Flag          Before        After        Model" +
+            ([0..3]
+            |> List.map (dispFlag before.TFlags after.Fl model.TFlags)
+            |> String.concat "\n")
+            
+
+        let dispReg b model a n =
+            let model =
+                match a.TRegs.[n] = model.Regs.[register n] with
+                | false -> ""
+                | true -> sprintf "%d" model.Regs.[register n]
+            sprintf "R%-8d%11d%11d%11s" n ts.Before.TRegs.[n] a.TRegs.[n]  model
+
+        let dispRegs b model a =
+            "Register  Input      Actual Out    Model Out" +
+            ([0..14]
+            |> List.map (dispReg b model a)
+            |> String.concat "\n")
+
+        match ts.After with
+        | Some a -> 
+            dispRegs ts.Before outDp a + "\n" +
+            dispFlags ts.Before outDp a + "\n"
+        | _ -> "Error in model\n"
+
+
+    let displayTest (tt: TestT, ts:TestSetup,ri:RunInfo,mess:string) =
+        "\n----------------------------------\n\n" +
         ts.Name + "\n" +
         mess + "\n" +
-        "ASM\n" +
+        displayState ts ri.dp + "\n" +
+        "       ---------ASM----------\n" +
         ts.Asm +
-        "\n----------------------------------\n"
+        "\n----------------------------------\n\n"
     //printfn "Writing result file\n%s." fName
     match resL with
     | [] -> if fs.existsSync (U2.Case1 fName) then fs.unlinkSync (U2.Case1 fName)
     | _ -> 
         resL
-        |> List.map (fun (tt,ts,ri,mess) -> toText (ts,ri,mess))
+        |> List.map displayTest
         |> String.concat "\n"
         |> (fun txt -> writeFileViaNode fName  txt)
 
