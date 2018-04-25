@@ -234,6 +234,8 @@ let runEmulatorTestFile fn =
     processTestResults fn testResults
 
 let runAllEmulatorTests () =
+    let contents = electron.remote.getCurrentWebContents()
+    if not (contents.isDevToolsOpened()) then contents.toggleDevTools()
     let files = 
         fs.readdirSync (U2.Case1 (projectDir + "test-data"))
         |> Seq.toList 
