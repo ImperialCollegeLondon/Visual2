@@ -197,8 +197,7 @@ let writeResultsToFile fn rt resL =
 
 
     let displayTest (tt: TestT, ts:TestSetup,ri:RunInfo,mess:string) =
-        "\n----------------------------------\n\n" +
-        ts.Name + "\n" +
+        sprintf "\n--------------%s----------------\n" ts.Name +
         mess + "\n\r\n" +
         displayState ts ri.dp + "\n" +
         "       ---------ASM----------\n" +
