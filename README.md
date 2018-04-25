@@ -20,9 +20,9 @@ The target language is `F#`, which is transpiled to `Javascript` (`js`) thanks t
 providing access to platform-level commands (i.e. file-system, path, multiple processes), which are unavailable to
 (vanilla) browser web-apps.
 
-[Webpack](https://webpack.js.org/) is the module bundler, responsible for the transpilation and automated building process.
+[Webpack](https://webpack.js.org/) is the module bundler, responsible for the javascript concatenation and automated building process.
 
-Finally, [Monaco Editor](https://microsoft.github.io/monaco-editor/) is used for as a self-contained javascript component that implements an editor window which your `F#` code can interact with.
+Finally, [Monaco Editor](https://microsoft.github.io/monaco-editor/) is  a self-contained javascript component that implements an editor window which your `F#` code can interact with.
 
 ## Features
 
@@ -159,6 +159,8 @@ The `js` scripts loaded by the `index.html`, **after** the DOM elements (statica
 7. Open `electron` application at a new terminal tab by running `yarn run launch`. This command will start the application and also _hot reload_ it whenever source files are recompiled. Therefore it normally runs continuously through development. _Hyper_, for example runs multiple tabs and will split window between two tabs, great for running start and launch scripts concurrently in a single window. 
 
 8. To see debug printout etc press F12 to toggle electron dev tools on and note that any F# printout and errors will be displayed under the console tab.
+
+9. See the [Wiki](https://github.com/ImperialCollegeLondon/Visual2/wiki) for more information.
 
 ### Packaging VisUAL2 as binaries
 
