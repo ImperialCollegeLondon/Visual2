@@ -44,8 +44,10 @@ let readFileViaNode (path:string) : string =
     (fs.readFileSync path).toString("utf8")
 
 let writeFileViaNode path str =
+    let writeDirPath = __SOURCE_DIRECTORY__ + @"/../../test-results"
     let errorHandler _err = // TODO: figure out how to handle errors which can occur
         ()
+    if not (fs.existsSync (U2.Case1 writeDirPath)) then fs.mkdirSync writeDirPath
     fs.writeFileSync( path, str) |> ignore
 
 
@@ -168,7 +170,7 @@ let writeResultsToFile fn rt resL =
                 let afv = bToInt (getFlagsActual af).[n]
                 let mfv = bToInt (getFlags mf).[n]
                 sprintf "%-11c%11s%11s%11s" "NZCV".[n]  bfv afv (if afv <> mfv then mfv else "")
-            "Flag          Before        After        Model" +
+            "Flag          Before        After        Model\n" +
             ([0..3]
             |> List.map (dispFlag before.TFlags after.Fl model.TFlags)
             |> String.concat "\n")
@@ -177,12 +179,12 @@ let writeResultsToFile fn rt resL =
         let dispReg b model a n =
             let model =
                 match a.TRegs.[n] = model.Regs.[register n] with
-                | false -> ""
-                | true -> sprintf "%d" model.Regs.[register n]
+                | true -> ""
+                | false -> sprintf "%d" model.Regs.[register n]
             sprintf "R%-8d%11d%11d%11s" n ts.Before.TRegs.[n] a.TRegs.[n]  model
 
         let dispRegs b model a =
-            "Register  Input      Actual Out    Model Out" +
+            "Register  Input      Actual Out    Model Out\n" +
             ([0..14]
             |> List.map (dispReg b model a)
             |> String.concat "\n")
@@ -197,7 +199,7 @@ let writeResultsToFile fn rt resL =
     let displayTest (tt: TestT, ts:TestSetup,ri:RunInfo,mess:string) =
         "\n----------------------------------\n\n" +
         ts.Name + "\n" +
-        mess + "\n" +
+        mess + "\n\r\n" +
         displayState ts ri.dp + "\n" +
         "       ---------ASM----------\n" +
         ts.Asm +
@@ -209,7 +211,8 @@ let writeResultsToFile fn rt resL =
         resL
         |> List.map displayTest
         |> String.concat "\n"
-        |> (fun txt -> writeFileViaNode fName  txt)
+        |> (fun txt -> 
+                writeFileViaNode fName  txt)
 
 
 
