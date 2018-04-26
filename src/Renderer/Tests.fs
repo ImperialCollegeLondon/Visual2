@@ -176,17 +176,17 @@ let writeResultsToFile fn rt resL =
             |> String.concat "\n")
             
 
-        let dispReg b model a n =
+        let dispReg b model after n =
             let model =
-                match a.TRegs.[n] = model.Regs.[register n] with
+                match model.TRegs.[n] = after.Regs.[register n] with
                 | true -> ""
-                | false -> sprintf "%d" model.Regs.[register n]
-            sprintf "R%-8d%11d%11d%11s" n ts.Before.TRegs.[n] a.TRegs.[n]  model
+                | false -> sprintf "%d" model.TRegs.[n]
+            sprintf "R%-8d%11d%11d%11s" n ts.Before.TRegs.[n] after.Regs.[register n]  model
 
-        let dispRegs b model a =
+        let dispRegs b after model =
             "Register  Input      Actual Out    Model Out\n" +
             ([0..14]
-            |> List.map (dispReg b model a)
+            |> List.map (dispReg b model after)
             |> String.concat "\n")
 
         match ts.After with
