@@ -162,16 +162,17 @@ module Helpers
 //                          EXECUTION HELPERS
 //
 //********************************************************************************
+    let setRegOffset = 4u
 
     /// Function for setting a register
     /// Takes RName and value and returns
     /// new DataPath with that register set.
     let setReg reg contents cpuData =
-        let setter reg' old = 
-            match reg' with
-            | x when x = reg -> contents
-            | _ -> old
-        {cpuData with Regs = Map.map setter cpuData.Regs}
+        let adjContents = 
+            match reg  with
+            | R15 -> contents + setRegOffset
+            | _ -> contents
+        {cpuData with Regs = Map.add reg adjContents cpuData.Regs }
     
     /// Recursive function for setting multiple registers
     /// Need to check that the lists provided are the same length
@@ -184,12 +185,12 @@ module Helpers
         | _ -> failwith "Lists given to setMultRegs function were of different sizes."
         
 
-    let updatePC (cpuData: DataPath) : DataPath =
-        let pc = cpuData.Regs.[R15]
-        setReg R15 (pc + 4u) cpuData
     
     let getPC (cpuData: DataPath) =
         cpuData.Regs.[R15] - 8u
+    
+    let setPC (addr:uint32) (cpuData:DataPath) =
+        setReg R15 addr cpuData
 
     let getMemLoc addr cpuData =
         match Map.containsKey addr cpuData.MM with
@@ -222,7 +223,7 @@ module Helpers
     
     /// Return a new datapath with reg rX set to value
     let updateReg value rX dp =
-        {dp with Regs = Map.add rX value dp.Regs}
+        setReg rX value dp
         
     let validateWA addr =
         match addr % word with

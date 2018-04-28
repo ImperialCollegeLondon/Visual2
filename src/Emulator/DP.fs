@@ -33,7 +33,7 @@ let Executable f = Ok f
 // ///////////// datapath manipulation ///////////////////////////
 
 let writeBack result dest flags updateFlags d =
-    {d with Regs = Map.add dest result d.Regs ; Fl = if updateFlags then flags else d.Fl}
+    {Helpers.setReg dest result d with Fl = if updateFlags then flags else d.Fl}
 
 let evalRegister reg d = Map.find reg d.Regs
 

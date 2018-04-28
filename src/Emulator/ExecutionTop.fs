@@ -220,25 +220,29 @@ let executeADR (ai:ADRInstr) (dp:DataPath) =
 
 
 let dataPathStep (dp : DataPath, code:CodeMemory<CondInstr*int>) = 
-    match Map.tryFind (WA dp.Regs.[R15]) code with
+    let addToPc a dp = {dp with Regs = Map.add R15 ((uint32 a + dp.Regs.[R15]) &&& 0xffffffffu) dp.Regs}
+    let pc = dp.Regs.[R15]
+    let dp' = addToPc 8 dp
+    match Map.tryFind (WA pc) code with
     | None ->
-        NotInstrMem dp.Regs.[R15] |> Error
+        NotInstrMem pc |> Error
     | Some ((cond,instr),line) ->
-        match condExecute cond dp with
+        match condExecute cond dp' with
         | true -> 
             match instr with
             | IDP instr' ->
-                executeDP instr' dp
+                executeDP instr' dp'
             | IMEM instr' ->
-                executeMem instr' dp
+                executeMem instr' dp'
             | IBRANCH instr' ->
-                executeBranch instr' dp
+                executeBranch instr' dp'
             | IMISC (Misc.ADR adrInstr) ->
                 //printfn "Executing ADR"
-                executeADR adrInstr dp |> Ok
+                executeADR adrInstr dp' |> Ok
             | IMISC ( x) -> (``Run time error`` ( dp.Regs.[R15], sprintf "Can't execute %A" x)) |> Error
             | ParseTop.EMPTY _ -> failwithf "Shouldn't be executing empty instruction"
-        | false -> dp |> Ok
-        |> Result.map updatePC
+        | false -> dp' |> Ok
+        |> Result.map (addToPc (4-8))
+
 
     

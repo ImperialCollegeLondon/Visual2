@@ -54,12 +54,12 @@ module Branch
         match ins with
         | B addr -> 
             cpuData 
-            |> updateReg (addr - 4u) R15
+            |> setReg R15 addr
             |> Ok
         | BL addr ->
             cpuData
-            |> updateReg (addr - 4u) R15
-            |> updateReg nxt R14
+            |> setReg R15 addr
+            |> setReg R14 nxt
             |> Ok
         | END ->
             EXIT |> Error
