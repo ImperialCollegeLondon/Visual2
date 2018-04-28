@@ -60,6 +60,7 @@ module Memory
         | STR of InstrMemSingle
         | LDM of InstrMemMult
         | STM of InstrMemMult
+        | LDREQUAL of RName * uint32
 
 
     let memSpec = {
@@ -79,6 +80,8 @@ module Memory
             "STM", STM;
         ]
 
+    
+    
     /// map of all possible opcodes recognised
     let opCodes = opCodeExpand memSpec
 
@@ -117,6 +120,18 @@ module Memory
     /// Where everything happens
     let parse (ls: LineData) : Parse<Instr> option =
         let (WA la) = ls.LoadAddr
+
+
+        let parseLoad32 pCond : Parse<Instr> =
+            match ls.Operands with
+            | REGMATCH(rd, ( REMOVEPREFIX "," (REMOVEPREFIX "=" (Expr (exp,""))))) -> 
+                eval ls.SymTab exp 
+                |> Result.map (fun r -> rd,r)
+            | _ -> makePE ``Invalid literal`` ls.Operands "Invalid operands for LDR Rn, ="
+            |> Result.map (fun (rd, lv) -> LDREQUAL ( rd, lv))
+            |> (fun ins -> copyParse ls ins pCond)
+
+            
 
         let parseSingle (lsType: LSType) (uRoot: string) (uSuffix:string) pCond : Parse<Instr> = 
 
@@ -315,6 +330,8 @@ module Memory
             let uSuffix = suffix.ToUpper()
             let singleSuffix = match uSuffix with | "" | "B" -> true | _ -> false
             match singleSuffix, uRoot with
+            | true, "LDR" when String.exists ((=) '=') ls.Operands && uSuffix = "" 
+                -> parseLoad32 pCond
             | true, "LDR" -> parseSingle LOAD uRoot uSuffix pCond
             | true, "STR" -> parseSingle STORE uRoot uSuffix pCond
             | false, "LDM" -> parseMult uRoot uSuffix pCond
@@ -436,9 +453,11 @@ module Memory
             setMultMem (regContentsList |> List.map Dat) lst cpuData
             |> Result.map (fun dp -> setReg rn ((dp.Regs.[rn] + uint32 rEnd) &&& 0xFFFFFFFFu) dp)
  
+
         match instr with
         | LDR ins | STR ins -> executeLDRSTR ins cpuData
         | LDM operands ->
             executeLDM operands.WB operands.suff operands.Rn operands.rList cpuData
         | STM operands ->
             executeSTM operands.WB operands.suff operands.Rn operands.rList cpuData
+        | LDREQUAL( rn, loadVal) -> setReg rn loadVal cpuData |> Ok
