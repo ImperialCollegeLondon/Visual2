@@ -222,7 +222,7 @@ let executeADR (ai:ADRInstr) (dp:DataPath) =
 let dataPathStep (dp : DataPath, code:CodeMemory<CondInstr*int>) = 
     let addToPc a dp = {dp with Regs = Map.add R15 ((uint32 a + dp.Regs.[R15]) &&& 0xffffffffu) dp.Regs}
     let pc = dp.Regs.[R15]
-    let dp' = addToPc 8 dp
+    let dp' = addToPc 8 dp // +8 during instruction execution so PC reads correct (pipelining)
     match Map.tryFind (WA pc) code with
     | None ->
         NotInstrMem pc |> Error
@@ -242,7 +242,9 @@ let dataPathStep (dp : DataPath, code:CodeMemory<CondInstr*int>) =
             | IMISC ( x) -> (``Run time error`` ( dp.Regs.[R15], sprintf "Can't execute %A" x)) |> Error
             | ParseTop.EMPTY _ -> failwithf "Shouldn't be executing empty instruction"
         | false -> dp' |> Ok
-        |> Result.map (addToPc (4-8))
+        // NB because PC is incremented after execution all exec instructions that write PC must in fact 
+        // write it as (+8-4) of real value. setReg does this.
+        |> Result.map (addToPc (4-8)) // undo +8 for pipelining added before execution. Add =4 to advance to next instruction
 
 
     

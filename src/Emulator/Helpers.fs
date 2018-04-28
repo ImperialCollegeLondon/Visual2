@@ -162,15 +162,16 @@ module Helpers
 //                          EXECUTION HELPERS
 //
 //********************************************************************************
-    let setRegOffset = 4u
+    let setPCOffset = 8u - 4u // from pipelining + increment after instruction adjustments
 
     /// Function for setting a register
     /// Takes RName and value and returns
     /// new DataPath with that register set.
+    /// correctly adjusts to set real value of PC during execution
     let setReg reg contents cpuData =
         let adjContents = 
             match reg  with
-            | R15 -> contents + setRegOffset
+            | R15 -> contents + setPCOffset
             | _ -> contents
         {cpuData with Regs = Map.add reg adjContents cpuData.Regs }
     
@@ -185,10 +186,12 @@ module Helpers
         | _ -> failwith "Lists given to setMultRegs function were of different sizes."
         
 
-    
+    /// gets real PC value during instruction execution
+    /// compensates for +8 pipelining
     let getPC (cpuData: DataPath) =
         cpuData.Regs.[R15] - 8u
-    
+    /// sets PC during execution from real value
+    /// correctly adjusts for pipelining and increment after instruction
     let setPC (addr:uint32) (cpuData:DataPath) =
         setReg R15 addr cpuData
 
