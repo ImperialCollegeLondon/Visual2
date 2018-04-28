@@ -228,7 +228,8 @@ let processTestResults (fn: string) (res: Map<TestT,(TestT*TestSetup*RunInfo*str
 let RunEmulatorTest ts size =
     let maxSteps = 1000
 
-    let more = size < 4
+    //let more = size < 4
+    let more = false // disable printout
 
     let asm = 
         ts.Asm.Split([|'\r';'\n'|]) 
