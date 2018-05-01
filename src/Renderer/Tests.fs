@@ -13,9 +13,14 @@ open Fable.Import.Browser
 open Node.Exports
 open Fable.PowerPack.Keyboard
 open CommonData
+open Fable.PowerPack.Keyboard
+open Fable.PowerPack.Keyboard
+open Helpers
 
 
 let fNone = Core.Option.None
+
+let runPipe mess s = printfn "%s: %A" mess s; s
 
 let projectDir = __SOURCE_DIRECTORY__ + @"/../../"
 
@@ -40,11 +45,35 @@ type TestSetup = {
 
 type TestT = OkTests | ErrorTests | BetterThanModelTests
 
+let writeDirPath = __SOURCE_DIRECTORY__ + @"/../../test-results"
+
 let readFileViaNode (path:string) : string =
     (fs.readFileSync path).toString("utf8")
 
-let writeFileViaNode path str =
-    let writeDirPath = __SOURCE_DIRECTORY__ + @"/../../test-results"
+
+let fnWithoutSuffix (f:string) = (f.Split [|'.'|]).[0]
+
+let readAllowedTests() =
+    fs.readdirSync (U2.Case1 (projectDir + "test-data"))
+    |> Seq.toList
+    |> List.filter (String.contains "ALLOWED")   
+    |> List.map (fun s -> "test-data/" + s)
+    |> List.collect ( fun path -> 
+        readFileViaNode path
+        |> String.split [|'\n'|]
+        |> Array.toList
+        |> List.collect (fun s ->         
+            match s with
+            | ParseRegex2 @"-------+([a-zA-Z0-9]+):([0-9]+)-----+.*" (name, LITERALNUMB(n,"")) ->
+                [name,n]
+            | _ -> []
+        ))
+    
+
+
+
+
+let writeFileViaNode (path:string) (str:string) =
     let errorHandler _err = // TODO: figure out how to handle errors which can occur
         ()
     if not (fs.existsSync (U2.Case1 writeDirPath)) then fs.mkdirSync writeDirPath
@@ -204,6 +233,7 @@ let writeResultsToFile fn rt resL =
         ts.Asm +
         "\n----------------------------------\n\n"
     //printfn "Writing result file\n%s." fName
+    //printfn "Resl =%A" resL
     match resL with
     | [] -> if fs.existsSync (U2.Case1 fName) then fs.unlinkSync (U2.Case1 fName)
     | _ -> 
@@ -215,17 +245,27 @@ let writeResultsToFile fn rt resL =
 
 
 
-let processTestResults (fn: string) (res: Map<TestT,(TestT*TestSetup*RunInfo*string) list>) =
+let processTestResults (fn: string) (res: Map<TestT,(TestT*TestSetup*RunInfo*string) list>) allowed =
     let getNum rt = 
         let resL = Map.findWithDefault rt res []
         writeResultsToFile fn rt resL
         resL.Length
-
-    printfn "Test Results from '%s': Ok: %d ; Better: %d ; Errors: %d" 
-        fn (getNum OkTests) (getNum BetterThanModelTests) (getNum ErrorTests)
+    
+    let badErrors = 
+        (Map.findWithDefault ErrorTests res [])
+        |> List.map (fun (_,ts,_,_) -> 
+            match ts.Name.Split [|':'|] with 
+            | [|name;num|] -> fnWithoutSuffix name, (uint32 (Int32.Parse num))
+            | _ -> failwithf "Bad name: expected name:number. Number (%A) parse failed" ts.Name)
+        |> Set.ofList
+        |> Set.filter (fun x -> not (List.contains x allowed))   
+    if badErrors.Count <> 0 then 
+        Result.Error <| sprintf "Ok: %d ; Better: %d ; Errors: %d"
+                  (getNum OkTests) (getNum BetterThanModelTests) (getNum ErrorTests)
+    else Result.Ok "Passed"
 
 /// on small test files print more info
-let RunEmulatorTest ts size =
+let RunEmulatorTest allowed  ts=
     let maxSteps = 1000
 
     //let more = size < 4
@@ -267,20 +307,24 @@ let RunEmulatorTest ts size =
         | {dp=dp} as ri' -> 
             ErrorTests, ts, ri', sprintf "Test code timed out after %d Visual2 instructions" maxSteps
 
-let runEmulatorTestFile fn =
+let runEmulatorTestFile allowed fn =
     let testF = projectDir + @"test-data/" + fn
-    let testResults =
-        loadStateFile testF
-        |> (fun tsLis ->
-                printfn "Running test file %s with %d tests..." fn tsLis.Length
-                List.map (fun ts -> ts, tsLis.Length) tsLis)
-        |> List.map (fun (ts, n) -> RunEmulatorTest ts n )
+    let results = loadStateFile testF
+    let resultsBySuccess =
+        results 
+        |> List.map (RunEmulatorTest allowed)
         |> List.groupBy (fun (rt,_,_,_) -> rt)
         |> Map.ofList
+    let resultSummary = processTestResults fn resultsBySuccess allowed
 
-    processTestResults fn testResults
+    match resultSummary with
+    | Result.Ok s
+    | Result.Error s -> s
+    |> printfn "%s with %d tests...%s" (fnWithoutSuffix fn) results.Length 
 
 let runAllEmulatorTests () =
+    let allowed = readAllowedTests()
+    printfn "Errors allowed in tests: %A" allowed
     let contents = electron.remote.getCurrentWebContents()
     if not (contents.isDevToolsOpened()) then contents.toggleDevTools()
     let files = 
@@ -290,9 +334,10 @@ let runAllEmulatorTests () =
                 if List.contains "focus.txt" lis 
                 then ["focus.txt"]
                 else lis)
+        |> List.filter (fun fn -> not (String.startsWith "ALLOWED" fn))
 
-    List.iter runEmulatorTestFile files
-    printfn "Finished running tests: see './test-results' for result files"
+    List.iter (runEmulatorTestFile allowed) files
+    printfn "Finished. See './test-results' for result files"
     
  
     
