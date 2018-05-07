@@ -30,8 +30,12 @@ open System.IO
 /// TODO: rationalise ename,eTxt,eMess and generate better messages
 let errUnpacker (eName, eTxt, eMess) tId lineNo =
     // TODO - add proper error messages with links to HTML documentation
-    makeErrorInEditor tId lineNo (""+eName + "\n\n" + eTxt + "\n\n" + eMess
-                                   + "\n\n[Assembler Guide](https://github.com/tomcl/Visual2/wiki/Assembler)")
+    makeErrorInEditor tId lineNo [
+        eName ; 
+        eTxt ;  
+        eMess
+        "[Assembler Guide](https://github.com/tomcl/Visual2/wiki/Assembler)"
+        ]
 
 let highlightErrorParse ((err:ParseError), lineNo) tId = 
     let errCode, errStr, errMess = err

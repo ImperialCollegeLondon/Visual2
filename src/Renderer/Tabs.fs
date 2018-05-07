@@ -251,6 +251,11 @@ let highlightLine tId number =
 
  
 let makeErrorInEditor tId lineNumber text = 
+    let makeMarkDown textLst =
+        textLst
+        |> List.toArray
+        |> Array.map (fun txt ->  createObj [ "isTrusted" ==> true; "value" ==> txt ])
+
     editorLineDecorate 
         editors.[tId]
         lineNumber 
@@ -258,10 +263,5 @@ let makeErrorInEditor tId lineNumber text =
             "isWholeLine" ==> true
             "isTrusted" ==> true
             "inlineClassName" ==> "editor-line-error"
-            "hoverMessage" ==> [|
-                createObj [
-                    "isTrusted" ==> true
-                    "value" ==> text
-                ]
-            |]
+            "hoverMessage" ==> makeMarkDown text
         ])
