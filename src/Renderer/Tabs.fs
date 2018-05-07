@@ -249,8 +249,13 @@ let highlightLine tId number =
             "inlineClassName" ==> "editor-line-highlight"
         ])
 
- 
-let makeErrorInEditor tId lineNumber text = 
+/// Decorate a line with an error indication and set up a hover message
+/// Message lines markdown paras
+/// Distinct lines must be elements of markdownLst
+/// markdownLst: string list - list of markdown paragraphs
+/// tId: int - tab identifier
+/// lineNumber: int - line to decorate, starting at 1
+let makeErrorInEditor tId lineNumber (markdownLst:string list) = 
     let makeMarkDown textLst =
         textLst
         |> List.toArray
@@ -263,5 +268,5 @@ let makeErrorInEditor tId lineNumber text =
             "isWholeLine" ==> true
             "isTrusted" ==> true
             "inlineClassName" ==> "editor-line-error"
-            "hoverMessage" ==> makeMarkDown text
+            "hoverMessage" ==> makeMarkDown markdownLst
         ])
