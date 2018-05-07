@@ -258,5 +258,10 @@ let makeErrorInEditor tId lineNumber text =
             "isWholeLine" ==> true
             "isTrusted" ==> true
             "inlineClassName" ==> "editor-line-error"
-            "hoverMessage" ==> text
+            "hoverMessage" ==> [|
+                createObj [
+                    "isTrusted" ==> true
+                    "value" ==> text
+                ]
+            |]
         ])

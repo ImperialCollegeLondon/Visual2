@@ -24,8 +24,14 @@ open System.IO
 
 
 
+
+/// Generate the hover error box
+/// the text generated is full GH markdown
+/// TODO: rationalise ename,eTxt,eMess and generate better messages
 let errUnpacker (eName, eTxt, eMess) tId lineNo =
-    makeErrorInEditor tId lineNo (""+eName + "\n\n" + eTxt + "\n\n" + eMess) 
+    // TODO - add proper error messages with links to HTML documentation
+    makeErrorInEditor tId lineNo (""+eName + "\n\n" + eTxt + "\n\n" + eMess
+                                   + "\n\n[test](http://www.google.com)")
 
 let highlightErrorParse ((err:ParseError), lineNo) tId = 
     let errCode, errStr, errMess = err
