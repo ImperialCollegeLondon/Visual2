@@ -250,8 +250,7 @@ let highlightLine tId number =
         ])
 
 /// Decorate a line with an error indication and set up a hover message
-/// Message lines markdown paras
-/// Distinct lines must be elements of markdownLst
+/// Distinct message lines must be elements of markdownLst
 /// markdownLst: string list - list of markdown paragraphs
 /// tId: int - tab identifier
 /// lineNumber: int - line to decorate, starting at 1
