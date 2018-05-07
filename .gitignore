@@ -1,6 +1,7 @@
 main.js
 app/js/*.js*
 !app/js/*editor.js
+!app/js/*monaco-init.js
 app/js/vs
 node_modules
 paket-files
