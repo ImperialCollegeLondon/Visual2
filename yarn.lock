@@ -1280,9 +1280,9 @@ electron-tabs@^0.9.1:
   version "0.9.1"
   resolved "https://registry.yarnpkg.com/electron-tabs/-/electron-tabs-0.9.1.tgz#23ae6199b0c4cec12698ee1e0b7172ced42951e9"
 
-electron@^1.7.5:
-  version "1.8.2"
-  resolved "https://registry.yarnpkg.com/electron/-/electron-1.8.2.tgz#a817cd733c2972b3c7cc4f777caf6e424b88014d"
+electron@^2.0.0:
+  version "2.0.0"
+  resolved "https://registry.yarnpkg.com/electron/-/electron-2.0.0.tgz#e95dc7f3a089a52b8c2a52c7c9e1024db0c8d46e"
   dependencies:
     "@types/node" "^8.0.24"
     electron-download "^3.0.1"
@@ -2447,9 +2447,9 @@ modify-filename@^1.1.0:
   version "1.1.0"
   resolved "https://registry.yarnpkg.com/modify-filename/-/modify-filename-1.1.0.tgz#9a2dec83806fbb2d975f22beec859ca26b393aa1"
 
-monaco-editor@^0.10.1:
-  version "0.10.1"
-  resolved "https://registry.yarnpkg.com/monaco-editor/-/monaco-editor-0.10.1.tgz#8c96c4f15b6b5258bf92cbde93cad8a7e3007e14"
+monaco-editor@^0.12.0:
+  version "0.12.0"
+  resolved "https://registry.yarnpkg.com/monaco-editor/-/monaco-editor-0.12.0.tgz#cd8621017526b57746245104d764bbf52ad42283"
 
 move-concurrently@^1.0.1:
   version "1.0.1"
