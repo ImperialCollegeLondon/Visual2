@@ -201,6 +201,13 @@ let indentProgram lim lines =
 
 
 let reLoadProgram (lines: string list) =
+    let addCodeMarkers (lim: LoadImage) =
+        let addCodeMark map (WA a, _) = 
+               match Map.tryFind (WA a) map with
+                | None -> Map.add (WA a) CodeSpace map
+                | _ -> failwithf "Code and Data conflict in %x" a
+        List.fold addCodeMark (lim.Mem) (lim.Code |> Map.toList)
+        |> (fun markedMem -> {lim with Mem = markedMem})
     let lim1 = initLoadImage dataSectionAlignment ([] |> Map.ofList)
     let next = loadProgram lines
     let unres lim = lim.SymInf.Unresolved |> List.length
@@ -211,7 +218,11 @@ let reLoadProgram (lines: string list) =
             -> lim2
         | n1,n2 when n1 = n2 && lim2.Errors = [] -> failwithf "What? %d unresolved refs in load image with no errors" n1
         | _ -> pass lim2 (next lim2)
-    let final = pass lim1 (next lim1) |> next |> next
+    let final = 
+        pass lim1 (next lim1) 
+        |> next 
+        |> next
+        |> addCodeMarkers
     final, indentProgram final lines
 
 
@@ -246,5 +257,23 @@ let dataPathStep (dp : DataPath, code:CodeMemory<CondInstr*int>) =
         // write it as (+8-4) of real value. setReg does this.
         |> Result.map (addToPc (4-8)) // undo +8 for pipelining added before execution. Add =4 to advance to next instruction
 
-
+/// Top-level function to run a program
+let asmStep (numSteps:int) (ri:RunInfo) =
+    let rec run dp numSteps = 
+        seq { 
+                match numSteps with
+                | 0 -> yield! Seq.empty
+                | n -> 
+                    let dpr =  dataPathStep (dp,ri.IMem)
+                    yield dpr,dp
+                    match dpr with
+                    | Result.Ok dp' -> yield! run dp' (numSteps-1)
+                    | Result.Error e -> yield! Seq.empty
+            }
+    let dpr, dp = run ri.dp numSteps |> Seq.last
+    match dpr with
+    | Ok dp' -> {ri with dp = dp'}, dp.Regs.[R15]
+    | Error e -> { ri with dp = dp ; RunErr = Some e}, dp.Regs.[R15]
+    
+            
     

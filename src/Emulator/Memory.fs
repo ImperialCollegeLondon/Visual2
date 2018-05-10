@@ -354,7 +354,7 @@ module Memory
         else
             match Map.tryFind (WA ef) dp.MM with
             | Some CodeSpace -> 
-                ``Run time error`` (ef, (sprintf "Can't read a code memory location %x" ef)) |> Error
+                ``Run time error`` (ef, (sprintf "Memory read of code memory location %x is not allowed" ef)) |> Error
             | Some (Dat d) -> Ok d
             | None -> Ok 0u
     

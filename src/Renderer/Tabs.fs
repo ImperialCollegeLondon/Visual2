@@ -240,13 +240,13 @@ let editorLineDecorate editor number decoration =
     decorations <- List.append decorations [newDecs]
 
 // highlight a particular line
-let highlightLine tId number = 
+let highlightLine tId number className = 
     editorLineDecorate 
         editors.[tId]
         number
         (createObj[
             "isWholeLine" ==> true
-            "inlineClassName" ==> "editor-line-highlight"
+            "inlineClassName" ==> className
         ])
 
 /// Decorate a line with an error indication and set up a hover message

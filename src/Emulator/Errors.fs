@@ -45,16 +45,11 @@ module Errors
         | ``Undefined parse``
         | ``Invalid literal`` 
         | ``Invalid second operand``
-        | ``Invalid flexible second operand``
-        | ``Invalid memory address``
         | ``Invalid offset``
         | ``Invalid register``
-        | ``Invalid shift``
         | ``Invalid suffix``
         | ``Invalid instruction``
         | ``Invalid expression``
-        | ``Invalid expression list``
-        | ``Invalid fill``
         | ``Label required``
         | ``Undefined symbol``
         | ``Unimplemented instruction``

@@ -422,10 +422,10 @@ let resetFlags () =
     setFlag "Z" false
     setFlag "V" false
 
-let setErrorStatus () = 
+let setErrorStatus msg = 
     statusBar.classList.remove("btn-positive")
     statusBar.classList.add("btn-negative")
-    statusBar.innerHTML <- "Errors in code"
+    statusBar.innerHTML <- msg
 
 let setExecutionCompleteStatus () =
     statusBar.classList.remove("btn-negative")

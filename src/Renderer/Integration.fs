@@ -41,24 +41,20 @@ let highlightErrorParse ((err:ParseError), lineNo) tId =
     let errCode, errStr, errMess = err
     let getErrNames = 
         match errCode with
+        | ``Invalid syntax`` -> "Invalid syntax"
         | ``Undefined symbol`` -> "Undefined symbol"
         | ``Invalid literal`` -> "Invalid literal"
         | ``Invalid second operand`` -> "Invalid second operand"
-        | ``Invalid flexible second operand``  -> "Invalid flexible second operand"
-        | ``Invalid memory address``  -> "Invalid memory address"
         | ``Invalid offset``  -> "Invalid offset"
         | ``Invalid register``  -> "Invalid register"
-        | ``Invalid shift``  -> "Invalid shift"
         | ``Invalid suffix``  -> "Invalid suffix"
         | ``Invalid instruction``  -> "Invalid instruction"
         | ``Invalid expression`` -> "Invalid expression"
-        | ``Invalid expression list``  -> "Invalid expression list"
-        | ``Invalid fill``  -> "Invalid fill"
         | ``Label required``  -> "Label required"
         | ``Unimplemented instruction`` -> "Invalid instruction"
         | e -> sprintf "Error Code without getErrNames entry: %A" e
     errUnpacker (getErrNames,errStr, errMess) tId lineNo
-    setErrorStatus ()
+    setErrorStatus "Errors in code"
 
 
 let makeMemoryMap mm =
@@ -104,49 +100,36 @@ let showInfo (ri:RunInfo) =
     setRegs ri.dp.Regs
     setFlags ri.dp.Fl
 
-let handleRunTimeError e (pInfo:RunInfo) =
+let highlightCurrentIns classname pInfo pc tId  =
+    removeEditorDecorations tId
+    match Map.tryFind (WA pc) pInfo.IMem with
+    | Some (ci, lineNo) -> highlightLine tId lineNo classname
+    | Option.None
+    | Some _ -> failwithf "What? Current PC value (%x) is not an instruction: this should be impossible!" pc
+
+
+let handleRunTimeError e (pInfo:RunInfo) lastPC =
+    let getCodeLineMess pInfo pos =
+        match Map.tryFind (WA lastPC) pInfo.IMem with
+        | Some (_, lineNo) -> sprintf "on line %d" lineNo
+        | _ -> ""
     match e with
     | EXIT ->
         showInfo pInfo
         setExecutionCompleteStatus ()
     | NotInstrMem x -> 
         Browser.window.alert(sprintf "Trying to access non-instruction memory 0x%x" x)
-        setErrorStatus ()
+        setErrorStatus "Run time error"
     | ``Run time error`` (pos,msg) ->
-        Browser.window.alert(sprintf "Error on line %d: %s" pos msg)
-        setErrorStatus ()
+        let lineMess = getCodeLineMess pInfo pos
+        highlightCurrentIns "editor-line-highlight" pInfo lastPC currentFileTabId
+        updateRegisters()
+        Browser.window.setTimeout( (fun () ->                
+            Browser.window.alert(sprintf "Error %s: %s" lineMess msg)
+            setErrorStatus "Run time error"), 100, []) |> ignore
     | ``Unknown symbol runtime error`` undefs ->
         Browser.window.alert(sprintf "What? Undefined symbols: %A" undefs)
 
-    
-
-let rec pExecute (numSteps: int) (ri:RunInfo) =
-    let stepsBeforeDisplay = 50000
-    let mutable currentStep = numSteps
-    let lastStep = numSteps - stepsBeforeDisplay
-    let mutable pi = {ri with RunErr=FSharp.Core.Option.None}
-    let mutable dp = ri.dp
-    let mutable err = fNone
-    let setState() =
-        showInfo pi
-        updateRegisters()
-    while currentStep <> 0 do
-        dp <- ri.dp
-        match dataPathStep (pi.dp,pi.IMem) with
-        | Result.Error e -> 
-            err <- Some e
-            handleRunTimeError e pi
-            currentStep <- 0
-        | Result.Ok ndp ->
-            pi <- { pi with dp = ndp}
-            currentStep <- currentStep - 1
-            if currentStep = lastStep then
-                setState()
-                Browser.window.setTimeout(
-                    (fun () -> pExecute currentStep pi), 0) |> ignore
-    setState()
-    //printfn "Pexecute dp=%A" pi.dp
-    {pi with RunErr = err}
 
 
 let rec pTestExecute more numSteps ri =
@@ -196,56 +179,37 @@ let getRunInfoFromState (lim:LoadImage) =
    
 let runInfo code dp st = {dp=dp ; st = st ; RunErr = fNone; IMem = code}
 
-let highlightCurrentIns (pInfo:RunInfo) tId =
-    removeEditorDecorations tId
-    match Map.tryFind (WA pInfo.dp.Regs.[R15]) pInfo.IMem with
-    | Some (ci, lineNo) -> highlightLine tId lineNo
-    | Option.None
-    | Some _ -> failwithf "What? Current PC value (%x) is not an instruction: this should be impossible!" pInfo.dp.Regs.[R15]
+let mutable currentPInfo : RunInfo option = fNone
 
-
-let runCode () =
-
+/// Parses and runs the assembler program in the current tab
+/// Aborts after steps instructions, unless steps is 0
+let runEditorTab steps =
     let tId = currentFileTabId
     removeEditorDecorations tId
     match tryParseCode tId with
-    | Some (lim, txt) -> 
+    | Some (lim, _) -> 
         disableEditors()
-        match pExecute maxStepsToRun (lim |> getRunInfoFromState) with
-        | {RunErr = Some e;  dp=dp} as ri -> handleRunTimeError e ri
-        | {dp=dp} as ri -> highlightCurrentIns ri tId
-        ()
+        let rec asmStepDisplay steps ri =
+            if steps <= 50000 then
+                let ri,lastPC = asmStep steps ri
+                currentPInfo <- Some ri
+                match ri with
+                | {RunErr = Option.None} ->  highlightCurrentIns "editor-line-highlight" ri lastPC tId
+                | {RunErr = Some e } -> handleRunTimeError e ri lastPC
+                showInfo ri
+            else
+                match asmStep 50000 ri with
+                | {RunErr = Some e },lastPC -> handleRunTimeError e ri lastPC
+                | ri, _ -> 
+                  updateRegisters()
+                  Browser.window.setTimeout( (fun () -> 
+                    asmStepDisplay (steps-50000) ri), 0, []) |> ignore               
+        asmStepDisplay  steps (lim |> getRunInfoFromState)
     | _ -> ()
 
-let mutable currentPInfo : RunInfo option = fNone
+let runCode () = runEditorTab maxStepsToRun
 
-
-
-let doCodeStep pi tId =
-    let newDp = dataPathStep (pi.dp,pi.IMem)
-    match newDp with
-    | Result.Error e ->
-        handleRunTimeError e pi
-    | Result.Ok ndp ->
-        let newP = {pi with dp = ndp}
-        highlightCurrentIns pi tId
-        currentPInfo <- Some newP
-        showInfo newP
-
-let stepCode () =
-    let tId = currentFileTabId
-    removeEditorDecorations tId
-    match currentPInfo with
-    | Some pInfo -> doCodeStep pInfo tId
-    | _ ->
-        currentPInfo <- 
-            tryParseCode tId 
-            |> Core.Option.map (fst >> getRunInfoFromState) 
-        match currentPInfo with
-        | Some pi -> 
-            disableEditors()
-            doCodeStep pi tId
-        | fNone -> ()
+let stepCode() = runEditorTab 1
 
 
 let resetEmulator () =
