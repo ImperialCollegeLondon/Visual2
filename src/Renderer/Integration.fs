@@ -122,7 +122,7 @@ let handleRunTimeError e (pInfo:RunInfo) lastPC =
         setErrorStatus "Run time error"
     | ``Run time error`` (pos,msg) ->
         let lineMess = getCodeLineMess pInfo pos
-        highlightCurrentIns "editor-line-highlight" pInfo lastPC currentFileTabId
+        highlightCurrentIns "editor-line-highlight-error" pInfo lastPC currentFileTabId
         updateRegisters()
         Browser.window.setTimeout( (fun () ->                
             Browser.window.alert(sprintf "Error %s: %s" lineMess msg)
