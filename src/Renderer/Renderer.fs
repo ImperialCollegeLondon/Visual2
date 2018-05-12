@@ -50,6 +50,10 @@ let init () =
     stepfBtn.addEventListener_click(fun _ ->
         stepCode ()
     )
+    stepbBtn.addEventListener_click(fun _ ->
+        stepCodeBack ()
+    )
+
     resetBtn.addEventListener_click(fun _ ->
         resetEmulator()
     )

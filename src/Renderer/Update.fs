@@ -46,6 +46,7 @@ let mutable memoryMap : Map<uint32, uint32> = Map.ofList []
 let mutable regMap : Map<CommonData.RName,uint32> = initialRegMap
 let mutable flags: CommonData.Flags = initialFlags
 let mutable symbolMap : Map<string, uint32> = Map.ofList []
+let mutable runMode: RunMode = ResetMode
 
 [<Emit "'0x' + ($0 >>> 0).toString(16)">]
 let hexFormatter _ : string = jsNative
@@ -441,3 +442,12 @@ let setNoStatus () =
     statusBar.classList.remove("btn-positive")
     statusBar.classList.remove("btn-primary")
     statusBar.innerHTML <- "-"
+
+let setMode (rm:RunMode) =
+    match rm with
+    | ParseErrorMode -> setErrorStatus "Errors in Code"
+    | RunErrorMode _ -> setErrorStatus "Runtime Error"
+    | ResetMode -> setNoStatus()
+    | SteppingMode ri -> setStepExecutionStatus ()
+    | FinishedMode ri -> setExecutionCompleteStatus ()
+    runMode <- rm

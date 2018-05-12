@@ -54,7 +54,7 @@ let highlightErrorParse ((err:ParseError), lineNo) tId =
         | ``Unimplemented instruction`` -> "Invalid instruction"
         | e -> sprintf "Error Code without getErrNames entry: %A" e
     errUnpacker (getErrNames,errStr, errMess) tId lineNo
-    setErrorStatus "Errors in code"
+    setMode ParseErrorMode
 
 
 let makeMemoryMap mm =
@@ -92,14 +92,19 @@ let getFlags() =
         Z = getFlag "Z"
     }
 
-let showInfo (ri:RunInfo) =
-    symbolMap <- ri.st
-    updateSymTable()
-    let dp = dpAfterExec ri
-    memoryMap <- makeMemoryMap dp.MM
-    updateMemory()
-    setRegs dp.Regs
-    setFlags dp.Fl
+let showInfo () =
+    match runMode with
+    | FinishedMode ri
+    | SteppingMode ri
+    | RunErrorMode ri ->
+        symbolMap <- ri.st
+        updateSymTable()
+        let dp = dpAfterExec ri
+        memoryMap <- makeMemoryMap dp.MM
+        updateMemory()
+        setRegs dp.Regs
+        setFlags dp.Fl
+    | _ -> ()
 
 let highlightCurrentIns classname pInfo tId  =
     removeEditorDecorations tId
@@ -116,18 +121,18 @@ let handleRunTimeError e (pInfo:RunInfo)  =
         | _ -> ""
     match e with
     | EXIT ->
-        showInfo pInfo
-        setExecutionCompleteStatus ()
+        setMode (FinishedMode pInfo)
+        showInfo ()
     | NotInstrMem x -> 
         Browser.window.alert(sprintf "Trying to access non-instruction memory 0x%x" x)
-        setErrorStatus "Run time error"
+        setMode (RunErrorMode pInfo)
     | ``Run time error`` (pos,msg) ->
         let lineMess = getCodeLineMess pInfo pos
         highlightCurrentIns "editor-line-highlight-error" pInfo currentFileTabId
         updateRegisters()
         Browser.window.setTimeout( (fun () ->                
             Browser.window.alert(sprintf "Error %s: %s" lineMess msg)
-            setErrorStatus "Run time error"), 100, []) |> ignore
+            RunErrorMode pInfo), 100, []) |> ignore
     | ``Unknown symbol runtime error`` undefs ->
         Browser.window.alert(sprintf "What? Undefined symbols: %A" undefs)
 
@@ -164,44 +169,79 @@ let getRunInfoFromState (lim:LoadImage) =
              } 
     {dpInit=dp; st=lim.SymInf.SymTab; IMem = lim.Code; LastPC = dp.Regs.[R15]; dpResult=Result.Ok dp; StepsDone=0}
    
+let rec asmStepDisplay steps ri =
+    let mode r = SteppingMode r
+    printfn "exec with steps=%d and R0=%d" steps (dpAfterExec ri).Regs.[R0]
+    if steps <= 50000 then
+        let ri = asmStep steps ri
+        setMode (mode ri)
+        match ri.dpResult with
+        | Result.Ok dp ->  
+            highlightCurrentIns "editor-line-highlight" ri currentFileTabId
+            if steps = 1 then setMode (SteppingMode ri)
+        | Result.Error (e,_) -> handleRunTimeError e ri
+        showInfo ()
+    else
+        setMode (mode ri)
+        match asmStep 25000 ri with
+        | {dpResult = Result.Error (e,_) } -> handleRunTimeError e ri
+        | {dpResult = Result.Ok _} -> 
+            setMode (mode ri)
+            showInfo ()
+            Browser.window.setTimeout( (fun () -> 
+            asmStepDisplay (steps-25000) ri), 0, []) |> ignore               
 
-let mutable currentPInfo : RunInfo option = Core.Option.None
+
 
 /// Parses and runs the assembler program in the current tab
 /// Aborts after steps instructions, unless steps is 0
 let runEditorTab steps =
-    let tId = currentFileTabId
-    removeEditorDecorations tId
-    match tryParseCode tId with
-    | Some (lim, _) -> 
-        disableEditors()
-        let rec asmStepDisplay steps ri =
-            printfn "exec with steps=%d and R0=%d" steps (dpAfterExec ri).Regs.[R0]
-            if steps <= 50000 then
-                let ri = asmStep steps ri
-                currentPInfo <- Some ri
-                match ri.dpResult with
-                | Result.Ok dp ->  
-                    highlightCurrentIns "editor-line-highlight" ri tId
-                    if steps = 1 then setStepExecutionStatus()
-                | Result.Error (e,_) -> handleRunTimeError e ri
-                showInfo ri
-            else
-                currentPInfo <- Some ri
-                match asmStep 25000 ri with
-                | {dpResult = Result.Error (e,_) } -> handleRunTimeError e ri
-                | {dpResult = Result.Ok _} -> 
-                  currentPInfo <- Some ri
-                  showInfo ri
-                  Browser.window.setTimeout( (fun () -> 
-                    asmStepDisplay (steps-25000) ri), 0, []) |> ignore               
-        asmStepDisplay  steps (lim |> getRunInfoFromState)
-    | _ -> ()
+    match runMode with
+    | ResetMode
+    | ParseErrorMode 
+    | RunErrorMode _ ->
+        let tId = currentFileTabId
+        removeEditorDecorations tId
+        match tryParseCode tId with
+        | Some (lim, _) -> 
+            disableEditors()
+            asmStepDisplay  steps (lim |> getRunInfoFromState)
+        | _ -> ()
+    | SteppingMode ri
+    | FinishedMode ri ->
+        asmStepDisplay  steps ri
+
 
 let runCode () = runEditorTab maxStepsToRun
 
-let stepCode() = runEditorTab 1
+let stepCode() =
+    match runMode with
+    | SteppingMode ri -> runEditorTab (ri.StepsDone + 1)
+    | FinishedMode _ -> ()
+    | _ -> runEditorTab 1
 
+let stepCodeBackBy numSteps =
+    match runMode with
+    | SteppingMode ri
+    | RunErrorMode ri
+    | FinishedMode ri ->
+        match asmStepBack numSteps ri with
+        | Option.None ->
+            printfn "Mode=%A" runMode
+            Browser.window.alert( sprintf "Can't step back by %d instructions" numSteps)
+        | Some ri' -> 
+            runMode <- SteppingMode ri'
+            match ri'.dpResult with
+            | Result.Ok dp ->  
+                highlightCurrentIns "editor-line-highlight" ri' currentFileTabId
+                setMode (SteppingMode ri')
+            | Result.Error (e,_) -> failwithf "What? Error can't happen when stepping backwards!"
+            showInfo ()
+
+    | ParseErrorMode -> Browser.window.alert( sprintf "Can't execute when code has errors")
+    | ResetMode -> Browser.window.alert( sprintf "Execution has not started")
+
+let stepCodeBack () = stepCodeBackBy 1
 
 let resetEmulator () =
     removeEditorDecorations currentFileTabId
@@ -209,11 +249,10 @@ let resetEmulator () =
     memoryMap <- initialMemoryMap
     symbolMap <- initialSymbolMap
     regMap <- initialRegMap
+    setMode ResetMode
     updateMemory()
     updateSymTable()
     updateRegisters ()
     resetRegs()
     resetFlags()
-    currentPInfo <- Core.Option.None
-    setNoStatus ()
 
