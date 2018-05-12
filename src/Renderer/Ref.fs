@@ -17,7 +17,7 @@ open Microsoft.FSharp.Collections
 [<Emit("$0 === undefined")>]
 let isUndefined (_: 'a) : bool = jsNative
 
-let fNone = Microsoft.FSharp.Core.option.None
+
 
 type Representations =
     | Hex
@@ -64,6 +64,7 @@ let save = getHtml "save" :?> HTMLButtonElement
 let run: HTMLButtonElement = getHtml "run" :?> HTMLButtonElement
 let resetBtn = getHtml "reset" :?> HTMLButtonElement
 let stepfBtn = getHtml "stepf" :?> HTMLButtonElement
+let stepbBtn = getHtml "stepb" :?> HTMLButtonElement
 let flag id = getHtml <| sprintf "flag_%s" id
 let representation rep = getHtml repToId.[rep]
 let viewView view = getHtml viewToIdView.[view]

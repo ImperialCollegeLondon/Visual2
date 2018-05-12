@@ -9,6 +9,7 @@ open Node.Base
 open Update
 open Settings
 open Tabs
+open System.Threading
 
 let handlerCaster f = System.Func<MenuItem, BrowserWindow, unit> f |> Some
 
@@ -51,6 +52,12 @@ let fileMenu =
             makeItem "Quit"     (Some "Ctrl+Q")         electron.remote.app.quit
         ]
 
+let optCreateSettingsTab() =
+    match Update.runMode with
+    | ExecutionTop.ResetMode 
+    | ExecutionTop.ParseErrorMode -> createSettingsTab ()
+    | _ -> Browser.window.alert "Can't change preferences while simulator is running" |> ignore
+
 let editMenu = 
     makeMenu "Edit" [
         makeItem "Undo" (Some "CmdOrCtrl+Z") editorUndo
@@ -65,7 +72,7 @@ let editMenu =
         makeItem "Find" (Some "CmdOrCtrl+F") editorFind              
         makeItem "Replace"  (Some "CmdOrCtrl+H") editorFindReplace
         menuSeparator
-        makeItem  "Preferences"  Option.None createSettingsTab
+        makeItem  "Preferences"  Option.None optCreateSettingsTab
     ]
 
 

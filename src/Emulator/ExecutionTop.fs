@@ -20,8 +20,18 @@ open ParseTop
 
 type ErrResolveBase = {lineNumber : uint32 ; error : ParseError}
 
-type LoadPos = { PosI: uint32; PosD: uint32 ; DStart: uint32}
-type SymbolInfo = {SymTab: SymbolTable ; Refs: (string * int) list ; Defs: (string * int) list; Unresolved: (string * int) list}
+type LoadPos = { 
+    PosI: uint32; 
+    PosD: uint32 ; 
+    DStart: uint32
+    }
+
+type SymbolInfo = {
+    SymTab: SymbolTable ; 
+    Refs: (string * int) list ; 
+    Defs: (string * int) list; 
+    Unresolved: (string * int) list
+    }
 
 type LoadImage = {
     LoadP: LoadPos
@@ -33,11 +43,24 @@ type LoadImage = {
     }
 
 type RunInfo = {
-    dp: DataPath
+    dpInit: DataPath
     IMem: CodeMemory<CondInstr * int>
-    RunErr: ExecuteError option
+    dpResult: Result<DataPath,ExecuteError*DataPath>
     st: SymbolTable
+    StepsDone: int
+    LastPC: uint32
     }
+
+type RunMode = 
+    | ResetMode
+    | ParseErrorMode
+    | RunErrorMode of RunInfo
+    | SteppingMode of RunInfo
+    | FinishedMode of RunInfo
+
+/// datapath after execution
+let dpAfterExec ri =
+    match ri.dpResult with | Ok dp -> dp | Error (e_,dp) -> dp
 
 let dataSectionAlignment = 0x200u
 
@@ -255,25 +278,38 @@ let dataPathStep (dp : DataPath, code:CodeMemory<CondInstr*int>) =
         | false -> dp' |> Ok
         // NB because PC is incremented after execution all exec instructions that write PC must in fact 
         // write it as (+8-4) of real value. setReg does this.
-        |> Result.map (addToPc (4-8)) // undo +8 for pipelining added before execution. Add =4 to advance to next instruction
+        |> Result.map (addToPc (4 - 8)) // undo +8 for pipelining added before execution. Add +4 to advance to next instruction
 
-/// Top-level function to run a program
+/// <summary> Top-level function to run an assembly program.
+/// Will run until error, program end, numSteps instructions have been executed.</summary>
+/// <param name="numSteps"> max number instructions before stopping </param>
+/// <param name="ri"> runtime info with initial data path and instructions</param>
+/// <result> <see cref="RunInfo">RunInfo Record</see> with final PC, instruction Result, 
+/// and number of steps successfully executed </result>
 let asmStep (numSteps:int) (ri:RunInfo) =
-    let rec run dp numSteps = 
-        seq { 
-                match numSteps with
-                | 0 -> yield! Seq.empty
-                | n -> 
-                    let dpr =  dataPathStep (dp,ri.IMem)
-                    yield dpr,dp
-                    match dpr with
-                    | Result.Ok dp' -> yield! run dp' (numSteps-1)
-                    | Result.Error e -> yield! Seq.empty
-            }
-    let dpr, dp = run ri.dp numSteps |> Seq.last
-    match dpr with
-    | Ok dp' -> {ri with dp = dp'}, dp.Regs.[R15]
-    | Error e -> { ri with dp = dp ; RunErr = Some e}, dp.Regs.[R15]
-    
+        // Can't use a tail recursive function here since FABLE will maybe not optimise stack.
+        // We need this code to be fast and possibly execute for a long time
+        // so use this ugly while loop with mutable variables!
+        let mutable dp = ri.dpInit // initial dataPath
+        let mutable dpResult = Ok ri.dpInit// datapath after instruction (or error)
+        let mutable stepsDone = 0 // number of instructions completed without error
+        let mutable running = true // true if no error has yet happened
+        while stepsDone < numSteps && running do
+            dp <- match dpResult with | Ok dp' -> dp' | _ -> dp
+            dpResult <- dataPathStep (dp,ri.IMem)
+            match dpResult with
+            | Result.Ok dp' -> ()
+            | Result.Error e ->  running <- false 
+            stepsDone <- stepsDone + 1
+        {ri with 
+            dpResult = Result.mapError (fun execErr -> execErr, dp) dpResult; 
+            LastPC = dp.Regs.[R15]; 
+            StepsDone=stepsDone
+        } 
+/// <summary> As <see cref="asmStep"> asmStep</see> but go backwards. Return None if not possible </summary>
+let asmStepBack numSteps (ri: RunInfo) =
+    match ri.StepsDone with
+    | n when numSteps >= n -> None
+    | _ -> asmStep (ri.StepsDone - numSteps) ri |> Some
             
     
