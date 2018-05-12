@@ -298,8 +298,9 @@ let asmStep (numSteps:int) (ri:RunInfo) =
             dp <- match dpResult with | Ok dp' -> dp' | _ -> dp
             dpResult <- dataPathStep (dp,ri.IMem)
             match dpResult with
-            | Result.Ok dp' -> stepsDone <- stepsDone + 1
+            | Result.Ok dp' -> ()
             | Result.Error e ->  running <- false 
+            stepsDone <- stepsDone + 1
         {ri with 
             dpResult = Result.mapError (fun execErr -> execErr, dp) dpResult; 
             LastPC = dp.Regs.[R15]; 
