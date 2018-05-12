@@ -168,17 +168,22 @@ let getRunInfoFromState (lim:LoadImage) =
                 MM = getData memoryMap lim.Mem
              } 
     {dpInit=dp; st=lim.SymInf.SymTab; IMem = lim.Code; LastPC = dp.Regs.[R15]; dpResult=Result.Ok dp; StepsDone=0}
+
+let loopMessage() = 
+    let steps = Settings.vSettings.SimulatorMaxSteps
+    sprintf "WARNING Possible infinite loop: max number of steps (%d) exceeded. To disable this warning use Settings" steps
    
 let rec asmStepDisplay steps ri =
-    let mode r = SteppingMode r
+    let running = steps <> ri.StepsDone + 1
     printfn "exec with steps=%d and R0=%d" steps (dpAfterExec ri).Regs.[R0]
     if steps <= 50000 then
         let ri = asmStep steps ri
-        setMode (mode ri)
+        setMode (SteppingMode  ri)
         match ri.dpResult with
         | Result.Ok dp ->  
             highlightCurrentIns "editor-line-highlight" ri currentFileTabId
-            if steps = 1 then setMode (SteppingMode ri)
+            setMode (SteppingMode ri)
+            if running then  Browser.window.alert( loopMessage() )
         | Result.Error (e,_) -> handleRunTimeError e ri
         showInfo ()
     else
@@ -186,7 +191,7 @@ let rec asmStepDisplay steps ri =
         match asmStep 25000 ri with
         | {dpResult = Result.Error (e,_) } -> handleRunTimeError e ri
         | {dpResult = Result.Ok _} -> 
-            setMode (mode ri)
+            setMode (SteppingMode ri)
             showInfo ()
             Browser.window.setTimeout( (fun () -> 
             asmStepDisplay (steps-25000) ri), 0, []) |> ignore               
@@ -198,8 +203,7 @@ let rec asmStepDisplay steps ri =
 let runEditorTab steps =
     match runMode with
     | ResetMode
-    | ParseErrorMode 
-    | RunErrorMode _ ->
+    | ParseErrorMode _ ->
         let tId = currentFileTabId
         removeEditorDecorations tId
         match tryParseCode tId with
@@ -207,18 +211,15 @@ let runEditorTab steps =
             disableEditors()
             asmStepDisplay  steps (lim |> getRunInfoFromState)
         | _ -> ()
-    | SteppingMode ri
-    | FinishedMode ri ->
-        asmStepDisplay  steps ri
-
-
-let runCode () = runEditorTab maxStepsToRun
-
-let stepCode() =
-    match runMode with
-    | SteppingMode ri -> runEditorTab (ri.StepsDone + 1)
+    | SteppingMode ri -> asmStepDisplay  (steps + ri.StepsDone) ri
+    | RunErrorMode _ 
     | FinishedMode _ -> ()
-    | _ -> runEditorTab 1
+
+
+
+let runCode () = runEditorTab (int Settings.vSettings.SimulatorMaxSteps)
+
+let stepCode() = runEditorTab 1
 
 let stepCodeBackBy numSteps =
     match runMode with

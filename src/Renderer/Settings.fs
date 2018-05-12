@@ -33,12 +33,52 @@ let getSettingInput (name : string) =
     let input = document.getElementById(name) :?> HTMLInputElement
     input.value
 
+
+type VSettings = {
+    EditorFontSize : uint32
+    SimulatorMaxSteps : uint32
+    EditorTheme: string
+    EditorWordWrap: string
+    EditorRenderWhitespace: string
+    }
+
+let mutable vSettings = {
+    EditorFontSize = 12u
+    SimulatorMaxSteps = 10000u
+    EditorTheme = "one-dark-pro"
+    EditorWordWrap = "off"
+    EditorRenderWhitespace = "None"
+    }
+
+let getInt mini maxi defi settingName = 
+    let (|INT|_|) = function
+        | Helpers.LITERALNUMB (n,"") -> Some n 
+        | _ -> Core.Option.None
+    match getSettingInput settingName with
+    | INT n when n >= mini && n <= maxi -> n
+    | INT n when n < mini -> mini
+    | INT n when n > maxi -> maxi
+    | _ -> defi
+
+let getVisualSettings() =
+    printfn "getting settings"
+    {
+        EditorFontSize = getInt 8u 100u 12u editorFontSize
+        SimulatorMaxSteps = getInt 0u 1000000000u 10000u simulatorMaxSteps
+        EditorTheme = getSettingInput editorTheme
+        EditorWordWrap = false
+        EditorRenderWhitespace = false
+    } 
+    |> Helpers.pipeShow "New settings:"
+
+
 let setSettingInput (name : string) =
     setSetting name (getSettingInput name)
 
 // Go through the form extracting all of the relevant settings
 let saveSettings () =
     List.map setSettingInput inputSettings |> ignore
+    vSettings <- getVisualSettings()
     updateAllEditors()
 
 let makeFormGroup label input =

@@ -12,9 +12,9 @@ open Ref
 
 // Default settings if they haven't already been defined by electron-settings
 let defaultSettings = Map.ofList [
-                            "simulator-max-steps" ==> "200000"
+                            "simulator-max-steps" ==> "10000"
                             "editor-font-size" ==> "12"
-                            "editor-theme" ==> "vs-light"
+                            "editor-theme" ==> "vs-dark-pro"
                             "editor-word-wrap" ==> "on"
                             "editor-render-whitespace" ==> "none"
                             "current-file-path" ==> os.homedir()
