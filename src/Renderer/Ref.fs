@@ -17,7 +17,7 @@ open Microsoft.FSharp.Collections
 [<Emit("$0 === undefined")>]
 let isUndefined (_: 'a) : bool = jsNative
 
-let fNone = Microsoft.FSharp.Core.option.None
+
 
 type Representations =
     | Hex

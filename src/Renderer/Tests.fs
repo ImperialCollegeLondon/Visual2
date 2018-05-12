@@ -140,9 +140,11 @@ let handleTestRunError e (pInfo:RunInfo) (ts: TestSetup) =
         |> List.filter (fun (_, (a,m)) -> a <> m)
         |> List.map (fun (r,(a,m)) -> sprintf "Bad output:R%d is 0x%x should be 0x%x" r (uint64 a) (uint64 m))
         |> String.concat "\n"
- 
+
+    let dp = dpAfterExec pInfo
+
     let regs = 
-        pInfo.dp.Regs
+        dp.Regs
         |> Map.toList
         |> List.sortBy (fun (r,u) -> r.RegNum)
         |> List.map (fun (r,u) -> u)
@@ -150,7 +152,7 @@ let handleTestRunError e (pInfo:RunInfo) (ts: TestSetup) =
     
 
     let flags =
-        match pInfo.dp.Fl with
+        match dp.Fl with
         | {N = n ; C = c; V = v; Z = z} -> {FN=n;FC=c;FV=v;FZ=z}
     match e with
     | EXIT ->
@@ -228,7 +230,7 @@ let writeResultsToFile fn rt resL =
     let displayTest (tt: TestT, ts:TestSetup,ri:RunInfo,mess:string) =
         sprintf "\n--------------%s----------------\n" ts.Name +
         mess + "\n\r\n" +
-        displayState ts ri.dp + "\n" +
+        displayState ts (dpAfterExec ri) + "\n" +
         "       ---------ASM----------\n" +
         ts.Asm +
         "\n----------------------------------\n\n"
@@ -288,7 +290,7 @@ let RunEmulatorTest allowed  ts=
         | fNone -> OkTests, ts, ri, "Visual2 cannot parse assembler: however this test returns an error in the model"
     else
         let dpBefore =
-            {ri.dp with 
+            {ri.dpInit with 
                 Regs = 
                     ts.Before.TRegs 
                     |> List.indexed 
@@ -300,11 +302,11 @@ let RunEmulatorTest allowed  ts=
                     | {FC=c;FV=v;FZ=z;FN=n} -> {C=c;V=v;N=n;Z=z}
             }
 
-        let ri' = pTestExecute more maxSteps { ri with dp = dpBefore}
+        let ri' = asmStep maxSteps { ri with dpInit = dpBefore}
 
         match ri' with
-        | {RunErr = Some e;  dp=dp} as ri' -> handleTestRunError e ri' ts
-        | {dp=dp} as ri' -> 
+        | {dpResult= Result.Error (e,_)} as ri' -> handleTestRunError e ri' ts
+        | {dpResult = Result.Ok _} as ri' -> 
             ErrorTests, ts, ri', sprintf "Test code timed out after %d Visual2 instructions" maxSteps
 
 let runEmulatorTestFile allowed fn =

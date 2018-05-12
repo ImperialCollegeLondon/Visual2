@@ -429,9 +429,12 @@ let setStatusButton msg (className:string)=
     statusBar.innerHTML <- msg
 
 
-let setErrorStatus msg = setStatusButton msg "btn-positive"
+let setErrorStatus msg = setStatusButton msg "btn-negative"
 
-let setExecutionCompleteStatus () = setStatusButton "Execution Complete" "btn-negative"
+let setExecutionCompleteStatus () = 
+    setStatusButton "Execution Complete" "btn-positive"
+
+let setStepExecutionStatus () = setStatusButton "Stepping" "btn-primary"
 
 let setNoStatus () =
     statusBar.classList.remove("btn-negative")

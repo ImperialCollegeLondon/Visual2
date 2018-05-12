@@ -62,7 +62,7 @@ let makeMemoryMap mm =
     |> List.map (fun (WA addr, value) ->
            match value with
            | Dat x -> Some (addr, x)
-           | CodeSpace -> fNone)
+           | CodeSpace -> Core.Option.None)
     |> List.choose id
     |> Map.ofList
 
@@ -95,22 +95,23 @@ let getFlags() =
 let showInfo (ri:RunInfo) =
     symbolMap <- ri.st
     updateSymTable()
-    memoryMap <- makeMemoryMap ri.dp.MM
+    let dp = dpAfterExec ri
+    memoryMap <- makeMemoryMap dp.MM
     updateMemory()
-    setRegs ri.dp.Regs
-    setFlags ri.dp.Fl
+    setRegs dp.Regs
+    setFlags dp.Fl
 
-let highlightCurrentIns classname pInfo pc tId  =
+let highlightCurrentIns classname pInfo tId  =
     removeEditorDecorations tId
-    match Map.tryFind (WA pc) pInfo.IMem with
+    match Map.tryFind (WA pInfo.LastPC) pInfo.IMem with
     | Some (ci, lineNo) -> highlightLine tId lineNo classname
     | Option.None
-    | Some _ -> failwithf "What? Current PC value (%x) is not an instruction: this should be impossible!" pc
+    | Some _ -> failwithf "What? Current PC value (%x) is not an instruction: this should be impossible!" pInfo.LastPC
 
 
-let handleRunTimeError e (pInfo:RunInfo) lastPC =
+let handleRunTimeError e (pInfo:RunInfo)  =
     let getCodeLineMess pInfo pos =
-        match Map.tryFind (WA lastPC) pInfo.IMem with
+        match Map.tryFind (WA pInfo.LastPC) pInfo.IMem with
         | Some (_, lineNo) -> sprintf "on line %d" lineNo
         | _ -> ""
     match e with
@@ -122,7 +123,7 @@ let handleRunTimeError e (pInfo:RunInfo) lastPC =
         setErrorStatus "Run time error"
     | ``Run time error`` (pos,msg) ->
         let lineMess = getCodeLineMess pInfo pos
-        highlightCurrentIns "editor-line-highlight-error" pInfo lastPC currentFileTabId
+        highlightCurrentIns "editor-line-highlight-error" pInfo currentFileTabId
         updateRegisters()
         Browser.window.setTimeout( (fun () ->                
             Browser.window.alert(sprintf "Error %s: %s" lineMess msg)
@@ -131,20 +132,6 @@ let handleRunTimeError e (pInfo:RunInfo) lastPC =
         Browser.window.alert(sprintf "What? Undefined symbols: %A" undefs)
 
 
-
-let rec pTestExecute more numSteps ri =
-    if more then printfn "Initial\nregs=%A\nflags=%A\nMem=%A\n" ri.dp.Regs ri.dp.Fl ri.IMem
-    match numSteps, dataPathStep (ri.dp,ri.IMem) with
-    | 0, _ -> 
-        if more then printfn "Terminating with no error\nregs=%A\nflags=%A\n" ri.dp.Regs ri.dp.Fl
-        { ri with RunErr = fNone}
-    | _, Result.Error e -> 
-        if more then printfn "Terminating\nregs=%A\nflags=%A\nError=%A\n" ri.dp.Regs ri.dp.Fl e
-        {ri with RunErr = Some e }
-    | _, Result.Ok ndp ->
-        pTestExecute more (numSteps - 1) { ri with dp = ndp}
-   
-    
 let tryParseCode tId =
 
     let asm = 
@@ -163,7 +150,7 @@ let tryParseCode tId =
         (lim, indentedAsm) |> Some
     | lim -> 
         List.map (fun x -> highlightErrorParse x tId) lim.Errors |> ignore
-        fNone
+        Core.Option.None
 
 
 let getRunInfoFromState (lim:LoadImage) =
@@ -175,11 +162,10 @@ let getRunInfoFromState (lim:LoadImage) =
                 Regs = getRegs()
                 MM = getData memoryMap lim.Mem
              } 
-    {dp=dp; st=lim.SymInf.SymTab; IMem = lim.Code; RunErr=fNone}
+    {dpInit=dp; st=lim.SymInf.SymTab; IMem = lim.Code; LastPC = dp.Regs.[R15]; dpResult=Result.Ok dp; StepsDone=0}
    
-let runInfo code dp st = {dp=dp ; st = st ; RunErr = fNone; IMem = code}
 
-let mutable currentPInfo : RunInfo option = fNone
+let mutable currentPInfo : RunInfo option = Core.Option.None
 
 /// Parses and runs the assembler program in the current tab
 /// Aborts after steps instructions, unless steps is 0
@@ -190,20 +176,25 @@ let runEditorTab steps =
     | Some (lim, _) -> 
         disableEditors()
         let rec asmStepDisplay steps ri =
+            printfn "exec with steps=%d and R0=%d" steps (dpAfterExec ri).Regs.[R0]
             if steps <= 50000 then
-                let ri,lastPC = asmStep steps ri
+                let ri = asmStep steps ri
                 currentPInfo <- Some ri
-                match ri with
-                | {RunErr = Option.None} ->  highlightCurrentIns "editor-line-highlight" ri lastPC tId
-                | {RunErr = Some e } -> handleRunTimeError e ri lastPC
+                match ri.dpResult with
+                | Result.Ok dp ->  
+                    highlightCurrentIns "editor-line-highlight" ri tId
+                    if steps = 1 then setStepExecutionStatus()
+                | Result.Error (e,_) -> handleRunTimeError e ri
                 showInfo ri
             else
-                match asmStep 50000 ri with
-                | {RunErr = Some e },lastPC -> handleRunTimeError e ri lastPC
-                | ri, _ -> 
-                  updateRegisters()
+                currentPInfo <- Some ri
+                match asmStep 25000 ri with
+                | {dpResult = Result.Error (e,_) } -> handleRunTimeError e ri
+                | {dpResult = Result.Ok _} -> 
+                  currentPInfo <- Some ri
+                  showInfo ri
                   Browser.window.setTimeout( (fun () -> 
-                    asmStepDisplay (steps-50000) ri), 0, []) |> ignore               
+                    asmStepDisplay (steps-25000) ri), 0, []) |> ignore               
         asmStepDisplay  steps (lim |> getRunInfoFromState)
     | _ -> ()
 
@@ -223,6 +214,6 @@ let resetEmulator () =
     updateRegisters ()
     resetRegs()
     resetFlags()
-    currentPInfo <- fNone
+    currentPInfo <- Core.Option.None
     setNoStatus ()
 
