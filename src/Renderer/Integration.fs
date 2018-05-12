@@ -171,7 +171,7 @@ let getRunInfoFromState (lim:LoadImage) =
 
 let loopMessage() = 
     let steps = Settings.vSettings.SimulatorMaxSteps
-    sprintf "WARNING Possible infinite loop: max number of steps (%d) exceeded. To disable this warning use Settings" steps
+    sprintf "WARNING Possible infinite loop: max number of steps (%d) exceeded. To disable this warning use Preferences" steps
    
 let rec asmStepDisplay steps ri =
     let running = steps <> ri.StepsDone + 1
