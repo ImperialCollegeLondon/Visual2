@@ -161,13 +161,17 @@ let settingsMenu () =
     saveButton.classList.add("btn-default")
 
     saveButton.innerHTML <- "Save"
-    saveButton.addEventListener_click(fun _ -> saveSettings() ; setTabSaved (getSettingsTabId ()))
+    saveButton.addEventListener_click(fun _ -> 
+        saveSettings()
+        setTabSaved (getSettingsTabId ())
+        Tabs.deleteCurrentTab()
+        )
 
     menu.appendChild(saveButton) |> ignore
 
     menu
 
-let createSettingsTab () =
+let createSettingsTab () =   
     // If the settings tab already exists, just switch to it, else create it
     match settingsTab with
     | Some tab -> selectFileTab tab
