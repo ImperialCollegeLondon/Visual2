@@ -48,7 +48,7 @@ type RunInfo = {
     IMem: CodeMemory<CondInstr * int>
     dpResult: Result<DataPath,ExecuteError*DataPath>
     st: SymbolTable
-    StepsDone: int
+    StepsDone: int64
     LastPC: uint32
     Source: string list
     History: RunInfo option
@@ -295,13 +295,13 @@ let dataPathStep (dp : DataPath, code:CodeMemory<CondInstr*int>) =
 /// <param name="ri"> runtime info with initial data path and instructions</param>
 /// <result> <see cref="RunInfo">RunInfo Record</see> with final PC, instruction Result, 
 /// and number of steps successfully executed </result>
-let asmStep (numSteps:int) (ri:RunInfo) =
+let asmStep (numSteps:int64) (ri:RunInfo) =
         // Can't use a tail recursive function here since FABLE will maybe not optimise stack.
         // We need this code to be fast and possibly execute for a long time
         // so use this ugly while loop with mutable variables!
         let mutable dp = ri.dpInit // initial dataPath
         let mutable dpResult = Ok ri.dpInit// datapath after instruction (or error)
-        let mutable stepsDone = 0 // number of instructions completed without error
+        let mutable stepsDone = 0L // number of instructions completed without error
 
         let rec setPrecomputedResult ri =
             if ri.StepsDone <= numSteps then
@@ -323,7 +323,7 @@ let asmStep (numSteps:int) (ri:RunInfo) =
             match dpResult with
             | Result.Ok dp' -> ()
             | Result.Error e ->  running <- false 
-            stepsDone <- stepsDone + 1
+            stepsDone <- stepsDone + 1L
         {
             ri with 
                 dpResult = Result.mapError (fun execErr -> execErr, dp) dpResult; 

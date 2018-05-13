@@ -22,7 +22,7 @@ open Fable.Import.Electron
 open Node.Exports
 open System.IO
 
-let maxStepsBeforeDisplay = 50
+let maxStepsBeforeDisplay: int64 = 5000L
 
 
 /// Generate the hover error box
@@ -182,7 +182,7 @@ let getRunInfoFromState (lim:LoadImage) =
         IMem = lim.Code; 
         LastPC = dp.Regs.[R15]; 
         dpResult=Result.Ok dp; 
-        StepsDone=0
+        StepsDone=0L
         Source = lim.Source
         History = Core.Option.None
     }
@@ -196,7 +196,7 @@ let rec asmStepDisplay steps ri =
     | ResetMode -> ()
     | _ ->
         let stepsNeeded = steps - ri.StepsDone
-        let running = stepsNeeded <> 1
+        let running = stepsNeeded <> 1L
         printfn "exec with steps=%d and R0=%d" ri.StepsDone (dpAfterExec ri).Regs.[R0]
         if stepsNeeded <= maxStepsBeforeDisplay then
             let ri' = asmStep steps ri
@@ -204,12 +204,12 @@ let rec asmStepDisplay steps ri =
             match ri'.dpResult with
             | Result.Ok dp ->  
                 highlightCurrentIns "editor-line-highlight" ri' currentFileTabId
-                if running then  Browser.window.alert( loopMessage() )
+                if running && Settings.vSettings.SimulatorMaxSteps <> 0L then  Browser.window.alert( loopMessage() )
             | Result.Error (e,_) -> handleRunTimeError e ri'
             showInfo ()
         else
             setMode (SteppingMode ri)
-            let stepsToDo = maxStepsBeforeDisplay / 2
+            let stepsToDo = maxStepsBeforeDisplay / 2L
             let ri' = asmStep (stepsToDo+ri.StepsDone) ri
             setMode (SteppingMode ri')
             showInfo()
@@ -259,10 +259,14 @@ let runCode () =
     | FinishedMode _ 
     | RunErrorMode _ -> resetEmulator()
     |  _ -> ()
-    runEditorTab (int Settings.vSettings.SimulatorMaxSteps)
+    runEditorTab <|
+        match Settings.vSettings.SimulatorMaxSteps with
+        | 0L -> System.Int64.MaxValue
+        | n when n > 0L -> n
+        | _ -> System.Int64.MaxValue
 
 let stepCode() = 
-    runEditorTab 1
+    runEditorTab 1L
 
 let stepCodeBackBy numSteps =
     match runMode with
@@ -288,7 +292,7 @@ let stepCodeBackBy numSteps =
     | ParseErrorMode -> Browser.window.alert( sprintf "Can't execute when code has errors")
     | ResetMode -> Browser.window.alert( sprintf "Execution has not started")
 
-let stepCodeBack () = stepCodeBackBy 1
+let stepCodeBack () = stepCodeBackBy 1L
 
 
 

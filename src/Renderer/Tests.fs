@@ -268,7 +268,7 @@ let processTestResults (fn: string) (res: Map<TestT,(TestT*TestSetup*RunInfo*str
 
 /// on small test files print more info
 let RunEmulatorTest allowed  ts=
-    let maxSteps = 1000
+    let maxSteps = 1000L
 
     //let more = size < 4
     let more = false // disable printout

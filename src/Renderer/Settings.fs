@@ -36,7 +36,7 @@ let getSettingInput (name : string) =
 
 type VSettings = {
     EditorFontSize : uint32
-    SimulatorMaxSteps : uint32
+    SimulatorMaxSteps : int64
     EditorTheme: string
     EditorWordWrap: string
     EditorRenderWhitespace: string
@@ -44,7 +44,7 @@ type VSettings = {
 
 let mutable vSettings = {
     EditorFontSize = 16u
-    SimulatorMaxSteps = 200000u
+    SimulatorMaxSteps = 200000L
     EditorTheme = "one-dark-pro"
     EditorWordWrap = "off"
     EditorRenderWhitespace = "None"
@@ -64,7 +64,7 @@ let getVisualSettings() =
     printfn "getting settings"
     {
         EditorFontSize = getInt 8u 100u 12u editorFontSize
-        SimulatorMaxSteps = getInt 0u 1000000000u 10000u simulatorMaxSteps
+        SimulatorMaxSteps = getInt 0u 1000000000u 10000u simulatorMaxSteps |> uint64 |> int64
         EditorTheme = getSettingInput editorTheme
         EditorWordWrap = "off"
         EditorRenderWhitespace = "None"
