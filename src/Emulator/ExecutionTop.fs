@@ -54,11 +54,12 @@ type RunInfo = {
     History: RunInfo option
     }
 
+type RunState = | Running | Paused | Stopping
 type RunMode = 
     | ResetMode
     | ParseErrorMode
     | RunErrorMode of RunInfo
-    | SteppingMode of RunInfo
+    | ActiveMode of RunState * RunInfo
     | FinishedMode of RunInfo
 
 /// datapath after execution

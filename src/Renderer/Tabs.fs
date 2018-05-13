@@ -125,11 +125,19 @@ let setMode (rm:RunMode) =
     | ParseErrorMode -> setErrorStatus "Errors in Code"
     | RunErrorMode _ -> setErrorStatus "Runtime Error"
     | ResetMode -> setNoStatus()
-    | SteppingMode ri -> setStepExecutionStatus ()
+    | ActiveMode (_,ri) -> setStepExecutionStatus ()
     | FinishedMode ri -> setExecutionCompleteStatus ()
     runMode <- rm
 
-
+let setRunButton (stat:RunState) =
+    match stat with 
+    | Running ->
+        Ref.run.innerHTML <- "Pause"; 
+        Ref.run.classList.add "btn-negative"
+    |_ -> 
+        Ref.run.innerHTML <- "Run"
+        Ref.run.classList.remove "btn-negative"
+    
 
 
 let getSettingsTabId () =

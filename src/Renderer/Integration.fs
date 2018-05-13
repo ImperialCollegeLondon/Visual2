@@ -23,6 +23,8 @@ open Node.Exports
 open System.IO
 
 let maxStepsBeforeDisplay: int64 = 5000L
+let maxStepsBeforeSlowDisplay: int64 = 50000L
+let slowDisplayThreshold: int64 = 50000L
 
 
 /// Generate the hover error box
@@ -92,10 +94,15 @@ let getFlags() =
         Z = getFlag "Z"
     }
 
+let setState runState ri =
+    setMode (ActiveMode (runState,ri))
+    printf "%A" runState
+    setRunButton runState
+
 let showInfo () =
     match runMode with
     | FinishedMode ri
-    | SteppingMode ri
+    | ActiveMode (_, ri)
     | RunErrorMode ri ->
         symbolMap <- ri.st
         updateSymTable()
@@ -124,7 +131,6 @@ let handleRunTimeError e (pInfo:RunInfo)  =
     | EXIT ->
         setMode (FinishedMode pInfo)
         enableEditors()
-        showInfo ()
     | NotInstrMem x -> 
         Browser.window.alert(sprintf "Trying to access non-instruction memory 0x%x" x)
         setMode (RunErrorMode pInfo)
@@ -137,6 +143,8 @@ let handleRunTimeError e (pInfo:RunInfo)  =
             RunErrorMode pInfo), 100, []) |> ignore
     | ``Unknown symbol runtime error`` undefs ->
         Browser.window.alert(sprintf "What? Undefined symbols: %A" undefs)
+    setRunButton Paused
+    showInfo()
 
 let imageOfTId tId =
     let asm = 
@@ -197,38 +205,41 @@ let rec asmStepDisplay steps ri =
     | _ ->
         let stepsNeeded = steps - ri.StepsDone
         let running = stepsNeeded <> 1L
-        let stepsMax = maxStepsBeforeDisplay + (if ri.StepsDone > 50000L then 25000L else 0L)
+        let stepsMax = maxStepsBeforeDisplay + (if ri.StepsDone > slowDisplayThreshold then maxStepsBeforeSlowDisplay else 0L)
         printfn "exec with steps=%d and R0=%d" ri.StepsDone (dpAfterExec ri).Regs.[R0]
         if stepsNeeded <= stepsMax then
             let ri' = asmStep steps ri
-            setMode (SteppingMode  ri')
+            setState Paused ri'
             match ri'.dpResult with
             | Result.Ok dp ->  
                 highlightCurrentIns "editor-line-highlight" ri' currentFileTabId
                 if running && Settings.vSettings.SimulatorMaxSteps <> 0L then  Browser.window.alert( loopMessage() )
             | Result.Error (e,_) -> handleRunTimeError e ri'
-            showInfo ()
         else
-            setMode (SteppingMode ri)
-            let stepsToDo = stepsMax / 2L
-            let ri' = asmStep (stepsToDo+ri.StepsDone) ri
-            setMode (SteppingMode ri')
+            setState RunState.Running ri
+            let ri' = asmStep (stepsMax+ri.StepsDone - 1L) ri
+            setState RunState.Running ri'
             showInfo()
             match  ri' with
             | {dpResult = Result.Error (e,_) } -> handleRunTimeError e ri'
             | {dpResult = Result.Ok _} -> 
-                Browser.window.setTimeout( (fun () -> 
-                    asmStepDisplay steps ri'), 0, []) |> ignore               
+                 Browser.window.setTimeout( (fun () -> 
+                        match runMode with
+                        | ActiveMode (RunState.Running, _) ->
+                                asmStepDisplay steps ri'
+                        | _ -> setState RunState.Paused ri')
+                        , 0, []) |> ignore
 
 
 let prepareModeForExecution() =
     match runMode with
     | FinishedMode ri
     | RunErrorMode ri
-    | SteppingMode ri ->
+    | ActiveMode (_,ri) ->
         if currentFileTabIsChanged ri then
             Browser.window.alert "Resetting emulator for new execution" |> ignore
             setMode ResetMode
+            setRunButton Paused
     | _ -> () 
 
 
@@ -246,10 +257,11 @@ let runEditorTab steps =
         | Some (lim, _) -> 
             disableEditors()
             let ri = lim |> getRunInfoFromState
-            setMode (SteppingMode ri )
+            setState RunState.Running ri
             asmStepDisplay steps ri
         | _ -> ()
-    | SteppingMode ri -> asmStepDisplay  (steps + ri.StepsDone) ri
+    | ActiveMode (RunState.Paused,ri) -> asmStepDisplay  (steps + ri.StepsDone) ri
+    | ActiveMode _
     | RunErrorMode _ 
     | FinishedMode _ -> ()
 
@@ -259,39 +271,43 @@ let runCode () =
     match runMode with
     | FinishedMode _ 
     | RunErrorMode _ -> resetEmulator()
-    |  _ -> ()
-    runEditorTab <|
-        match Settings.vSettings.SimulatorMaxSteps with
-        | 0L -> System.Int64.MaxValue
-        | n when n > 0L -> n
-        | _ -> System.Int64.MaxValue
+    | _ -> ()
+    match runMode with
+    | ActiveMode(RunState.Running,ri) -> setState(RunState.Stopping) ri
+    | _ ->
+        runEditorTab <|
+                match Settings.vSettings.SimulatorMaxSteps with
+                | 0L -> System.Int64.MaxValue
+                | n when n > 0L -> n
+                | _ -> System.Int64.MaxValue
 
 let stepCode() = 
     runEditorTab 1L
 
 let stepCodeBackBy numSteps =
     match runMode with
-    | SteppingMode ri
+    | ActiveMode (Paused,ri)
     | RunErrorMode ri
     | FinishedMode ri ->
         if currentFileTabIsChanged ri then
             Browser.window.alert "can't step backwards because execution state is no longer valid"
         else
+            setState RunState.Running ri
             match asmStepBack numSteps ri with
             | Option.None ->
                 printfn "Mode=%A" runMode
                 Browser.window.alert( sprintf "Can't step back by %d instructions" numSteps)
             | Some ri' -> 
-                setMode (SteppingMode ri')
+                setState Paused ri'
                 disableEditors()
                 match ri'.dpResult with
                 | Result.Ok _ ->  
                     highlightCurrentIns "editor-line-highlight" ri' currentFileTabId
-                | Result.Error (e,_) -> failwithf "What? Error can't happen when stepping backwards!"
+                | Result.Error _ -> failwithf "What? Error can't happen when stepping backwards!"
                 showInfo ()
-
     | ParseErrorMode -> Browser.window.alert( sprintf "Can't execute when code has errors")
     | ResetMode -> Browser.window.alert( sprintf "Execution has not started")
+    | _ -> ()
 
 let stepCodeBack () = stepCodeBackBy 1L
 
