@@ -287,7 +287,7 @@ let dataPathStep (dp : DataPath, code:CodeMemory<CondInstr*int>) =
 
 /// <summary> Top-level function to run an assembly program.
 /// Will run until error, program end, numSteps instructions have been executed.</summary>
-/// <param name="numSteps"> max number instructions before stopping </param>
+/// <param name="numSteps"> max number instructions from ri.dpInit before stopping </param>
 /// <param name="ri"> runtime info with initial data path and instructions</param>
 /// <result> <see cref="RunInfo">RunInfo Record</see> with final PC, instruction Result, 
 /// and number of steps successfully executed </result>
@@ -298,6 +298,12 @@ let asmStep (numSteps:int) (ri:RunInfo) =
         let mutable dp = ri.dpInit // initial dataPath
         let mutable dpResult = Ok ri.dpInit// datapath after instruction (or error)
         let mutable stepsDone = 0 // number of instructions completed without error
+        if ri.StepsDone <= numSteps then
+            match ri.dpResult with
+            | Ok dp ->
+                dpResult <- Ok dp
+                stepsDone <- ri.StepsDone
+            | _ -> ()
         let mutable running = true // true if no error has yet happened
         while stepsDone < numSteps && running do
             dp <- match dpResult with | Ok dp' -> dp' | _ -> dp

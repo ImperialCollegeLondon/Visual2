@@ -83,6 +83,7 @@ let init () =
 
     // Create an empty tab to start with
     createFileTab ()
+    Settings.vSettings <- Settings.getVisualSettings()
 
 
 setMainMenu Tests.runAllEmulatorTests

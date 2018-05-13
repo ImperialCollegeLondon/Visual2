@@ -22,7 +22,7 @@ open Fable.Import.Electron
 open Node.Exports
 open System.IO
 
-
+let maxStepsBeforeDisplay = 2000
 
 
 /// Generate the hover error box
@@ -104,6 +104,7 @@ let showInfo () =
         updateMemory()
         setRegs dp.Regs
         setFlags dp.Fl
+        updateRegisters()
     | _ -> ()
 
 let highlightCurrentIns classname pInfo tId  =
@@ -188,27 +189,32 @@ let loopMessage() =
     sprintf "WARNING Possible infinite loop: max number of steps (%d) exceeded. To disable this warning use Edit -> Preferences" steps
    
 let rec asmStepDisplay steps ri =
-    let running = steps <> ri.StepsDone + 1
-    printfn "exec with steps=%d and R0=%d" steps (dpAfterExec ri).Regs.[R0]
-    if steps <= 50000 then
-        let ri = asmStep steps ri
-        setMode (SteppingMode  ri)
-        match ri.dpResult with
-        | Result.Ok dp ->  
-            highlightCurrentIns "editor-line-highlight" ri currentFileTabId
-            setMode (SteppingMode ri)
-            if running then  Browser.window.alert( loopMessage() )
-        | Result.Error (e,_) -> handleRunTimeError e ri
-        showInfo ()
-    else
-        setMode (SteppingMode ri)
-        match asmStep 25000 ri with
-        | {dpResult = Result.Error (e,_) } -> handleRunTimeError e ri
-        | {dpResult = Result.Ok _} -> 
-            setMode (SteppingMode ri)
+    match runMode with
+    | ResetMode -> ()
+    | _ ->
+        let stepsNeeded = steps - ri.StepsDone
+        let running = stepsNeeded <> 1
+        printfn "exec with steps=%d and R0=%d" ri.StepsDone (dpAfterExec ri).Regs.[R0]
+        if stepsNeeded <= maxStepsBeforeDisplay then
+            let ri' = asmStep steps ri
+            setMode (SteppingMode  ri')
+            match ri'.dpResult with
+            | Result.Ok dp ->  
+                highlightCurrentIns "editor-line-highlight" ri' currentFileTabId
+                if running then  Browser.window.alert( loopMessage() )
+            | Result.Error (e,_) -> handleRunTimeError e ri'
             showInfo ()
-            Browser.window.setTimeout( (fun () -> 
-                asmStepDisplay (steps-25000) ri), 0, []) |> ignore               
+        else
+            setMode (SteppingMode ri)
+            let stepsToDo = maxStepsBeforeDisplay / 2
+            let ri' = asmStep (stepsToDo+ri.StepsDone) ri
+            setMode (SteppingMode ri')
+            showInfo()
+            match  ri' with
+            | {dpResult = Result.Error (e,_) } -> handleRunTimeError e ri'
+            | {dpResult = Result.Ok _} -> 
+                Browser.window.setTimeout( (fun () -> 
+                    asmStepDisplay steps ri'), 0, []) |> ignore               
 
 
 let prepareModeForExecution() =
@@ -235,7 +241,9 @@ let runEditorTab steps =
         match tryParseCode tId with
         | Some (lim, _) -> 
             disableEditors()
-            asmStepDisplay  steps (lim |> getRunInfoFromState)
+            let ri = lim |> getRunInfoFromState
+            setMode (SteppingMode ri )
+            asmStepDisplay steps ri
         | _ -> ()
     | SteppingMode ri -> asmStepDisplay  (steps + ri.StepsDone) ri
     | RunErrorMode _ 

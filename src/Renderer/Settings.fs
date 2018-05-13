@@ -43,8 +43,8 @@ type VSettings = {
     }
 
 let mutable vSettings = {
-    EditorFontSize = 12u
-    SimulatorMaxSteps = 10000u
+    EditorFontSize = 16u
+    SimulatorMaxSteps = 200000u
     EditorTheme = "one-dark-pro"
     EditorWordWrap = "off"
     EditorRenderWhitespace = "None"
