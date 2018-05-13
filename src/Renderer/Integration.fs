@@ -212,14 +212,14 @@ let rec asmStepDisplay steps ri =
 
 
 let prepareModeForExecution() =
-    match runMode with 
-    | ResetMode -> () 
+    match runMode with
     | FinishedMode ri
     | RunErrorMode ri
     | SteppingMode ri ->
         if currentFileTabIsChanged ri then
             Browser.window.alert "Resetting emulator for new execution" |> ignore
             setMode ResetMode
+    | _ -> () 
 
 
 
@@ -266,11 +266,11 @@ let stepCodeBackBy numSteps =
                 printfn "Mode=%A" runMode
                 Browser.window.alert( sprintf "Can't step back by %d instructions" numSteps)
             | Some ri' -> 
-                runMode <- SteppingMode ri'
+                setMode (SteppingMode ri')
+                disableEditors()
                 match ri'.dpResult with
-                | Result.Ok dp ->  
+                | Result.Ok _ ->  
                     highlightCurrentIns "editor-line-highlight" ri' currentFileTabId
-                    setMode (SteppingMode ri')
                 | Result.Error (e,_) -> failwithf "What? Error can't happen when stepping backwards!"
                 showInfo ()
 

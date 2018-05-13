@@ -21,7 +21,6 @@ let initialRegMap : Map<CommonData.RName, uint32> =
 
 let initialFlags =   { N=false ; Z=false; C=false; V=false}  
 let mutable currentFileTabId = -1 // By default no tab is open
-let mutable executionStateIsValid = false
 let mutable fileTabList : int list = []
 
 // Map tabIds to the editors which are contained in them
