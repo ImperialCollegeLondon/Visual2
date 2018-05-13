@@ -51,6 +51,7 @@ type RunInfo = {
     StepsDone: int
     LastPC: uint32
     Source: string list
+    History: RunInfo option
     }
 
 type RunMode = 
@@ -285,8 +286,11 @@ let dataPathStep (dp : DataPath, code:CodeMemory<CondInstr*int>) =
         // write it as (+8-4) of real value. setReg does this.
         |> Result.map (addToPc (4 - 8)) // undo +8 for pipelining added before execution. Add +4 to advance to next instruction
 
-/// <summary> Top-level function to run an assembly program.
-/// Will run until error, program end, numSteps instructions have been executed.</summary>
+/// <summary> <para> Top-level function to run an assembly program.
+/// Will run until error, program end, or numSteps instructions have been executed. </para>
+/// <para> Previous runs are typically contained in a linked list of RunInfo records.
+/// The function will find the previous result with StepsDone as large as possible but
+/// smaller than numSteps and use this as starting point </para> </summary>
 /// <param name="numSteps"> max number instructions from ri.dpInit before stopping </param>
 /// <param name="ri"> runtime info with initial data path and instructions</param>
 /// <result> <see cref="RunInfo">RunInfo Record</see> with final PC, instruction Result, 
@@ -298,12 +302,20 @@ let asmStep (numSteps:int) (ri:RunInfo) =
         let mutable dp = ri.dpInit // initial dataPath
         let mutable dpResult = Ok ri.dpInit// datapath after instruction (or error)
         let mutable stepsDone = 0 // number of instructions completed without error
-        if ri.StepsDone <= numSteps then
-            match ri.dpResult with
-            | Ok dp ->
-                dpResult <- Ok dp
-                stepsDone <- ri.StepsDone
-            | _ -> ()
+
+        let rec setPrecomputedResult ri =
+            if ri.StepsDone <= numSteps then
+                match ri.dpResult with
+                | Ok dp ->
+                    dpResult <- Ok dp
+                    stepsDone <- ri.StepsDone
+                | _ -> ()
+            else
+                match ri.History with 
+                | None -> ()
+                | Some ri' -> setPrecomputedResult ri' ; ()
+
+        setPrecomputedResult ri       
         let mutable running = true // true if no error has yet happened
         while stepsDone < numSteps && running do
             dp <- match dpResult with | Ok dp' -> dp' | _ -> dp
@@ -312,11 +324,15 @@ let asmStep (numSteps:int) (ri:RunInfo) =
             | Result.Ok dp' -> ()
             | Result.Error e ->  running <- false 
             stepsDone <- stepsDone + 1
-        {ri with 
-            dpResult = Result.mapError (fun execErr -> execErr, dp) dpResult; 
-            LastPC = dp.Regs.[R15]; 
-            StepsDone=stepsDone
+        {
+            ri with 
+                dpResult = Result.mapError (fun execErr -> execErr, dp) dpResult; 
+                LastPC = dp.Regs.[R15]; 
+                StepsDone=stepsDone
+                History = Some ri
         } 
+
+
 /// <summary> As <see cref="asmStep"> asmStep</see> but go backwards. Return None if not possible </summary>
 let asmStepBack numSteps (ri: RunInfo) =
     match ri.StepsDone with

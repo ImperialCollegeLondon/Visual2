@@ -22,7 +22,7 @@ open Fable.Import.Electron
 open Node.Exports
 open System.IO
 
-let maxStepsBeforeDisplay = 2000
+let maxStepsBeforeDisplay = 50
 
 
 /// Generate the hover error box
@@ -184,6 +184,7 @@ let getRunInfoFromState (lim:LoadImage) =
         dpResult=Result.Ok dp; 
         StepsDone=0
         Source = lim.Source
+        History = Core.Option.None
     }
 
 let loopMessage() = 
