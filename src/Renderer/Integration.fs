@@ -197,8 +197,9 @@ let rec asmStepDisplay steps ri =
     | _ ->
         let stepsNeeded = steps - ri.StepsDone
         let running = stepsNeeded <> 1L
+        let stepsMax = maxStepsBeforeDisplay + (if ri.StepsDone > 50000L then 25000L else 0L)
         printfn "exec with steps=%d and R0=%d" ri.StepsDone (dpAfterExec ri).Regs.[R0]
-        if stepsNeeded <= maxStepsBeforeDisplay then
+        if stepsNeeded <= stepsMax then
             let ri' = asmStep steps ri
             setMode (SteppingMode  ri')
             match ri'.dpResult with
@@ -209,7 +210,7 @@ let rec asmStepDisplay steps ri =
             showInfo ()
         else
             setMode (SteppingMode ri)
-            let stepsToDo = maxStepsBeforeDisplay / 2L
+            let stepsToDo = stepsMax / 2L
             let ri' = asmStep (stepsToDo+ri.StepsDone) ri
             setMode (SteppingMode ri')
             showInfo()
