@@ -149,8 +149,8 @@ let currentFileTabIsChanged (pInfo:RunInfo) =
     let _,indentedCode = imageOfTId currentFileTabId
     indentedCode <> pInfo.Source
 
-let tryParseCode tId =
 
+let tryParseCode tId =
     let lim, indentedAsm = imageOfTId tId
 
     // See if any errors exist, if they do display them
@@ -158,7 +158,9 @@ let tryParseCode tId =
     | {Errors=[]} as lim -> 
         //Browser.console.log(sprintf "%A" lim)
         let editor = editors.[tId]
-        (editor?setValue (String.concat "\n"indentedAsm)) |> ignore
+        let newCode = String.concat "\n" indentedAsm
+        if getCode tId <> newCode then 
+            (editor?setValue newCode) |> ignore
         (lim, indentedAsm) |> Some
     | lim -> 
         List.map (fun x -> highlightErrorParse x tId) lim.Errors |> ignore
