@@ -122,6 +122,7 @@ let handleRunTimeError e (pInfo:RunInfo)  =
     match e with
     | EXIT ->
         setMode (FinishedMode pInfo)
+        enableEditors()
         showInfo ()
     | NotInstrMem x -> 
         Browser.window.alert(sprintf "Trying to access non-instruction memory 0x%x" x)
@@ -136,15 +137,20 @@ let handleRunTimeError e (pInfo:RunInfo)  =
     | ``Unknown symbol runtime error`` undefs ->
         Browser.window.alert(sprintf "What? Undefined symbols: %A" undefs)
 
-
-let tryParseCode tId =
-
+let imageOfTId tId =
     let asm = 
         getCode tId 
         |> (fun (x : string) -> x.Split [|'\n'|]) 
         |> Array.toList
+    reLoadProgram asm
 
-    let lim, indentedAsm = reLoadProgram asm
+let currentFileTabIsChanged (pInfo:RunInfo) =
+    let _,indentedCode = imageOfTId currentFileTabId
+    indentedCode <> pInfo.Source
+
+let tryParseCode tId =
+
+    let lim, indentedAsm = imageOfTId tId
 
     // See if any errors exist, if they do display them
     match lim with
@@ -167,11 +173,19 @@ let getRunInfoFromState (lim:LoadImage) =
                 Regs = getRegs()
                 MM = getData memoryMap lim.Mem
              } 
-    {dpInit=dp; st=lim.SymInf.SymTab; IMem = lim.Code; LastPC = dp.Regs.[R15]; dpResult=Result.Ok dp; StepsDone=0}
+    {
+        dpInit=dp; 
+        st=lim.SymInf.SymTab; 
+        IMem = lim.Code; 
+        LastPC = dp.Regs.[R15]; 
+        dpResult=Result.Ok dp; 
+        StepsDone=0
+        Source = lim.Source
+    }
 
 let loopMessage() = 
     let steps = Settings.vSettings.SimulatorMaxSteps
-    sprintf "WARNING Possible infinite loop: max number of steps (%d) exceeded. To disable this warning use Preferences" steps
+    sprintf "WARNING Possible infinite loop: max number of steps (%d) exceeded. To disable this warning use Edit -> Preferences" steps
    
 let rec asmStepDisplay steps ri =
     let running = steps <> ri.StepsDone + 1
@@ -187,20 +201,32 @@ let rec asmStepDisplay steps ri =
         | Result.Error (e,_) -> handleRunTimeError e ri
         showInfo ()
     else
-        setMode (mode ri)
+        setMode (SteppingMode ri)
         match asmStep 25000 ri with
         | {dpResult = Result.Error (e,_) } -> handleRunTimeError e ri
         | {dpResult = Result.Ok _} -> 
             setMode (SteppingMode ri)
             showInfo ()
             Browser.window.setTimeout( (fun () -> 
-            asmStepDisplay (steps-25000) ri), 0, []) |> ignore               
+                asmStepDisplay (steps-25000) ri), 0, []) |> ignore               
+
+
+let prepareModeForExecution() =
+    match runMode with 
+    | ResetMode -> () 
+    | FinishedMode ri
+    | RunErrorMode ri
+    | SteppingMode ri ->
+        if currentFileTabIsChanged ri then
+            Browser.window.alert "Resetting emulator for new execution" |> ignore
+            setMode ResetMode
 
 
 
 /// Parses and runs the assembler program in the current tab
 /// Aborts after steps instructions, unless steps is 0
 let runEditorTab steps =
+    prepareModeForExecution()
     match runMode with
     | ResetMode
     | ParseErrorMode _ ->
@@ -217,43 +243,41 @@ let runEditorTab steps =
 
 
 
-let runCode () = runEditorTab (int Settings.vSettings.SimulatorMaxSteps)
+let runCode () = 
+    match runMode with
+    | FinishedMode _ 
+    | RunErrorMode _ -> resetEmulator()
+    |  _ -> ()
+    runEditorTab (int Settings.vSettings.SimulatorMaxSteps)
 
-let stepCode() = runEditorTab 1
+let stepCode() = 
+    runEditorTab 1
 
 let stepCodeBackBy numSteps =
     match runMode with
     | SteppingMode ri
     | RunErrorMode ri
     | FinishedMode ri ->
-        match asmStepBack numSteps ri with
-        | Option.None ->
-            printfn "Mode=%A" runMode
-            Browser.window.alert( sprintf "Can't step back by %d instructions" numSteps)
-        | Some ri' -> 
-            runMode <- SteppingMode ri'
-            match ri'.dpResult with
-            | Result.Ok dp ->  
-                highlightCurrentIns "editor-line-highlight" ri' currentFileTabId
-                setMode (SteppingMode ri')
-            | Result.Error (e,_) -> failwithf "What? Error can't happen when stepping backwards!"
-            showInfo ()
+        if currentFileTabIsChanged ri then
+            Browser.window.alert "can't step backwards because execution state is no longer valid"
+        else
+            match asmStepBack numSteps ri with
+            | Option.None ->
+                printfn "Mode=%A" runMode
+                Browser.window.alert( sprintf "Can't step back by %d instructions" numSteps)
+            | Some ri' -> 
+                runMode <- SteppingMode ri'
+                match ri'.dpResult with
+                | Result.Ok dp ->  
+                    highlightCurrentIns "editor-line-highlight" ri' currentFileTabId
+                    setMode (SteppingMode ri')
+                | Result.Error (e,_) -> failwithf "What? Error can't happen when stepping backwards!"
+                showInfo ()
 
     | ParseErrorMode -> Browser.window.alert( sprintf "Can't execute when code has errors")
     | ResetMode -> Browser.window.alert( sprintf "Execution has not started")
 
 let stepCodeBack () = stepCodeBackBy 1
 
-let resetEmulator () =
-    removeEditorDecorations currentFileTabId
-    enableEditors()   
-    memoryMap <- initialMemoryMap
-    symbolMap <- initialSymbolMap
-    regMap <- initialRegMap
-    setMode ResetMode
-    updateMemory()
-    updateSymTable()
-    updateRegisters ()
-    resetRegs()
-    resetFlags()
+
 

@@ -40,6 +40,7 @@ type LoadImage = {
     Errors: (ParseError * int) list
     SymInf: SymbolInfo
     Indent: int
+    Source: string list
     }
 
 type RunInfo = {
@@ -49,6 +50,7 @@ type RunInfo = {
     st: SymbolTable
     StepsDone: int
     LastPC: uint32
+    Source: string list
     }
 
 type RunMode = 
@@ -78,6 +80,7 @@ let initLoadImage dStart symTab =
                 Unresolved = []
             }
         Indent = 7
+        Source = [""]
     }
 
 let makeLocI (pa: Parse<Instr>) = 
@@ -178,6 +181,7 @@ let loadLine (lim:LoadImage) ((line,lineNum) : string * int) =
             match pa.PLabel with 
             | Some (lab,_) -> max lim.Indent (lab.Length+1) 
             | _ -> lim.Indent
+        Source = [""]
     }
 
 let addTermination (lim:LoadImage) =
@@ -246,7 +250,8 @@ let reLoadProgram (lines: string list) =
         |> next 
         |> next
         |> addCodeMarkers
-    final, indentProgram final lines
+    let src = indentProgram final lines
+    {final with Source=src}, src
 
 
 let executeADR (ai:ADRInstr) (dp:DataPath) =

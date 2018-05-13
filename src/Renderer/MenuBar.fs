@@ -53,7 +53,7 @@ let fileMenu =
         ]
 
 let optCreateSettingsTab() =
-    match Update.runMode with
+    match runMode with
     | ExecutionTop.ResetMode 
     | ExecutionTop.ParseErrorMode -> createSettingsTab ()
     | _ -> Browser.window.alert "Can't change preferences while simulator is running" |> ignore

@@ -26,80 +26,13 @@ open Tabs
 open CommonData
 open ExecutionTop
 
-// The current number representation being used
-let mutable currentRep = Hex
-let mutable currentView = Registers
-let mutable byteView = false
 
-let initialMemoryMap : Map<uint32, uint32> = Map.ofList []
-let initialSymbolMap : Map<string, uint32> = Map.ofList []
 
-let initialRegMap : Map<CommonData.RName, uint32> = 
-    [0..15]
-    |> List.map ( CommonData.register >> fun rn -> rn,0u)
-    |> Map.ofList
-
-let initialFlags =   { N=false ; Z=false; C=false; V=false}  
-
-let mutable maxStepsToRun = 50000
-let mutable memoryMap : Map<uint32, uint32> = Map.ofList []
-let mutable regMap : Map<CommonData.RName,uint32> = initialRegMap
-let mutable flags: CommonData.Flags = initialFlags
-let mutable symbolMap : Map<string, uint32> = Map.ofList []
-let mutable runMode: RunMode = ResetMode
-
-[<Emit "'0x' + ($0 >>> 0).toString(16)">]
-let hexFormatter _ : string = jsNative
-
-[<Emit "'u' + ($0 >>> 0).toString(10)">]
-let uDecFormatter _ : string = jsNative
-
-// Returns a formatter for the given representation
-let formatter rep = 
-// TODO: Use binformatter from testformats.fs
-    let binFormatter fmt x =
-        let bin a =
-            [0..31]
-            |> List.fold (fun s x -> 
-                match ((a >>> x) % 2u) with
-                | 1u -> "1" + s
-                | 0u -> "0" + s
-                | _ -> failwithf "modulo is broken"
-            ) ""
-        sprintf fmt (bin x)
-    match rep with
-    | Hex -> hexFormatter
-    | Bin -> (binFormatter "0b%s")
-    | Dec -> (int32 >> sprintf "%d")
-    | UDec -> uDecFormatter
 
 let fontSize (size: int) =
     let options = createObj ["fontSize" ==> size]
     window?code?updateOptions options
     
-let setRegister (id: RName) (value: uint32) =
-    let el = Ref.register id.RegNum
-    el.innerHTML <- formatter currentRep value
-
-let updateRegisters () =
-    Map.iter setRegister regMap
-
-
-let getFlag (id: string) =
-    let el = Ref.flag id
-    match  el.innerHTML with
-    | "1" -> true
-    | _ -> false
-
-let setFlag (id: string) (value: bool) =
-    let el = Ref.flag id
-    match value with
-        | false ->
-            el.setAttribute("style", "background: #fcfcfc")
-            el.innerHTML <- sprintf "%i" 0
-        | true ->
-            el.setAttribute("style", "background: #4285f4")
-            el.innerHTML <- sprintf "%i" 1
 
 let setRepresentation rep =
     // Disable the other button
@@ -270,6 +203,21 @@ let updateSymTable () =
     |> Map.toList))
     |> ignore
 
+
+let resetEmulator () =
+    printfn "Resetting..."
+    removeEditorDecorations currentFileTabId
+    enableEditors()   
+    memoryMap <- initialMemoryMap
+    symbolMap <- initialSymbolMap
+    regMap <- initialRegMap
+    setMode ResetMode
+    updateMemory()
+    updateSymTable()
+    updateRegisters ()
+    resetRegs()
+    resetFlags()
+
 let setTabFilePath id path =
     let fp = (tabFilePath id)
     fp.innerHTML <- path
@@ -284,6 +232,8 @@ let baseFilePath (path : string) =
 
 // Load the node Buffer into the specified tab
 let loadFileIntoTab tId (fileData : Node.Buffer.Buffer) =
+    if currentFileTabId = tId then
+        resetEmulator()
     let editor = editors.[tId]
     editor?setValue(fileData.toString("utf8")) |> ignore
     setTabSaved tId
@@ -412,42 +362,4 @@ let editorRedo () =
 let editorSelectAll () = 
     editors.[currentFileTabId]?trigger("Update.fs", "selectAll") |> ignore
 
-let resetRegs () =
-    [0..15]
-    |> List.map (fun x -> setRegister (register x) 0u)
-    |> ignore
 
-let resetFlags () =
-    setFlag "N" false
-    setFlag "C" false
-    setFlag "Z" false
-    setFlag "V" false
-
-let setStatusButton msg (className:string)=
-    let classes = [| "btn-positive";"btn-negative";"btn-primary"|]
-    statusBar.classList.remove classes
-    statusBar.classList.add(className)
-    statusBar.innerHTML <- msg
-
-
-let setErrorStatus msg = setStatusButton msg "btn-negative"
-
-let setExecutionCompleteStatus () = 
-    setStatusButton "Execution Complete" "btn-positive"
-
-let setStepExecutionStatus () = setStatusButton "Stepping" "btn-primary"
-
-let setNoStatus () =
-    statusBar.classList.remove("btn-negative")
-    statusBar.classList.remove("btn-positive")
-    statusBar.classList.remove("btn-primary")
-    statusBar.innerHTML <- "-"
-
-let setMode (rm:RunMode) =
-    match rm with
-    | ParseErrorMode -> setErrorStatus "Errors in Code"
-    | RunErrorMode _ -> setErrorStatus "Runtime Error"
-    | ResetMode -> setNoStatus()
-    | SteppingMode ri -> setStepExecutionStatus ()
-    | FinishedMode ri -> setExecutionCompleteStatus ()
-    runMode <- rm

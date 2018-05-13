@@ -66,8 +66,8 @@ let getVisualSettings() =
         EditorFontSize = getInt 8u 100u 12u editorFontSize
         SimulatorMaxSteps = getInt 0u 1000000000u 10000u simulatorMaxSteps
         EditorTheme = getSettingInput editorTheme
-        EditorWordWrap = false
-        EditorRenderWhitespace = false
+        EditorWordWrap = "off"
+        EditorRenderWhitespace = "None"
     } 
     |> Helpers.pipeShow "New settings:"
 

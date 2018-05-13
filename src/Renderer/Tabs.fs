@@ -5,17 +5,133 @@ open Fable.Core.JsInterop
 open Fable.Import
 open Fable.Import.Browser
 open Fable.Core
-
-open Ref
+open CommonData
+open ExecutionTop
 open Editor
 
+
+
+let initialMemoryMap : Map<uint32, uint32> = Map.ofList []
+let initialSymbolMap : Map<string, uint32> = Map.ofList []
+
+let initialRegMap : Map<CommonData.RName, uint32> = 
+    [0..15]
+    |> List.map ( CommonData.register >> fun rn -> rn,0u)
+    |> Map.ofList
+
+let initialFlags =   { N=false ; Z=false; C=false; V=false}  
 let mutable currentFileTabId = -1 // By default no tab is open
+let mutable executionStateIsValid = false
 let mutable fileTabList : int list = []
 
 // Map tabIds to the editors which are contained in them
 let mutable editors : Map<int, obj> = Map.ofList []
 
 let mutable settingsTab : int option = Microsoft.FSharp.Core.option.None
+
+// The current number representation being used
+let mutable currentRep = Ref.Hex
+let mutable currentView = Ref.Registers
+let mutable byteView = false
+let mutable maxStepsToRun = 50000
+let mutable memoryMap : Map<uint32, uint32> = Map.ofList []
+let mutable regMap : Map<CommonData.RName,uint32> = initialRegMap
+let mutable flags: CommonData.Flags = initialFlags
+let mutable symbolMap : Map<string, uint32> = Map.ofList []
+let mutable runMode: RunMode = ResetMode
+
+[<Emit "'0x' + ($0 >>> 0).toString(16)">]
+let hexFormatter _ : string = jsNative
+
+[<Emit "'u' + ($0 >>> 0).toString(10)">]
+let uDecFormatter _ : string = jsNative
+
+// Returns a formatter for the given representation
+let formatter rep = 
+// TODO: Use binformatter from testformats.fs
+    let binFormatter fmt x =
+        let bin a =
+            [0..31]
+            |> List.fold (fun s x -> 
+                match ((a >>> x) % 2u) with
+                | 1u -> "1" + s
+                | 0u -> "0" + s
+                | _ -> failwithf "modulo is broken"
+            ) ""
+        sprintf fmt (bin x)
+    match rep with
+    | Ref.Hex -> hexFormatter
+    | Ref.Bin -> (binFormatter "0b%s")
+    | Ref.Dec -> (int32 >> sprintf "%d")
+    | Ref.UDec -> uDecFormatter
+
+
+let setRegister (id: RName) (value: uint32) =
+    let el = Ref.register id.RegNum
+    el.innerHTML <- formatter currentRep value
+
+let updateRegisters () =
+    Map.iter setRegister regMap
+
+
+let getFlag (id: string) =
+    let el = Ref.flag id
+    match  el.innerHTML with
+    | "1" -> true
+    | _ -> false
+
+let setFlag (id: string) (value: bool) =
+    let el = Ref.flag id
+    match value with
+        | false ->
+            el.setAttribute("style", "background: #fcfcfc")
+            el.innerHTML <- sprintf "%i" 0
+        | true ->
+            el.setAttribute("style", "background: #4285f4")
+            el.innerHTML <- sprintf "%i" 1
+
+let resetRegs () =
+    [0..15]
+    |> List.map (fun x -> setRegister (CommonData.register x) 0u)
+    |> ignore
+
+let resetFlags () =
+    setFlag "N" false
+    setFlag "C" false
+    setFlag "Z" false
+    setFlag "V" false
+
+let setStatusButton msg (className:string)=
+    let classes = [| "btn-positive";"btn-negative";"btn-primary"|]
+    Ref.statusBar.classList.remove classes
+    Ref.statusBar.classList.add(className)
+    Ref.statusBar.innerHTML <- msg
+
+
+let setErrorStatus msg = setStatusButton msg "btn-negative"
+
+let setExecutionCompleteStatus () = 
+    setStatusButton "Execution Complete" "btn-positive"
+
+let setStepExecutionStatus () = setStatusButton "Stepping" "btn-primary"
+
+let setNoStatus () =
+    Ref.statusBar.classList.remove("btn-negative")
+    Ref.statusBar.classList.remove("btn-positive")
+    Ref.statusBar.classList.remove("btn-primary")
+    Ref.statusBar.innerHTML <- "-"
+
+let setMode (rm:RunMode) =
+    match rm with
+    | ParseErrorMode -> setErrorStatus "Errors in Code"
+    | RunErrorMode _ -> setErrorStatus "Runtime Error"
+    | ResetMode -> setNoStatus()
+    | SteppingMode ri -> setStepExecutionStatus ()
+    | FinishedMode ri -> setExecutionCompleteStatus ()
+    runMode <- rm
+
+
+
 
 let getSettingsTabId () =
     match settingsTab with
@@ -37,9 +153,9 @@ let selectFileTab id =
         // Only remove active from the previously selected tab if it existed
         match currentFileTabId < 0 with
         | false ->
-            let oldTab = fileTab currentFileTabId
+            let oldTab = Ref.fileTab currentFileTabId
             oldTab.classList.remove("active")
-            let oldView = fileView currentFileTabId
+            let oldView = Ref.fileView currentFileTabId
             oldView.classList.add("invisible")
         | true -> ()
 
@@ -47,20 +163,20 @@ let selectFileTab id =
         match id < 0 with
         | true -> ()
         | false ->
-            let newTab = fileTab id
+            let newTab = Ref.fileTab id
             newTab.classList.add("active")
-            let newView = fileView id
+            let newView = Ref.fileView id
             newView.classList.remove("invisible")
 
         currentFileTabId <- id
     | false -> ()
 
 let getTabName id = 
-    (fileTabName id).innerHTML
+    (Ref.fileTabName id).innerHTML
 
 // Determines if a tab of a given id is unsaved
 let isTabUnsaved id = 
-    (fileTab id).lastElementChild.classList.contains("unsaved")
+    (Ref.fileTab id).lastElementChild.classList.contains("unsaved")
 
 let deleteFileTab id =
     let isSettingsTab =
@@ -90,11 +206,11 @@ let deleteFileTab id =
         | x when x = id ->
             selectFileTab
                 <| match List.isEmpty fileTabList with
-                    | true -> -1
-                    | false -> List.last fileTabList
+                   | true -> -1
+                   | false -> List.last fileTabList
         | _ -> ()
-        fileTabMenu.removeChild(fileTab id) |> ignore
-        fileViewPane.removeChild(fileView id) |> ignore
+        Ref.fileTabMenu.removeChild(Ref.fileTab id) |> ignore
+        Ref.fileViewPane.removeChild(Ref.fileView id) |> ignore
         match isSettingsTab with
         | true -> 
             settingsTab <- Microsoft.FSharp.Core.option.None
@@ -103,10 +219,10 @@ let deleteFileTab id =
             editor?dispose() |> ignore // Delete the Monaco editor
             editors <- Map.remove id editors
     
-let setTabUnsaved id = (fileTabName id).classList.add("unsaved")
-let setTabSaved id = (fileTabName id).classList.remove("unsaved")
+let setTabUnsaved id = (Ref.fileTabName id).classList.add("unsaved")
+let setTabSaved id = (Ref.fileTabName id).classList.remove("unsaved")
 
-let setTabName id name = (fileTabName id).innerHTML <- name
+let setTabName id name = (Ref.fileTabName id).innerHTML <- name
 
 // Create a new tab of a particular name and then return its id
 let createTab name =
@@ -123,12 +239,12 @@ let createTab name =
     cancel.classList.add("icon-close-tab")
 
     let id = uniqueTabId ()
-    tab.id <- fileTabIdFormatter id
+    tab.id <- Ref.fileTabIdFormatter id
 
     // Create an empty span to store the filepath of this tab
     let filePath = document.createElement("span")
     filePath.classList.add("invisible")
-    filePath.id <- tabFilePathIdFormatter id
+    filePath.id <- Ref.tabFilePathIdFormatter id
 
     // Add the necessary elements to create the new tab
     tab.appendChild(filePath) |> ignore
@@ -137,7 +253,7 @@ let createTab name =
 
     defaultFileName.innerHTML <- name
 
-    defaultFileName.id <- tabNameIdFormatter id
+    defaultFileName.id <- Ref.tabNameIdFormatter id
 
     cancel.addEventListener_click(fun _ -> 
         Browser.console.log(sprintf "Deleting tab #%d" id)
@@ -148,7 +264,7 @@ let createTab name =
 
     fileTabList <- fileTabList @ [id]
 
-    fileTabMenu.insertBefore(tab, newFileTab) |> ignore
+    Ref.fileTabMenu.insertBefore(tab, Ref.newFileTab) |> ignore
     setTabSaved id
     id
 
@@ -159,9 +275,9 @@ let createNamedFileTab name =
     let fv = document.createElement("div")
     fv.classList.add("editor")
     fv.classList.add("invisible")    
-    fv.id <- fileViewIdFormatter id
+    fv.id <- Ref.fileViewIdFormatter id
 
-    fileViewPane.appendChild(fv) |> ignore
+    Ref.fileViewPane.appendChild(fv) |> ignore
 
     let editor = window?monaco?editor?create(fv, editorOptions())
     
@@ -196,19 +312,19 @@ let updateAllEditors () =
 
 // Disable the editor and tab selection during execution
 let disableEditors () = 
-    fileTabMenu.classList.add("disabled-click")
-    (fileView currentFileTabId).classList.add("disabled-click")
-    fileViewPane.onclick <- (fun _ ->
+    Ref.fileTabMenu.classList.add("disabled-click")
+    (Ref.fileView currentFileTabId).classList.add("disabled-click")
+    Ref.fileViewPane.onclick <- (fun _ ->
         Browser.window.alert("Cannot use editor pane during execution")
     )
-    darkenOverlay.classList.remove("invisible")
+    Ref.darkenOverlay.classList.remove("invisible")
 
 // Enable the editor once execution has completed
 let enableEditors () =
-    fileTabMenu.classList.remove("disabled-click")
-    (fileView currentFileTabId).classList.remove("disabled-click")
-    fileViewPane.onclick <- ignore
-    darkenOverlay.classList.add("invisible")
+    Ref.fileTabMenu.classList.remove("disabled-click")
+    (Ref.fileView currentFileTabId).classList.remove("disabled-click")
+    Ref.fileViewPane.onclick <- ignore
+    Ref.darkenOverlay.classList.add("invisible")
 
 let mutable decorations : obj list = []
 let mutable lineDecorations : obj list = []
