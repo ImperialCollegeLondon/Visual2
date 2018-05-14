@@ -100,46 +100,69 @@ let lstToBytes (lst : (uint32 * uint32) list) =
         ]
     )
 
+/// make an HTML element
+/// id = element name
+/// css = css class names to add to classlist
+/// inner = inner HTML (typically text) for element
+let makeElement (id:string)  (css:string) (inner:string) =
+        let el = document.createElement id
+        el.classList.add css
+        el.innerHTML <- inner
+        el
+
+/// make an HTML element
+/// id = element name
+/// css = css class names to add to classlist
+let makeEl (id:string)  (css:string) =
+        let el = document.createElement id
+        el.classList.add css
+        el
+/// appends child node after last child in parent node, returns parent
+/// operator is left associative
+/// child: child node
+/// node: parent node.
+let (&>>) (node:Node) child = 
+    node.appendChild child |> ignore
+    node
+
+let createDOM (parentID: string) (childList: Node list) = 
+    let parent = document.createElement parentID
+    List.iter (fun ch -> parent &>> ch |>  ignore) childList
+    parent
+
+let addToDom (parent: Node) (childList: Node list) =
+    List.iter (fun ch -> parent &>> ch |>  ignore) childList
+    parent    
+
 // Creates the html to format the memory table in contiguous blocks
 let updateMemory () =
     let makeRow (addr : uint32, value : uint32) =
-        let tr = document.createElement("tr")
-        tr.classList.add("tr-head-mem")
 
-        let tdAddr = document.createElement("td")
-        tdAddr.classList.add("selectable-text")
-        tdAddr.innerHTML <- sprintf "0x%X" addr
+        let tr = makeEl "tr" "tr-head-mem"
 
-        let tdValue = document.createElement("td")
-        tdValue.classList.add("selectable-text")
-        tdValue.innerHTML <- formatter currentRep value
+        let tdAddr = makeElement "td" "selectable-text" (sprintf "0x%X" addr)
 
-        tr.appendChild(tdAddr) |> ignore
-        tr.appendChild(tdValue) |> ignore
-        tr
+        let tdValue = makeElement "td" "selectable-text" (formatter currentRep value)
+
+        tr &>> tdAddr &>> tdValue
 
     let makeContig (lst : (uint32 * uint32) list) = 
-        let li = document.createElement("li")
-        li.classList.add("list-group-item")
+        let li = makeEl "li" "list-group-item"
         li.style.padding <- "0px"
 
-        let table = document.createElement("table")
-        table.classList.add("table-striped")
+        let table = makeEl "table" "table-striped"
 
         let tr = document.createElement("tr")
 
-        let thAddr = document.createElement("th")
-        thAddr.classList.add("th-mem")
-        thAddr.innerHTML <- "Address"
+        let thAddr = makeElement "th" "th-mem" "Address"
 
-        let thValue = document.createElement("th")
-        thValue.classList.add("th-mem")
-        thValue.innerHTML <- "Value"
+        let thValue = makeElement "th" "th-mem" "Value"
 
-        tr.appendChild(thAddr) |> ignore
-        tr.appendChild(thValue) |> ignore
+        //tr.appendChild(thAddr) |> ignore
+        //tr.appendChild(thValue) |> ignore
+        tr &>> thAddr &>> thValue |> ignore
 
-        table.appendChild(tr) |> ignore
+        table &>> tr |> ignore
 
         let byteSwitcher = 
             match byteView with
@@ -152,8 +175,7 @@ let updateMemory () =
         |> List.map (makeRow >> (fun html -> table.appendChild(html)))
         |> ignore
 
-        li.appendChild(table) |> ignore
-        li
+        li &>> table
     
     // Clear the old memory list
     memList.innerHTML <- ""
@@ -165,34 +187,19 @@ let updateMemory () =
     |> ignore
 
 let updateSymTable () =
+
     let makeRow ((sym : string), value : uint32) =
-        let tr = document.createElement("tr")
-        tr.classList.add("tr-head-sym")
-
-        let tdSym = document.createElement("td")
-        tdSym.classList.add("selectable-text")
-        tdSym.innerHTML <- sym
-
-        let tdValue = document.createElement("td")
-        tdValue.classList.add("selectable-text")
-        tdValue.innerHTML <- formatter currentRep value
-
-        tr.appendChild(tdSym) |> ignore
-        tr.appendChild(tdValue) |> ignore
-        tr
+        let tr = makeEl "tr" "tr-head-sym"
+        let tdSym = makeElement "td" "selectable-text" sym
+        let tdValue = makeElement "td" "selectable-text" (formatter currentRep value)
+        tr &>> tdSym &>> tdValue
 
     // Clear the old symbol table
     symTable.innerHTML <- ""
 
     let tr = document.createElement("tr")
-    let thSym = document.createElement("th")
-    let thVal = document.createElement("th")
-
-    thSym.innerHTML <- "Symbol"
-    thVal.innerHTML <- "Value"
-
-    thSym.classList.add("th-mem")
-    thVal.classList.add("th-mem")
+    let thSym = makeElement "th" "th-mem" "Symbol"
+    let thVal = makeElement "th" "th-mem" "Value"
 
     tr.appendChild(thSym) |> ignore
     tr.appendChild(thVal) |> ignore
