@@ -136,11 +136,24 @@ let addToDOM (parent: Node) (childList: Node list) =
 
 // Creates the html to format the memory table in contiguous blocks
 let updateMemory () =
+    let invSymbolMap = 
+        symbolMap
+        |> Map.toList
+        |> List.distinctBy (fun (sym,addr) ->addr)
+        |> List.map (fun (sym,addr) -> (addr,sym))
+        |> Map.ofList
+
     let makeRow (addr : uint32, value : uint32) =
+
+        let lookupSym addr = 
+            match Map.tryFind addr invSymbolMap with
+            | option.None -> ""
+            | Some sym -> sym
 
         let tr = makeEl "tr" "tr-head-mem"
 
         addToDOM tr [
+             makeElement "td" "selectable-text" (lookupSym addr)
              makeElement "td" "selectable-text" (sprintf "0x%X" addr)
              makeElement "td" "selectable-text" (formatter currentRep value)
         ]
@@ -150,6 +163,7 @@ let updateMemory () =
         let table = makeEl "table" "table-striped"
 
         let tr = createDOM "tr" [
+                        makeElement "th" "th-mem" "Symbol"
                         makeElement "th" "th-mem" "Address"
                         makeElement "th" "th-mem" "Value"
                     ]
