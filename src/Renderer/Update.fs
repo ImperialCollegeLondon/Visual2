@@ -130,7 +130,7 @@ let createDOM (parentID: string) (childList: Node list) =
     List.iter (fun ch -> parent &>> ch |>  ignore) childList
     parent
 
-let addToDom (parent: Node) (childList: Node list) =
+let addToDOM (parent: Node) (childList: Node list) =
     List.iter (fun ch -> parent &>> ch |>  ignore) childList
     parent    
 
@@ -140,29 +140,19 @@ let updateMemory () =
 
         let tr = makeEl "tr" "tr-head-mem"
 
-        let tdAddr = makeElement "td" "selectable-text" (sprintf "0x%X" addr)
-
-        let tdValue = makeElement "td" "selectable-text" (formatter currentRep value)
-
-        tr &>> tdAddr &>> tdValue
+        addToDOM tr [
+             makeElement "td" "selectable-text" (sprintf "0x%X" addr)
+             makeElement "td" "selectable-text" (formatter currentRep value)
+        ]
 
     let makeContig (lst : (uint32 * uint32) list) = 
-        let li = makeEl "li" "list-group-item"
-        li.style.padding <- "0px"
 
         let table = makeEl "table" "table-striped"
 
-        let tr = document.createElement("tr")
-
-        let thAddr = makeElement "th" "th-mem" "Address"
-
-        let thValue = makeElement "th" "th-mem" "Value"
-
-        //tr.appendChild(thAddr) |> ignore
-        //tr.appendChild(thValue) |> ignore
-        tr &>> thAddr &>> thValue |> ignore
-
-        table &>> tr |> ignore
+        let tr = createDOM "tr" [
+                        makeElement "th" "th-mem" "Address"
+                        makeElement "th" "th-mem" "Value"
+                    ]
 
         let byteSwitcher = 
             match byteView with
@@ -170,12 +160,18 @@ let updateMemory () =
             | false -> id
 
         // Add each row to the table from lst
-        lst
-        |> byteSwitcher
-        |> List.map (makeRow >> (fun html -> table.appendChild(html)))
+        let rows = 
+            lst
+            |> byteSwitcher
+            |> List.map makeRow
+
+        addToDOM table <| [tr] @ rows 
         |> ignore
 
-        li &>> table
+        let li = makeEl "li" "list-group-item"
+        li.style.padding <- "0px"
+
+        addToDOM li  [table]
     
     // Clear the old memory list
     memList.innerHTML <- ""
@@ -190,25 +186,27 @@ let updateSymTable () =
 
     let makeRow ((sym : string), value : uint32) =
         let tr = makeEl "tr" "tr-head-sym"
-        let tdSym = makeElement "td" "selectable-text" sym
-        let tdValue = makeElement "td" "selectable-text" (formatter currentRep value)
-        tr &>> tdSym &>> tdValue
+        addToDOM tr [
+            makeElement "td" "selectable-text" sym
+            makeElement "td" "selectable-text" (formatter currentRep value)
+            ]
+
+    let tr = 
+        createDOM "tr" [
+            makeElement "th" "th-mem" "Symbol"
+            makeElement "th" "th-mem" "Value"
+            ]
+
+    let symTabRows =
+        symbolMap
+        |> Map.toList
+        |> List.map makeRow
 
     // Clear the old symbol table
     symTable.innerHTML <- ""
-
-    let tr = document.createElement("tr")
-    let thSym = makeElement "th" "th-mem" "Symbol"
-    let thVal = makeElement "th" "th-mem" "Value"
-
-    tr.appendChild(thSym) |> ignore
-    tr.appendChild(thVal) |> ignore
-
-    symTable.appendChild(tr) |> ignore
-
-    (List.map (makeRow >> (fun x -> symTable.appendChild(x))) (symbolMap
-    |> Map.toList))
-    |> ignore
+    // Add the new one
+    addToDOM symTable ([tr] @ symTabRows) |> ignore
+ 
 
 
 let resetEmulator () =
