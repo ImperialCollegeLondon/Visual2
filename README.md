@@ -166,14 +166,14 @@ It works around the fact that _packaging tools_ do not understand the non-standa
 
 ## Packaging VisUAL2 as binaries
 
-After you have compiled code (and checked it works) `yarn run package` will run electron packager and generate `./dist/os-name/*` files. See [the packaging issue](https://github.com/ImperialCollegeLondon/Visual2/issues/7) for more details. Note that if this breaks tyou can still run individual targets as below.
+After you have compiled code (and checked it works) `yarn run package` will run electron packager and generate `./dist/os-name/*` files. See [the packaging issue](https://github.com/ImperialCollegeLondon/Visual2/issues/7) for more details. Note that if this breaks you can still run individual targets as below.
 
-`yarn run package-host` will generate just the distro for the host OS and platform - useful if some distros are not available.
+`yarn run package-host` will generate just the distro for the host OS and platform.
 
-Useful shortcuts for specific target OS:
-* `yarn run package-os2`
-* `yarn run package-win`
-* `yarn run package-linux`
+Useful shortcuts for specific common target OS:
+* `yarn run package-osx` (OS-X - but see below if running from windows host)
+* `yarn run package-win` (windows)
+* `yarn run package-linux` (linux)
 * `./run-packager-os2.bat`. For windows hosts and OS-X targets the packager must be run with admin privileges: this bat file will provide these.
 
 
