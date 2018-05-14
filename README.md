@@ -158,7 +158,7 @@ It works around the fact that _packaging tools_ do not understand the non-standa
 
 7. Open `electron` application at a new terminal tab by running `yarn run launch`. This command will start the application and also _hot reload_ it whenever source files are recompiled. Therefore it normally runs continuously through development. _Hyper_, for example runs multiple tabs and will split window between two tabs, great for running start and launch scripts concurrently in a single window. 
 
-8. Run `yarn run package` or (from windows, to enav=ble correct OS-X binary generation) `./run-packager.bat` at any time to create a set of system-specific self-contained binaries in `./dist/os-name/*`. Each binary distribution consists of a portable directory with all dependencies, so use the appropriate one of these if you just want to run Visual2 and do not need to develop code.
+8. Run `yarn run package` or (from windows, to enable correct OS-X binary generation) `./run-packager.bat` at any time to create a set of system-specific self-contained binaries in `./dist/os-name/*`. Each binary distribution consists of a portable directory with all dependencies, so use the appropriate one of these if you just want to run Visual2 and do not need to develop code. `yarn run package-host` will generate just the distributable for the host OS.
 
 9. To see console debug printout etc press F12 to toggle electron dev tools on and note that any F# printout and errors will be displayed under the console tab.
 
@@ -168,14 +168,16 @@ It works around the fact that _packaging tools_ do not understand the non-standa
 
 After you have compiled code (and checked it works) `yarn run package` will run electron packager and generate `./dist/os-name/*` files. See [the packaging issue](https://github.com/ImperialCollegeLondon/Visual2/issues/7) for more details.
 
+`yarn run package-host` will generate just the distro for the host OS and platform - useful if some distros are not available.
+
 For windows hosts and OS-X targets the packager requires admin privileges. `./run-packager.bat` will provide these.
 
 ## Dependency Upgrade
 
-* FABLE used is v1.3. FABLE will upgrade to v2.x at some point (2019?) which no doubt break quite a lot.
-* Electron used is 1.8.2. Upgrade to new Electron v2 should be painless but has not yet been attempted.
+* FABLE used is v1.3. FABLE will upgrade to v2.x at some point (2019?) which no doubt break quite a lot, but the old FABLE will remain available for quite some time.
+* Electron used is 2.0.0. This partly breaks `electron-packager` (no mips distro yet) but other OSes can be packaged by specifying `--platform=<platform>` and `--arch-<arch>` options. AFAIK electron could eb downgraded without any problems to 1.8.2.
 * F# is v4.1. Update to v4.2 not required but should be painless when needed.
-* Monaco-editor is v0.10.1. Current version is 0.12 and upgrade to this may possibly fix hover Markdown bugs (and allow Markdown links to display?).
+* Monaco-editor is v0.12, which fixes an annoying markdown display bug.
 * Node, Yarn. Versions are baked in by `yarn.lock`. Yarn is currently 1.5.1 but update should be fine.
 * Webpack. Current is v3.11. No idea when/if a major change to this will happen.
 
