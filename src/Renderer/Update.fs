@@ -227,7 +227,7 @@ let getTabFilePath id =
     fp.innerHTML
 
 let baseFilePath (path : string) =
-    path.Split [|'/'|]
+    path.Split [|'/';'\\'|]
     |> Array.last
 
 // Load the node Buffer into the specified tab
