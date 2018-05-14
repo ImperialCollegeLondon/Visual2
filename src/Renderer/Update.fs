@@ -261,7 +261,7 @@ let openFile () =
     let options = createEmpty<OpenDialogOptions>
     options.properties <- ResizeArray(["openFile"; "multiSelections"]) |> Some
     options.filters <- fileFilterOpts
-    options.defaultPath <- (Editor.getSetting "current-file-path") :?> string option
+    options.defaultPath <- Some (Editor.getSetting "current-file-path")
     let readPath (path, tId) = 
         fs.readFile(path, (fun err data -> // TODO: find out what this error does
             loadFileIntoTab tId data

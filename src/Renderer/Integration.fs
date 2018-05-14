@@ -24,7 +24,7 @@ open System.IO
 
 let maxStepsBeforeDisplay: int64 = 5000L
 let maxStepsBeforeSlowDisplay: int64 = 50000L
-let slowDisplayThreshold: int64 = 50000L
+let slowDisplayThreshold: int64 = 20000L
 
 
 /// Generate the hover error box

@@ -50,11 +50,11 @@ let mutable vSettings = {
     EditorRenderWhitespace = "None"
     }
 
-let getInt mini maxi defi settingName = 
+let getIntSetting mini maxi defi settingName = 
     let (|INT|_|) = function
         | Helpers.LITERALNUMB (n,"") -> Some n 
         | _ -> Core.Option.None
-    match getSettingInput settingName with
+    match getSetting settingName with
     | INT n when n >= mini && n <= maxi -> n
     | INT n when n < mini -> mini
     | INT n when n > maxi -> maxi
@@ -63,9 +63,9 @@ let getInt mini maxi defi settingName =
 let getVisualSettings() =
     printfn "getting settings"
     {
-        EditorFontSize = getInt 8u 100u 12u editorFontSize
-        SimulatorMaxSteps = getInt 0u 1000000000u 10000u simulatorMaxSteps |> uint64 |> int64
-        EditorTheme = getSettingInput editorTheme
+        EditorFontSize = getIntSetting 8u 100u 12u editorFontSize
+        SimulatorMaxSteps = getIntSetting 0u 1000000000u 10000u simulatorMaxSteps |> uint64 |> int64
+        EditorTheme = getSetting editorTheme
         EditorWordWrap = "off"
         EditorRenderWhitespace = "None"
     } 

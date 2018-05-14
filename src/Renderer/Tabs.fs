@@ -133,10 +133,8 @@ let setRunButton (stat:RunState) =
     match stat with 
     | Running ->
         Ref.run.innerHTML <- "Pause"; 
-        Ref.run.classList.add "btn-negative"
     |_ -> 
         Ref.run.innerHTML <- "Run"
-        Ref.run.classList.remove "btn-negative"
     
 
 
@@ -151,6 +149,7 @@ let uniqueTabId () =
     match List.isEmpty fileTabList with
     | true -> 0
     | false -> (List.last fileTabList) + 1
+
 let selectFileTab id =
     // Hacky match, but otherwise deleting also attempts to select the deleted tab
     match List.contains id fileTabList || id < 0 with

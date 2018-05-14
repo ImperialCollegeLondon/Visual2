@@ -25,6 +25,7 @@ let getSetting (name : string) =
     match isUndefined setting with
     | true -> defaultSettings.[name]
     | false -> setting
+    |> (fun x -> x.ToString())
 
 let setSetting (name : string) (value : obj) =
     settings?set(name, value) |> ignore
