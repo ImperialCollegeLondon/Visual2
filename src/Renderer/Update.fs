@@ -48,6 +48,7 @@ let setRepresentation rep =
 
     updateRegisters()
 
+/// Set View to view
 let setView view =
     // Change the active tab
     (viewTab currentView).classList.remove("active")
@@ -60,6 +61,7 @@ let setView view =
     // ew mutability again, update the variable
     currentView <- view
 
+/// Toggle byte / word view
 let toggleByteView () = 
     byteView <- not byteView
     match byteView with
@@ -70,7 +72,7 @@ let toggleByteView () =
         byteViewBtn.classList.remove("btn-byte-active")
         byteViewBtn.innerHTML <- "Enable Byte View"
 
-// Converts a memory map to a list of lists which are contiguous blocks of memory
+/// Converts a memory map to a list of lists which are contiguous blocks of memory
 let contiguousMemory (mem : Map<uint32, uint32>) =
     Map.toList mem
     |> List.fold (fun state (addr, value) -> 
@@ -86,9 +88,9 @@ let contiguousMemory (mem : Map<uint32, uint32>) =
     |> List.map List.rev // Reverse each list to go back to increasing
     |> List.rev // Reverse the overall list
 
-// Converts a list of (uint32 * uint32) to a byte addressed
-// memory list of (uint32 * uint32) which is 4 times longer
-// LITTLE ENDIAN
+/// Converts a list of (uint32 * uint32) to a byte addressed
+/// memory list of (uint32 * uint32) which is 4 times longer
+/// LITTLE ENDIAN
 let lstToBytes (lst : (uint32 * uint32) list) =
     let byteInfo (dat:uint32) =
         let b = dat &&& 0xFFu
@@ -139,7 +141,8 @@ let addToDOM (parent: Node) (childList: Node list) =
     List.iter (fun ch -> parent &>> ch |>  ignore) childList
     parent    
 
-// Creates the html to format the memory table in contiguous blocks
+/// Update Memory view based on byteview, memoryMap, symbolMap
+/// Creates the html to format the memory table in contiguous blocks
 let updateMemory () =
     let chWidth = 13
     let memPanelShim = 50
@@ -221,6 +224,7 @@ let updateMemory () =
     |> List.map (makeContig >> (fun html -> memList.appendChild(html)))
     |> ignore
 
+/// Update symbol table View using currentRep and symbolMap
 let updateSymTable () =
 
     let makeRow ((sym : string), value : uint32) =
@@ -246,6 +250,9 @@ let updateSymTable () =
     // Add the new one
     addToDOM symTable ([tr] @ symTabRows) |> ignore
  
+ //************************************************************************************
+ //                          CHANGE EMULATOR STATE
+ //************************************************************************************
 
 
 let resetEmulator () =
@@ -261,6 +268,10 @@ let resetEmulator () =
     updateRegisters ()
     resetRegs()
     resetFlags()
+
+//*************************************************************************************
+//                           FILE LOAD AND STORE
+//*************************************************************************************
 
 let setTabFilePath id path =
     let fp = (tabFilePath id)
@@ -314,7 +325,7 @@ let openFile () =
         tId // Return the tab id list again to open the last one
 
     let makeTab path =
-        let tId = createNamedFileTab (baseFilePath path)
+        let tId = createNamedFileTab (baseFilePath path) path
         setTabFilePath tId path
         (path, tId)
 

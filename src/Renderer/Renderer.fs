@@ -32,12 +32,19 @@ let mapClickAttacher map (refFinder : 'a -> HTMLElement) f =
     |> List.map (fst >> attachRep)
     |> ignore
 
+
 /// Initialization after `index.html` is loaded
 let init () =
     // Show the body once we are ready to go!
     document.getElementById("vis-body").classList.remove("invisible")
+    let rem = electron.remote
+    electron.ipcRenderer.on("closingWindow", (fun (event) ->
+        printfn "Checking!"
+        checkOKToClose ()        
+        )) |> ignore
 
-    // TODO: Implement actions for the buttons
+
+    // Actions for the buttons
     Ref.explore.addEventListener_click(fun _ ->
         openFile ()
     )
@@ -90,6 +97,6 @@ setMainMenu Tests.runAllEmulatorTests
 
 let handleMonacoReady (_: Event) = init ()
 
-let listener: U2<EventListener, EventListenerObject> = !^handleMonacoReady
+let listener: U2<EventListener, EventListenerObject> = U2.Case1 handleMonacoReady
 
 document.addEventListener("monaco-ready", listener)

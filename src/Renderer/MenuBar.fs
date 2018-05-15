@@ -11,6 +11,35 @@ open Settings
 open Tabs
 open System.Threading
 
+let showMessage callBack =
+    let rem = electron.remote
+    rem.dialog.showMessageBox(
+       (let opts = createEmpty<Fable.Import.Electron.ShowMessageBoxOptions>
+        opts.title <- Option.None
+        opts.message <- "You have unsaved changes. Would you like to save them first?" |> Some
+        opts.detail <- "Your changes will be lost if you don\'t save them." |> Some
+        opts.``type`` <- "none" |> Some
+        opts.buttons <- [
+            "Save"
+            "Dont Save"
+            ] |> List.toSeq |> ResizeArray |> Some
+        opts), callBack)
+        
+
+
+
+let checkOKToClose() =
+    let close() = electron.ipcRenderer.send "doClose" |> ignore
+    let callback result =
+        match result with
+        | 0 -> ()
+        | _ -> close()
+    let tabL = Tabs.unsavedTabs()
+    if tabL <> [] then
+        showMessage (unbox callback) |> ignore
+    else close()
+        
+
 let handlerCaster f = System.Func<MenuItem, BrowserWindow, unit> f |> Some
 
 let menuSeparator = 
@@ -49,7 +78,7 @@ let fileMenu =
             menuSeparator
             makeItem "Close"    (Some "Ctrl+W")             deleteCurrentTab
             menuSeparator
-            makeItem "Quit"     (Some "Ctrl+Q")         electron.remote.app.quit
+            makeItem "Quit"     (Some "Ctrl+Q")             checkOKToClose
         ]
 
 let optCreateSettingsTab() =

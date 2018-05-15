@@ -14,6 +14,8 @@ open Fable.Import
 open Fable.Import.Electron
 open Node.Exports
 
+
+
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
 let mutable mainWindow: BrowserWindow option = Option.None
@@ -22,6 +24,10 @@ let mutable mainWindow: BrowserWindow option = Option.None
 [<Emit("require('electron-context-menu')({});")>]
 
 let contextMenu () = jsNative
+
+//[<Emit("require('electron')({});")>]
+//let ipcMain:obj = jsNative
+
 
 let createMainWindow () =
     printfn "Starting to create app window..."
@@ -44,7 +50,13 @@ let createMainWindow () =
         window.webContents.reloadIgnoringCache()
     ) |> ignore
     #endif
-
+    let mutable closeAfterSave = false
+    window.on("close", 
+                unbox (fun e ->
+                    if not closeAfterSave then
+                        printfn "Close event received!"
+                        e?preventDefault () |> ignore
+                        window.webContents.send "closingWindow")) |> ignore
     // Emitted when the window is closed.
     window.on("closed", unbox(fun () ->
         // Dereference the window object, usually you would store windows
@@ -52,6 +64,14 @@ let createMainWindow () =
         // when you should delete the corresponding element.
         mainWindow <- Option.None
     )) |> ignore
+
+    
+    electron.ipcMain?on ("doClose", unbox (fun () ->
+                 closeAfterSave <- true
+                 printfn "Closing window NOW!"
+                 window?close()
+               )) |> ignore
+
 
     // Maximize the window
     window.maximize()
@@ -82,3 +102,10 @@ electron.app.on("activate", unbox(fun () ->
     if mainWindow.IsNone then
         createMainWindow()
 )) |> ignore
+
+
+
+
+
+
+
