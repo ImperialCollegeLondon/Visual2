@@ -4,42 +4,29 @@ open Fable.Core
 open Fable.Core.JsInterop
 open Fable.Import
 open Fable.Import.Electron
-open Node.Exports
 open Node.Base
 open Update
 open Settings
 open Tabs
-open System.Threading
 
-let showMessage callBack =
+let showQuitMessage (callBack:int ->unit) =
     let rem = electron.remote
-    rem.dialog.showMessageBox(
-       (let opts = createEmpty<Fable.Import.Electron.ShowMessageBoxOptions>
-        opts.title <- Option.None
-        opts.message <- "You have unsaved changes. Would you like to save them first?" |> Some
-        opts.detail <- "Your changes will be lost if you don\'t save them." |> Some
-        opts.``type`` <- "none" |> Some
-        opts.buttons <- [
-            "Save"
-            "Dont Save"
-            ] |> List.toSeq |> ResizeArray |> Some
-        opts), callBack)
+    let mess = "You have unsaved changes. Would you like to save them first?"
+    let detail = "Your changes will be lost if you don\'t save them."
+    let buttons =  [ "Save" ; "Dont Save" ] 
+    Editor.showMessage callBack mess detail buttons
         
-
-
-
 let checkOKToClose() =
     let close() = electron.ipcRenderer.send "doClose" |> ignore
-    let callback result =
-        match result with
+    let callback (result:int) =
+        match int result with
         | 0 -> ()
         | _ -> close()
     let tabL = Tabs.unsavedTabs()
     if tabL <> [] then
-        showMessage (unbox callback) |> ignore
+        showQuitMessage callback
     else close()
         
-
 let handlerCaster f = System.Func<MenuItem, BrowserWindow, unit> f |> Some
 
 let menuSeparator = 
