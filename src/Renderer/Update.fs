@@ -90,13 +90,18 @@ let contiguousMemory (mem : Map<uint32, uint32>) =
 // memory list of (uint32 * uint32) which is 4 times longer
 // LITTLE ENDIAN
 let lstToBytes (lst : (uint32 * uint32) list) =
+    let byteInfo (dat:uint32) =
+        let b = dat &&& 0xFFu
+        match b with
+        | _ when  b >= 32u && b <= 126u -> sprintf "'%c'" (char b), b
+        | _ -> "", b
     lst
     |> List.collect (fun (addr, value) -> 
         [
-            addr, value |> byte |> uint32
-            addr + 1u, (value >>> 8) |> byte |> uint32
-            addr + 2u, (value >>> 16) |> byte |> uint32;
-            addr + 3u, (value >>> 24) |> byte |> uint32;
+            addr, value |> byteInfo
+            addr + 1u, (value >>> 8) |> byteInfo
+            addr + 2u, (value >>> 16) |> byteInfo
+            addr + 3u, (value >>> 24) |> byteInfo
         ]
     )
 
@@ -136,6 +141,10 @@ let addToDOM (parent: Node) (childList: Node list) =
 
 // Creates the html to format the memory table in contiguous blocks
 let updateMemory () =
+    let chWidth = 13
+    let memPanelShim = 50
+    let onlyIfByte x = if byteView then [x] else []
+
     let invSymbolMap = 
         symbolMap
         |> Map.toList
@@ -143,35 +152,51 @@ let updateMemory () =
         |> List.map (fun (sym,addr) -> (addr,sym))
         |> Map.ofList
 
-    let makeRow (addr : uint32, value : uint32) =
-
-        let lookupSym addr = 
+    let lookupSym addr = 
             match Map.tryFind addr invSymbolMap with
             | option.None -> ""
             | Some sym -> sym
+    
+    let maxTableWidth = 
+        memoryMap
+        |> Map.map (fun addr dat -> 
+                    (lookupSym addr |> String.length) + 
+                    (formatter currentRep dat).Length +
+                    (sprintf "0x%X" addr).Length
+           )
+        |> Map.fold (fun x k v -> max x v) 0
+        |> (fun w -> w*chWidth + memPanelShim)
+       
+    let makeRow (addr : uint32, (chRep:string, value : uint32)) =
 
         let tr = makeEl "tr" "tr-head-mem"
 
-        addToDOM tr [
-             makeElement "td" "selectable-text" (lookupSym addr)
-             makeElement "td" "selectable-text" (sprintf "0x%X" addr)
-             makeElement "td" "selectable-text" (formatter currentRep value)
-        ]
+        let rowDat = 
+            [
+                lookupSym addr
+                sprintf "0x%X" addr
+                (if byteView then 
+                    formatterWithWidth 8 currentRep value + 
+                    (chRep |> function | "" -> "" | chr -> sprintf " (%s)" chr)
+                else formatter currentRep value)   
+            ]
+
+        let makeNode txt = makeElement "td" "selectable-text" txt :> Node
+
+        addToDOM tr (List.map makeNode rowDat)
 
     let makeContig (lst : (uint32 * uint32) list) = 
 
         let table = makeEl "table" "table-striped"
 
-        let tr = createDOM "tr" [
-                        makeElement "th" "th-mem" "Symbol"
-                        makeElement "th" "th-mem" "Address"
-                        makeElement "th" "th-mem" "Value"
-                    ]
+        let makeNode txt = makeElement "th" "th-mem" txt :> Node
+
+        let tr = createDOM "tr" <| List.map makeNode ([ "Symbol" ; "Address"; "Value"])
 
         let byteSwitcher = 
             match byteView with
             | true -> lstToBytes
-            | false -> id
+            | false -> List.map (fun (addr,dat) -> (addr,("",dat)))
 
         // Add each row to the table from lst
         let rows = 

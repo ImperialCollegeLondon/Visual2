@@ -46,11 +46,11 @@ let hexFormatter _ : string = jsNative
 let uDecFormatter _ : string = jsNative
 
 // Returns a formatter for the given representation
-let formatter rep = 
+let formatterWithWidth width rep = 
 // TODO: Use binformatter from testformats.fs
-    let binFormatter fmt x =
+    let binFormatter width fmt x =
         let bin a =
-            [0..31]
+            [0..width-1]
             |> List.fold (fun s x -> 
                 match ((a >>> x) % 2u) with
                 | 1u -> "1" + s
@@ -60,10 +60,11 @@ let formatter rep =
         sprintf fmt (bin x)
     match rep with
     | Ref.Hex -> hexFormatter
-    | Ref.Bin -> (binFormatter "0b%s")
+    | Ref.Bin -> (binFormatter width "0b%s")
     | Ref.Dec -> (int32 >> sprintf "%d")
     | Ref.UDec -> uDecFormatter
 
+let formatter = formatterWithWidth 32
 
 let setRegister (id: RName) (value: uint32) =
     let el = Ref.register id.RegNum
