@@ -48,6 +48,7 @@ let setRepresentation rep =
 
     updateRegisters()
 
+/// Set View to view
 let setView view =
     // Change the active tab
     (viewTab currentView).classList.remove("active")
@@ -60,6 +61,7 @@ let setView view =
     // ew mutability again, update the variable
     currentView <- view
 
+/// Toggle byte / word view
 let toggleByteView () = 
     byteView <- not byteView
     match byteView with
@@ -70,7 +72,7 @@ let toggleByteView () =
         byteViewBtn.classList.remove("btn-byte-active")
         byteViewBtn.innerHTML <- "Enable Byte View"
 
-// Converts a memory map to a list of lists which are contiguous blocks of memory
+/// Converts a memory map to a list of lists which are contiguous blocks of memory
 let contiguousMemory (mem : Map<uint32, uint32>) =
     Map.toList mem
     |> List.fold (fun state (addr, value) -> 
@@ -86,74 +88,132 @@ let contiguousMemory (mem : Map<uint32, uint32>) =
     |> List.map List.rev // Reverse each list to go back to increasing
     |> List.rev // Reverse the overall list
 
-// Converts a list of (uint32 * uint32) to a byte addressed
-// memory list of (uint32 * uint32) which is 4 times longer
-// LITTLE ENDIAN
+/// Converts a list of (uint32 * uint32) to a byte addressed
+/// memory list of (uint32 * uint32) which is 4 times longer
+/// LITTLE ENDIAN
 let lstToBytes (lst : (uint32 * uint32) list) =
+    let byteInfo (dat:uint32) =
+        let b = dat &&& 0xFFu
+        match b with
+        | _ when  b >= 32u && b <= 126u -> sprintf "'%c'" (char b), b
+        | _ -> "", b
     lst
     |> List.collect (fun (addr, value) -> 
         [
-            addr, value |> byte |> uint32
-            addr + 1u, (value >>> 8) |> byte |> uint32
-            addr + 2u, (value >>> 16) |> byte |> uint32;
-            addr + 3u, (value >>> 24) |> byte |> uint32;
+            addr, value |> byteInfo
+            addr + 1u, (value >>> 8) |> byteInfo
+            addr + 2u, (value >>> 16) |> byteInfo
+            addr + 3u, (value >>> 24) |> byteInfo
         ]
     )
 
-// Creates the html to format the memory table in contiguous blocks
+/// make an HTML element
+/// id = element name
+/// css = css class names to add to classlist
+/// inner = inner HTML (typically text) for element
+let makeElement (id:string)  (css:string) (inner:string) =
+        let el = document.createElement id
+        el.classList.add css
+        el.innerHTML <- inner
+        el
+
+/// make an HTML element
+/// id = element name
+/// css = css class names to add to classlist
+let makeEl (id:string)  (css:string) =
+        let el = document.createElement id
+        el.classList.add css
+        el
+/// appends child node after last child in parent node, returns parent
+/// operator is left associative
+/// child: child node
+/// node: parent node.
+let (&>>) (node:Node) child = 
+    node.appendChild child |> ignore
+    node
+
+let createDOM (parentID: string) (childList: Node list) = 
+    let parent = document.createElement parentID
+    List.iter (fun ch -> parent &>> ch |>  ignore) childList
+    parent
+
+let addToDOM (parent: Node) (childList: Node list) =
+    List.iter (fun ch -> parent &>> ch |>  ignore) childList
+    parent    
+
+/// Update Memory view based on byteview, memoryMap, symbolMap
+/// Creates the html to format the memory table in contiguous blocks
 let updateMemory () =
-    let makeRow (addr : uint32, value : uint32) =
-        let tr = document.createElement("tr")
-        tr.classList.add("tr-head-mem")
+    let chWidth = 13
+    let memPanelShim = 50
+    let onlyIfByte x = if byteView then [x] else []
 
-        let tdAddr = document.createElement("td")
-        tdAddr.classList.add("selectable-text")
-        tdAddr.innerHTML <- sprintf "0x%X" addr
+    let invSymbolMap = 
+        symbolMap
+        |> Map.toList
+        |> List.distinctBy (fun (sym,addr) ->addr)
+        |> List.map (fun (sym,addr) -> (addr,sym))
+        |> Map.ofList
 
-        let tdValue = document.createElement("td")
-        tdValue.classList.add("selectable-text")
-        tdValue.innerHTML <- formatter currentRep value
+    let lookupSym addr = 
+            match Map.tryFind addr invSymbolMap with
+            | option.None -> ""
+            | Some sym -> sym
+    
+    let maxTableWidth = 
+        memoryMap
+        |> Map.map (fun addr dat -> 
+                    (lookupSym addr |> String.length) + 
+                    (formatter currentRep dat).Length +
+                    (sprintf "0x%X" addr).Length
+           )
+        |> Map.fold (fun x k v -> max x v) 0
+        |> (fun w -> w*chWidth + memPanelShim)
+       
+    let makeRow (addr : uint32, (chRep:string, value : uint32)) =
 
-        tr.appendChild(tdAddr) |> ignore
-        tr.appendChild(tdValue) |> ignore
-        tr
+        let tr = makeEl "tr" "tr-head-mem"
+
+        let rowDat = 
+            [
+                lookupSym addr
+                sprintf "0x%X" addr
+                (if byteView then 
+                    formatterWithWidth 8 currentRep value + 
+                    (chRep |> function | "" -> "" | chr -> sprintf " (%s)" chr)
+                else formatter currentRep value)   
+            ]
+
+        let makeNode txt = makeElement "td" "selectable-text" txt :> Node
+
+        addToDOM tr (List.map makeNode rowDat)
 
     let makeContig (lst : (uint32 * uint32) list) = 
-        let li = document.createElement("li")
-        li.classList.add("list-group-item")
-        li.style.padding <- "0px"
 
-        let table = document.createElement("table")
-        table.classList.add("table-striped")
+        let table = makeEl "table" "table-striped"
 
-        let tr = document.createElement("tr")
+        let makeNode txt = makeElement "th" "th-mem" txt :> Node
 
-        let thAddr = document.createElement("th")
-        thAddr.classList.add("th-mem")
-        thAddr.innerHTML <- "Address"
-
-        let thValue = document.createElement("th")
-        thValue.classList.add("th-mem")
-        thValue.innerHTML <- "Value"
-
-        tr.appendChild(thAddr) |> ignore
-        tr.appendChild(thValue) |> ignore
-
-        table.appendChild(tr) |> ignore
+        let tr = createDOM "tr" <| List.map makeNode ([ "Symbol" ; "Address"; "Value"])
 
         let byteSwitcher = 
             match byteView with
             | true -> lstToBytes
-            | false -> id
+            | false -> List.map (fun (addr,dat) -> (addr,("",dat)))
 
         // Add each row to the table from lst
-        lst
-        |> byteSwitcher
-        |> List.map (makeRow >> (fun html -> table.appendChild(html)))
+        let rows = 
+            lst
+            |> byteSwitcher
+            |> List.map makeRow
+
+        addToDOM table <| [tr] @ rows 
         |> ignore
 
-        li.appendChild(table) |> ignore
-        li
+        let li = makeEl "li" "list-group-item"
+        li.style.padding <- "0px"
+
+        addToDOM li  [table]
     
     // Clear the old memory list
     memList.innerHTML <- ""
@@ -164,44 +224,35 @@ let updateMemory () =
     |> List.map (makeContig >> (fun html -> memList.appendChild(html)))
     |> ignore
 
+/// Update symbol table View using currentRep and symbolMap
 let updateSymTable () =
+
     let makeRow ((sym : string), value : uint32) =
-        let tr = document.createElement("tr")
-        tr.classList.add("tr-head-sym")
+        let tr = makeEl "tr" "tr-head-sym"
+        addToDOM tr [
+            makeElement "td" "selectable-text" sym
+            makeElement "td" "selectable-text" (formatter currentRep value)
+            ]
 
-        let tdSym = document.createElement("td")
-        tdSym.classList.add("selectable-text")
-        tdSym.innerHTML <- sym
+    let tr = 
+        createDOM "tr" [
+            makeElement "th" "th-mem" "Symbol"
+            makeElement "th" "th-mem" "Value"
+            ]
 
-        let tdValue = document.createElement("td")
-        tdValue.classList.add("selectable-text")
-        tdValue.innerHTML <- formatter currentRep value
-
-        tr.appendChild(tdSym) |> ignore
-        tr.appendChild(tdValue) |> ignore
-        tr
+    let symTabRows =
+        symbolMap
+        |> Map.toList
+        |> List.map makeRow
 
     // Clear the old symbol table
     symTable.innerHTML <- ""
-
-    let tr = document.createElement("tr")
-    let thSym = document.createElement("th")
-    let thVal = document.createElement("th")
-
-    thSym.innerHTML <- "Symbol"
-    thVal.innerHTML <- "Value"
-
-    thSym.classList.add("th-mem")
-    thVal.classList.add("th-mem")
-
-    tr.appendChild(thSym) |> ignore
-    tr.appendChild(thVal) |> ignore
-
-    symTable.appendChild(tr) |> ignore
-
-    (List.map (makeRow >> (fun x -> symTable.appendChild(x))) (symbolMap
-    |> Map.toList))
-    |> ignore
+    // Add the new one
+    addToDOM symTable ([tr] @ symTabRows) |> ignore
+ 
+ //************************************************************************************
+ //                          CHANGE EMULATOR STATE
+ //************************************************************************************
 
 
 let resetEmulator () =
@@ -217,6 +268,10 @@ let resetEmulator () =
     updateRegisters ()
     resetRegs()
     resetFlags()
+
+//*************************************************************************************
+//                           FILE LOAD AND STORE
+//*************************************************************************************
 
 let setTabFilePath id path =
     let fp = (tabFilePath id)
@@ -270,7 +325,7 @@ let openFile () =
         tId // Return the tab id list again to open the last one
 
     let makeTab path =
-        let tId = createNamedFileTab (baseFilePath path)
+        let tId = createNamedFileTab (baseFilePath path) path
         setTabFilePath tId path
         (path, tId)
 

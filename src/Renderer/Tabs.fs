@@ -5,6 +5,7 @@ open Fable.Core.JsInterop
 open Fable.Import
 open Fable.Import.Browser
 open Fable.Core
+open EEExtensions
 open CommonData
 open ExecutionTop
 open Editor
@@ -46,11 +47,11 @@ let hexFormatter _ : string = jsNative
 let uDecFormatter _ : string = jsNative
 
 // Returns a formatter for the given representation
-let formatter rep = 
+let formatterWithWidth width rep = 
 // TODO: Use binformatter from testformats.fs
-    let binFormatter fmt x =
+    let binFormatter width fmt x =
         let bin a =
-            [0..31]
+            [0..width-1]
             |> List.fold (fun s x -> 
                 match ((a >>> x) % 2u) with
                 | 1u -> "1" + s
@@ -60,10 +61,11 @@ let formatter rep =
         sprintf fmt (bin x)
     match rep with
     | Ref.Hex -> hexFormatter
-    | Ref.Bin -> (binFormatter "0b%s")
+    | Ref.Bin -> (binFormatter width "0b%s")
     | Ref.Dec -> (int32 >> sprintf "%d")
     | Ref.UDec -> uDecFormatter
 
+let formatter = formatterWithWidth 32
 
 let setRegister (id: RName) (value: uint32) =
     let el = Ref.register id.RegNum
@@ -225,8 +227,20 @@ let deleteFileTab id =
             editor?dispose() |> ignore // Delete the Monaco editor
             editors <- Map.remove id editors
     
-let setTabUnsaved id = (Ref.fileTabName id).classList.add("unsaved")
-let setTabSaved id = (Ref.fileTabName id).classList.remove("unsaved")
+let setTabUnsaved id = 
+    let tabName = Ref.fileTabName id
+    tabName.classList.add("unsaved")
+    if tabName.innerText.EndsWith " *" |> not then
+        tabName.innerText <- tabName.innerText + " *"
+
+let setTabSaved id = 
+    let tabName = Ref.fileTabName id
+    tabName.classList.remove("unsaved")
+    tabName.innerText <- 
+        let txt = tabName.innerText
+        if txt.EndsWith " *"
+        then txt.[0..txt.Length - 3]
+        else txt 
 
 let setTabName id name = (Ref.fileTabName id).innerHTML <- name
 
@@ -274,37 +288,67 @@ let createTab name =
     setTabSaved id
     id
 
-let createNamedFileTab name =
-    let id = createTab name
 
-    // Create the new view div
-    let fv = document.createElement("div")
-    fv.classList.add("editor")
-    fv.classList.add("invisible")    
-    fv.id <- Ref.fileViewIdFormatter id
+let findNamedFile (name:string) =
+    let normalisePath (path:string) =
+        path.Split [| '/' ; '\\'|]
+        |> Array.toList
+        |> List.map String.toLower
 
-    Ref.fileViewPane.appendChild(fv) |> ignore
-
-    let editor = window?monaco?editor?create(fv, editorOptions())
+    fileTabList
+    |> List.map (fun id -> (Ref.tabFilePath id).innerText, id)
+    |> List.tryFind (fun (path,_) -> 
+        printfn "Comparing %s with %s" path name
+        normalisePath path = normalisePath name)
+    |> Core.Option.map (fun (_,id) -> id)
     
-    // Whenever the content of this editor changes
-    editor?onDidChangeModelContent(fun _ ->
-        setTabUnsaved id // Set the unsaved icon in the tab
-    ) |> ignore
 
-    editors <- Map.add id editor editors
-    // Return the id of the tab we just created
-    id
+let createNamedFileTab fName fPath=
+    match findNamedFile fPath with
+    | Some id -> 
+        // Return existing tab id
+        printfn "Found tab %A" id
+        selectFileTab id
+        id        
+    | Option.None -> 
+        printfn "Creating new tab"
+        let id = createTab fName
+        // Create the new view div
+        let fv = document.createElement("div")
+        fv.classList.add("editor")
+        fv.classList.add("invisible")    
+        fv.id <- Ref.fileViewIdFormatter id
+
+        Ref.fileViewPane.appendChild(fv) |> ignore
+
+        let editor = window?monaco?editor?create(fv, editorOptions())
+    
+        // Whenever the content of this editor changes
+        editor?onDidChangeModelContent(fun _ ->
+            setTabUnsaved id // Set the unsaved icon in the tab
+        ) |> ignore
+
+        editors <- Map.add id editor editors
+        // Return the id of the tab we just created
+        id
 
 let createFileTab () = 
-    createNamedFileTab "Untitled.S" 
+    createNamedFileTab "Untitled.S" ""
     |> selectFileTab // Switch to the tab we just created
 
 let deleteCurrentTab () =
     match currentFileTabId >= 0 with
     | false -> ()
     | true -> deleteFileTab currentFileTabId
-    
+
+let unsavedTabs() =
+    fileTabList
+    |> List.filter isTabUnsaved
+
+//*******************************************************************************
+//                        Interaction with Editors   
+//*******************************************************************************
+
 let updateEditor tId =
     editors.[tId]?updateOptions(editorOptions()) |> ignore
 
