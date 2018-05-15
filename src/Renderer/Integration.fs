@@ -2,25 +2,13 @@ module Integration
 
 open Tabs
 open Update
-open Helpers
 open CommonData
-open Expressions
-open CommonLex
 open ParseTop
 open ExecutionTop
-open DP
-
 open Errors
-open Ref
 
 open Fable.Core.JsInterop
 open Fable.Import
-open Fable.Import.Browser
-open Fable.Core
-
-open Fable.Import.Electron
-open Node.Exports
-open System.IO
 
 let maxStepsBeforeDisplay: int64 = 5000L
 let maxStepsBeforeSlowDisplay: int64 = 50000L
@@ -242,8 +230,6 @@ let prepareModeForExecution() =
             setRunButton Paused
     | _ -> () 
 
-
-
 /// Parses and runs the assembler program in the current tab
 /// Aborts after steps instructions, unless steps is 0
 let runEditorTab steps =
@@ -264,8 +250,6 @@ let runEditorTab steps =
     | ActiveMode _
     | RunErrorMode _ 
     | FinishedMode _ -> ()
-
-
 
 let runCode () = 
     match runMode with
@@ -296,7 +280,9 @@ let stepCodeBackBy numSteps =
             match asmStepBack numSteps ri with
             | Option.None ->
                 printfn "Mode=%A" runMode
-                Browser.window.alert( sprintf "Can't step back by %d instructions" numSteps)
+                Browser.window.alert( sprintf "Can't step back by %d instruction%s" 
+                                        numSteps (if numSteps = 1L then "" else "s"))
+                setState RunState.Paused ri
             | Some ri' -> 
                 setState Paused ri'
                 disableEditors()

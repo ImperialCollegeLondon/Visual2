@@ -4,11 +4,8 @@ module Editor
 open Fable.Core.JsInterop
 open Fable.Core
 open Fable.Import.Node.Exports
+open Fable.Import
 open Ref
-
-
-
-
 
 // Default settings if they haven't already been defined by electron-settings
 let defaultSettings = Map.ofList [
@@ -47,3 +44,15 @@ let editorOptions () = createObj [
                         "minimap" ==> createObj [ "enabled" ==> false ]
                     ]
     
+let showMessage (callBack:int ->unit) (message:string) (detail:string) (buttons:string list) =
+    let rem = electron.remote
+    let retFn = unbox callBack
+    rem.dialog.showMessageBox(
+       (let opts = createEmpty<Fable.Import.Electron.ShowMessageBoxOptions>
+        opts.title <- Option.None
+        opts.message <- message |> Some
+        opts.detail <- detail |> Some
+        opts.``type`` <- "none" |> Some
+        opts.buttons <- buttons |> List.toSeq |> ResizeArray |> Some
+        opts), retFn)   
+    |> ignore

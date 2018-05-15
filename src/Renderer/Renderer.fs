@@ -37,12 +37,11 @@ let mapClickAttacher map (refFinder : 'a -> HTMLElement) f =
 let init () =
     // Show the body once we are ready to go!
     document.getElementById("vis-body").classList.remove("invisible")
-    let rem = electron.remote
+    
+    // Set up window close interlock using IPC from/to main process
     electron.ipcRenderer.on("closingWindow", (fun (event) ->
-        printfn "Checking!"
         checkOKToClose ()        
         )) |> ignore
-
 
     // Actions for the buttons
     Ref.explore.addEventListener_click(fun _ ->
@@ -93,7 +92,7 @@ let init () =
     Settings.vSettings <- Settings.getVisualSettings()
 
 
-setMainMenu Tests.runAllEmulatorTests
+setMainMenu Tests.runAllEmulatorTests // pass this out-of-order dependency in to the menu code.
 
 let handleMonacoReady (_: Event) = init ()
 
