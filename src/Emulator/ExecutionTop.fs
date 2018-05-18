@@ -321,9 +321,10 @@ let asmStep (numSteps:int64) (ri:RunInfo) =
         //printf "Stepping before while Done=%d num=%d dp=%A" stepsDone numSteps  dp
         let mutable running = true // true if no error has yet happened
         while stepsDone < numSteps && running do
+            lastPC <- Some dp.Regs.[R15];
             match dataPathStep (dp,ri.IMem) with
-            | Result.Ok dp' -> lastPC <- Some dp.Regs.[R15]; dp <- dp' ; stepsDone <- stepsDone + 1L;
-            | Result.Error EXIT -> running <- false ; state <- PSExit; lastPC <- Some dp.Regs.[R15]
+            | Result.Ok dp' ->  dp <- dp' ; stepsDone <- stepsDone + 1L;
+            | Result.Error EXIT -> running <- false ; state <- PSExit;
             | Result.Error e ->  running <- false ; state <- PSError e
         //printf "stepping after while PC=%d, dp=%A, done=%d --- err'=%A" dp.Regs.[R15] dp stepsDone (dataPathStep (dp,ri.IMem))
         {
