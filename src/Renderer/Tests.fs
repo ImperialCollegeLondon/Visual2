@@ -141,7 +141,7 @@ let handleTestRunError e (pInfo:RunInfo) (ts: TestSetup) =
         |> List.map (fun (r,(a,m)) -> sprintf "Bad output:R%d is 0x%x should be 0x%x" r (uint64 a) (uint64 m))
         |> String.concat "\n"
 
-    let dp = dpAfterExec pInfo
+    let dp = pInfo.dpCurrent
 
     let regs = 
         dp.Regs
@@ -230,7 +230,7 @@ let writeResultsToFile fn rt resL =
     let displayTest (tt: TestT, ts:TestSetup,ri:RunInfo,mess:string) =
         sprintf "\n--------------%s----------------\n" ts.Name +
         mess + "\n\r\n" +
-        displayState ts (dpAfterExec ri) + "\n" +
+        displayState ts (ri.dpCurrent) + "\n" +
         "       ---------ASM----------\n" +
         ts.Asm +
         "\n----------------------------------\n\n"
@@ -305,8 +305,9 @@ let RunEmulatorTest allowed  ts=
         let ri' = asmStep maxSteps { ri with dpInit = dpBefore}
 
         match ri' with
-        | {dpResult= Result.Error (e,_)} as ri' -> handleTestRunError e ri' ts
-        | {dpResult = Result.Ok _} as ri' -> 
+        | {State=PSExit} ->  handleTestRunError EXIT ri' ts
+        | {State=PSError e } -> handleTestRunError e ri' ts
+        | _ -> 
             ErrorTests, ts, ri', sprintf "Test code timed out after %d Visual2 instructions" maxSteps
 
 let runEmulatorTestFile allowed fn =

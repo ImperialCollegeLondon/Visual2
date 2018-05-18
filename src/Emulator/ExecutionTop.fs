@@ -43,15 +43,23 @@ type LoadImage = {
     Source: string list
     }
 
+type Step = {
+    NumDone: int64
+    Dp: DataPath
+    }
+
+type ProgState = | PSExit | PSRunning | PSError of ExecuteError
+
 type RunInfo = {
     dpInit: DataPath
     IMem: CodeMemory<CondInstr * int>
-    dpResult: Result<DataPath,ExecuteError*DataPath>
     st: SymbolTable
     StepsDone: int64
-    LastPC: uint32
+    dpCurrent: DataPath
+    State: ProgState
+    LastPC: uint32 option
     Source: string list
-    History: RunInfo option
+    History: Step list
     }
 
 type RunState = | Running | Paused | Stopping
@@ -62,9 +70,7 @@ type RunMode =
     | ActiveMode of RunState * RunInfo
     | FinishedMode of RunInfo
 
-/// datapath after execution
-let dpAfterExec ri =
-    match ri.dpResult with | Ok dp -> dp | Error (e_,dp) -> dp
+
 
 let dataSectionAlignment = 0x200u
 
@@ -301,43 +307,43 @@ let asmStep (numSteps:int64) (ri:RunInfo) =
         // We need this code to be fast and possibly execute for a long time
         // so use this ugly while loop with mutable variables!
         let mutable dp = ri.dpInit // initial dataPath
-        let mutable dpResult = Ok ri.dpInit// datapath after instruction (or error)
         let mutable stepsDone = 0L // number of instructions completed without error
-
-        let rec setPrecomputedResult ri =
-            if ri.StepsDone <= numSteps then
-                match ri.dpResult with
-                | Ok dp ->
-                    dpResult <- Ok dp
-                    stepsDone <- ri.StepsDone
-                | _ -> ()
-            else
-                match ri.History with 
-                | None -> ()
-                | Some ri' -> setPrecomputedResult ri' ; ()
-
-        setPrecomputedResult ri       
+        let mutable state = PSRunning
+        let mutable lastPC = None
+        let setPrecomputedResult =
+            ri.History
+            |> List.tryFind (fun (step:Step) -> step.NumDone < numSteps)
+            |> function 
+                | None -> () 
+                | Some step -> 
+                    dp <- step.Dp ; stepsDone <- step.NumDone
+        setPrecomputedResult       
+        //printf "Stepping before while Done=%d num=%d dp=%A" stepsDone numSteps  dp
         let mutable running = true // true if no error has yet happened
         while stepsDone < numSteps && running do
-            dp <- match dpResult with | Ok dp' -> dp' | _ -> dp
-            dpResult <- dataPathStep (dp,ri.IMem)
-            match dpResult with
-            | Result.Ok dp' -> ()
-            | Result.Error e ->  running <- false 
-            stepsDone <- stepsDone + 1L
+            match dataPathStep (dp,ri.IMem) with
+            | Result.Ok dp' -> lastPC <- Some dp.Regs.[R15]; dp <- dp' ; stepsDone <- stepsDone + 1L;
+            | Result.Error EXIT -> running <- false ; state <- PSExit; lastPC <- Some dp.Regs.[R15]
+            | Result.Error e ->  running <- false ; state <- PSError e
+        //printf "stepping after while PC=%d, dp=%A, done=%d --- err'=%A" dp.Regs.[R15] dp stepsDone (dataPathStep (dp,ri.IMem))
         {
             ri with 
-                dpResult = Result.mapError (fun execErr -> execErr, dp) dpResult; 
-                LastPC = dp.Regs.[R15]; 
+                dpCurrent = dp
+                State = 
+                    match  dataPathStep (dp,ri.IMem) with
+                    | Ok dp -> PSRunning
+                    | Error EXIT -> PSExit
+                    | Error e -> PSError e
+                    
+                LastPC = lastPC
                 StepsDone=stepsDone
-                History = Some ri
+                History = 
+                    match ri.History with 
+                    | [] -> [{Dp=dp; NumDone=stepsDone}]
+                    | h :: _ as hist when stepsDone > h.NumDone -> {Dp=dp; NumDone=stepsDone} :: hist
+                    | hist -> hist
         } 
 
 
-/// <summary> As <see cref="asmStep"> asmStep</see> but go backwards. Return None if not possible </summary>
-let asmStepBack numSteps (ri: RunInfo) =
-    match ri.StepsDone with
-    | n when numSteps >= n -> None
-    | _ -> asmStep (ri.StepsDone - numSteps) ri |> Some
             
     

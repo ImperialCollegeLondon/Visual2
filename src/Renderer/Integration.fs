@@ -94,7 +94,7 @@ let showInfo () =
     | RunErrorMode ri ->
         symbolMap <- ri.st
         updateSymTable()
-        let dp = dpAfterExec ri
+        let dp = ri.dpCurrent
         memoryMap <- makeMemoryMap dp.MM
         updateMemory()
         setRegs dp.Regs
@@ -104,17 +104,23 @@ let showInfo () =
 
 let highlightCurrentIns classname pInfo tId  =
     removeEditorDecorations tId
-    match Map.tryFind (WA pInfo.LastPC) pInfo.IMem with
-    | Some (ci, lineNo) -> highlightLine tId lineNo classname
-    | Option.None
-    | Some _ -> failwithf "What? Current PC value (%x) is not an instruction: this should be impossible!" pInfo.LastPC
+    match pInfo.LastPC with
+    | None -> ()
+    | Some pc ->
+        match Map.tryFind (WA pc) pInfo.IMem with
+        | Some (ci, lineNo) -> highlightLine tId lineNo classname
+        | Option.None
+        | Some _ -> failwithf "What? Current PC value (%x) is not an instruction: this should be impossible!" pc
 
 
 let handleRunTimeError e (pInfo:RunInfo)  =
     let getCodeLineMess pInfo pos =
-        match Map.tryFind (WA pInfo.LastPC) pInfo.IMem with
-        | Some (_, lineNo) -> sprintf "on line %d" lineNo
-        | _ -> ""
+        match pInfo.LastPC with
+        | None -> ""
+        | Some pc ->
+            match Map.tryFind (WA pc) pInfo.IMem with
+            | Some (_, lineNo) -> sprintf "on line %d" lineNo
+            | _ -> ""
     match e with
     | EXIT ->
         setMode (FinishedMode pInfo)
@@ -174,13 +180,14 @@ let getRunInfoFromState (lim:LoadImage) =
              } 
     {
         dpInit=dp; 
+        dpCurrent = dp
+        State = PSRunning
         st=lim.SymInf.SymTab; 
         IMem = lim.Code; 
-        LastPC = dp.Regs.[R15]; 
-        dpResult=Result.Ok dp; 
+        LastPC = None
         StepsDone=0L
         Source = lim.Source
-        History = Core.Option.None
+        History = []
     }
 
 let loopMessage() = 
@@ -188,36 +195,40 @@ let loopMessage() =
     sprintf "WARNING Possible infinite loop: max number of steps (%d) exceeded. To disable this warning use Edit -> Preferences" steps
    
 let rec asmStepDisplay steps ri =
+    let displayState ri' running =
+            match ri'.State with
+            | PSRunning ->  
+                highlightCurrentIns "editor-line-highlight" ri' currentFileTabId
+                showInfo()
+                if running && Settings.vSettings.SimulatorMaxSteps <> 0L then  Browser.window.alert( loopMessage() )
+            | PSError e -> handleRunTimeError e ri'
+            | PSExit -> handleRunTimeError EXIT ri'
+
     match runMode with
     | ResetMode -> ()
     | _ ->
         let stepsNeeded = steps - ri.StepsDone
         let running = stepsNeeded <> 1L
         let stepsMax = maxStepsBeforeDisplay + (if ri.StepsDone > slowDisplayThreshold then maxStepsBeforeSlowDisplay else 0L)
-        printfn "exec with steps=%d and R0=%d" ri.StepsDone (dpAfterExec ri).Regs.[R0]
+        //printfn "exec with steps=%d and R0=%d" ri.StepsDone ri.dpCurrent.Regs.[R0]
         if stepsNeeded <= stepsMax then
             let ri' = asmStep steps ri
             setState Paused ri'
-            match ri'.dpResult with
-            | Result.Ok dp ->  
-                highlightCurrentIns "editor-line-highlight" ri' currentFileTabId
-                if running && Settings.vSettings.SimulatorMaxSteps <> 0L then  Browser.window.alert( loopMessage() )
-            | Result.Error (e,_) -> handleRunTimeError e ri'
+            displayState ri' running
         else
             setState RunState.Running ri
             let ri' = asmStep (stepsMax+ri.StepsDone - 1L) ri
             setState RunState.Running ri'
             showInfo()
-            match  ri' with
-            | {dpResult = Result.Error (e,_) } -> handleRunTimeError e ri'
-            | {dpResult = Result.Ok _} -> 
+            match  ri'.State with
+            | PSRunning -> 
                  Browser.window.setTimeout( (fun () -> 
                         match runMode with
                         | ActiveMode (RunState.Running, _) ->
                                 asmStepDisplay steps ri'
                         | _ -> setState RunState.Paused ri')
                         , 0, []) |> ignore
-
+            | _ -> displayState ri' true
 
 let prepareModeForExecution() =
     match runMode with
@@ -277,19 +288,22 @@ let stepCodeBackBy numSteps =
             Browser.window.alert "can't step backwards because execution state is no longer valid"
         else
             setState RunState.Running ri
-            match asmStepBack numSteps ri with
-            | Option.None ->
+            //printf "Stepping back with done=%d  PC=%A" ri.StepsDone ri.dpCurrent
+            let target = ri.StepsDone-numSteps
+            if target < 0L then
                 printfn "Mode=%A" runMode
                 Browser.window.alert( sprintf "Can't step back by %d instruction%s" 
                                         numSteps (if numSteps = 1L then "" else "s"))
                 setState RunState.Paused ri
-            | Some ri' -> 
+
+            else 
+                let ri' = asmStep target ri
                 setState Paused ri'
                 disableEditors()
-                match ri'.dpResult with
-                | Result.Ok _ ->  
+                match ri'.State with
+                | PSRunning ->  
                     highlightCurrentIns "editor-line-highlight" ri' currentFileTabId
-                | Result.Error _ -> failwithf "What? Error can't happen when stepping backwards!"
+                | PSError _ | PSExit -> failwithf "What? Error can't happen when stepping backwards!"
                 showInfo ()
     | ParseErrorMode -> Browser.window.alert( sprintf "Can't execute when code has errors")
     | ResetMode -> Browser.window.alert( sprintf "Execution has not started")
