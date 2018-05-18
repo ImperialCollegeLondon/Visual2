@@ -330,11 +330,7 @@ let asmStep (numSteps:int64) (ri:RunInfo) =
         {
             ri with 
                 dpCurrent = dp
-                State = 
-                    match  dataPathStep (dp,ri.IMem) with
-                    | Ok dp -> PSRunning
-                    | Error EXIT -> PSExit
-                    | Error e -> PSError e
+                State = state
                     
                 LastPC = lastPC
                 StepsDone=stepsDone
