@@ -129,9 +129,11 @@ let handleRunTimeError e (pInfo:RunInfo)  =
         setMode (FinishedMode pInfo)
         highlightCurrentIns "editor-line-highlight" (pInfo) currentFileTabId
         enableEditors()
+
     | NotInstrMem x -> 
         Browser.window.alert(sprintf "Trying to access non-instruction memory 0x%x" x)
         setMode (RunErrorMode pInfo)
+
     | ``Run time error`` (pos,msg) ->
         let lineMess = getCodeLineMess pInfo pos
         highlightCurrentIns "editor-line-highlight-error" pInfo currentFileTabId
@@ -139,6 +141,9 @@ let handleRunTimeError e (pInfo:RunInfo)  =
         Browser.window.setTimeout( (fun () ->                
             Browser.window.alert(sprintf "Error %s: %s" lineMess msg)
             RunErrorMode pInfo), 100, []) |> ignore
+        setMode (RunMode.RunErrorMode pInfo)
+       
+
     | ``Unknown symbol runtime error`` undefs ->
         Browser.window.alert(sprintf "What? Undefined symbols: %A" undefs)
         setMode (RunMode.RunErrorMode pInfo)
@@ -294,15 +299,21 @@ let stepCodeBackBy numSteps =
         if currentFileTabIsChanged ri then
             Browser.window.alert "can't step backwards because execution state is no longer valid"
         else
-            setState RunState.Running ri
             //printf "Stepping back with done=%d  PC=%A" ri.StepsDone ri.dpCurrent
-            let target = ri.StepsDone-numSteps
-            if target < 0L then
-                Browser.window.alert( sprintf "Can't step back by %d instruction%s" 
-                                        numSteps (if numSteps = 1L then "" else "s"))
-                setState RunState.Paused ri
+            let target = 
+                match runMode with
+                | RunErrorMode ri -> ri.StepsDone + 1L - numSteps
+                | _ -> ri.StepsDone - numSteps
+            printf "State is %A" runMode
+            setState RunState.Running ri
 
-            else 
+            if target <= 0L then
+                resetEmulator()
+                removeEditorDecorations currentFileTabId
+                showInfo()
+            else
+                printfn "Stepping back to step %d" target
+                setState RunState.Paused ri 
                 let ri' = asmStep target ri
                 setState Paused ri'
                 disableEditors()

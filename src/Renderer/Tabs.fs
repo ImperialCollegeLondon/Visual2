@@ -304,13 +304,23 @@ let findNamedFile (name:string) =
     
 
 let createNamedFileTab fName fPath=
-    match findNamedFile fPath with
-    | Some id -> 
+    let unusedTab = 
+        fileTabList 
+        |> List.filter (fun tid -> getTabName tid = "Untitled.S")
+    match findNamedFile fPath, unusedTab with
+    | Some id,_ -> 
         // Return existing tab id
         printfn "Found tab %A" id
         selectFileTab id
-        id        
-    | Option.None -> 
+        id 
+    | _, [tId] ->
+        printfn "Found unused tab %A" tId
+        selectFileTab tId
+        let tabName = Ref.fileTabName tId
+        tabName.innerHTML <- fName
+        (Ref.tabFilePath tId).innerHTML <- fPath
+        tId   
+    | Option.None, _ -> 
         let id = createTab fName
         // Create the new view div
         let fv = document.createElement("div")

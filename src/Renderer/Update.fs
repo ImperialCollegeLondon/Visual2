@@ -48,18 +48,7 @@ let setRepresentation rep =
 
     updateRegisters()
 
-/// Set View to view
-let setView view =
-    // Change the active tab
-    (viewTab currentView).classList.remove("active")
-    (viewTab view).classList.add("active")
 
-    // Change the visibility of the views
-    (viewView currentView).classList.add("invisible")
-    (viewView view).classList.remove("invisible")
-
-    // ew mutability again, update the variable
-    currentView <- view
 
 /// Toggle byte / word view
 let toggleByteView () = 
@@ -268,6 +257,20 @@ let resetEmulator () =
     updateRegisters ()
     resetRegs()
     resetFlags()
+
+/// Set View to view
+let setView view =
+    // Change the active tab
+    (viewTab currentView).classList.remove("active")
+    (viewTab view).classList.add("active")
+
+    // Change the visibility of the views
+    (viewView currentView).classList.add("invisible")
+    (viewView view).classList.remove("invisible")
+
+    // ew mutability again, update the variable
+    currentView <- view
+    updateMemory()
 
 //*************************************************************************************
 //                           FILE LOAD AND STORE
