@@ -115,7 +115,7 @@
     text-align: center;
     height: 100%;
     overflow: hidden;
-    background-color: lightgray;
+    background-color: black;
 }
 
 .monaco-editor {
@@ -133,7 +133,7 @@
 
 .editor-line-highlight {
     font-weight: bolder;
-    background-color: rgb(56, 109, 141)
+    background-color: rgba(56, 76, 141, 0.5)
     /*text-decoration: underline;*/
     /* width: 5px !important;
 	left: 3px; */
@@ -141,12 +141,27 @@
 
 .editor-line-highlight-error {
     font-weight: bolder;
-    background-color: rgb(180, 29, 79)
+    background-color: rgba(180, 29, 79,0.5)
     /*text-decoration: underline;*/
     /* width: 5px !important;
 	left: 3px; */
 }
 
+.editor-line-highlight-next {
+    font-weight: bolder;
+    background-color: rgba(6, 41, 155, 0.25)
+    /*text-decoration: underline;*/
+    /* width: 5px !important;
+	left: 3px; */
+}
+
+.editor-line-highlight-error {
+    font-weight: bolder;
+    background-color: rgba(180, 29, 79,0.5)
+    /*text-decoration: underline;*/
+    /* width: 5px !important;
+	left: 3px; */
+}
 
 .disabled-click {
     pointer-events: none;

@@ -90,6 +90,7 @@ let init () =
     // Create an empty tab to start with
     createFileTab ()
     Settings.vSettings <- Settings.getVisualSettings()
+    updateAllEditors()
 
 
 setMainMenu Tests.runAllEmulatorTests // pass this out-of-order dependency in to the menu code.

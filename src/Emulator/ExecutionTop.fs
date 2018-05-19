@@ -1,4 +1,5 @@
 module ExecutionTop
+open EEExtensions
 open Errors
 open CommonData
 open DP
@@ -17,6 +18,8 @@ open ParseTop
 //**************************************************************************************
 //                     TOP LEVEL EXECUTION FUNCTIONS
 //**************************************************************************************
+let historyMaxGap = 1000L
+
 
 type ErrResolveBase = {lineNumber : uint32 ; error : ParseError}
 
@@ -251,7 +254,7 @@ let reLoadProgram (lines: string list) =
         match unres lim1, unres lim2 with
         | n1,n2 when (n2=0 && (lim1.LoadP.PosI <= lim2.LoadP.DStart)) || n1 = n2
             -> lim2
-        | n1,n2 when n1 = n2 && lim2.Errors = [] -> failwithf "What? %d unresolved refs in load image with no errors" n1
+        | n1,n2 when n1 = n2 && List.isEmpty lim2.Errors -> failwithf "What? %d unresolved refs in load image with no errors" n1
         | _ -> pass lim2 (next lim2)
     let final = 
         pass lim1 (next lim1) 
@@ -310,35 +313,29 @@ let asmStep (numSteps:int64) (ri:RunInfo) =
         let mutable stepsDone = 0L // number of instructions completed without error
         let mutable state = PSRunning
         let mutable lastPC = None
-        let setPrecomputedResult =
-            ri.History
-            |> List.tryFind (fun (step:Step) -> step.NumDone < numSteps)
-            |> function 
-                | None -> () 
-                | Some step -> 
-                    dp <- step.Dp ; stepsDone <- step.NumDone
-        setPrecomputedResult       
+        let (future,past) = List.partition (fun (st:Step) -> st.NumDone >= numSteps) ri.History
+        let mutable history = past
+        match past with | step :: _ -> dp <- step.Dp ; stepsDone <- step.NumDone | _ -> ()   
         //printf "Stepping before while Done=%d num=%d dp=%A" stepsDone numSteps  dp
         let mutable running = true // true if no error has yet happened
+        if stepsDone >= numSteps then lastPC <- Some dp.Regs.[R15];
         while stepsDone < numSteps && running do
-            lastPC <- Some dp.Regs.[R15];
+            let historyLastRecord = match history with | [] -> 0L | h :: _ -> h.NumDone
+            if (stepsDone - historyLastRecord) > historyMaxGap then
+                history <- {Dp=dp; NumDone=stepsDone} :: history
             match dataPathStep (dp,ri.IMem) with
-            | Result.Ok dp' ->  dp <- dp' ; stepsDone <- stepsDone + 1L;
+            | Result.Ok dp' ->  lastPC <- Some dp.Regs.[R15]; dp <- dp' ; stepsDone <- stepsDone + 1L;
             | Result.Error EXIT -> running <- false ; state <- PSExit;
-            | Result.Error e ->  running <- false ; state <- PSError e
+            | Result.Error e ->  running <- false ; state <- PSError e; lastPC <- Some dp.Regs.[R15];
+
         //printf "stepping after while PC=%d, dp=%A, done=%d --- err'=%A" dp.Regs.[R15] dp stepsDone (dataPathStep (dp,ri.IMem))
         {
             ri with 
                 dpCurrent = dp
-                State = state
-                    
+                State = state                   
                 LastPC = lastPC
                 StepsDone=stepsDone
-                History = 
-                    match ri.History with 
-                    | [] -> [{Dp=dp; NumDone=stepsDone}]
-                    | h :: _ as hist when stepsDone > h.NumDone -> {Dp=dp; NumDone=stepsDone} :: hist
-                    | hist -> hist
+                History = future @ history
         } 
 
 

@@ -135,3 +135,6 @@ let darkenOverlay = getHtml "darken-overlay"
 
 /// get element for status-bar button (and indicator)
 let statusBar = getHtml "status-bar"
+
+let setFilePaneBackground color =
+    fileViewPane.setAttribute("style", sprintf "background: %s" color)

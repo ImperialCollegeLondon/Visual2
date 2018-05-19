@@ -122,21 +122,24 @@ let setNoStatus () =
     Ref.statusBar.classList.remove("btn-primary")
     Ref.statusBar.innerHTML <- "-"
 
+let setRunButton (mode:RunMode) =
+    match mode with 
+    | ActiveMode (Running,_) ->
+        Ref.run.innerText <- "Pause"; 
+    |_ -> 
+        Ref.run.innerText <- "Run"
+
 let setMode (rm:RunMode) =
     match rm with
     | ParseErrorMode -> setErrorStatus "Errors in Code"
     | RunErrorMode _ -> setErrorStatus "Runtime Error"
     | ResetMode -> setNoStatus()
-    | ActiveMode (_,ri) -> setStepExecutionStatus ()
-    | FinishedMode ri -> setExecutionCompleteStatus ()
+    | ActiveMode (_,_) -> setStepExecutionStatus ()
+    | FinishedMode _ -> setExecutionCompleteStatus ()
+    setRunButton rm
     runMode <- rm
 
-let setRunButton (stat:RunState) =
-    match stat with 
-    | Running ->
-        Ref.run.innerHTML <- "Pause"; 
-    |_ -> 
-        Ref.run.innerHTML <- "Run"
+
     
 
 
@@ -156,8 +159,6 @@ let selectFileTab id =
     // Hacky match, but otherwise deleting also attempts to select the deleted tab
     match List.contains id fileTabList || id < 0 with
     | true ->
-        Browser.console.log(sprintf "Switching to tab #%d" id)
-
         // Only remove active from the previously selected tab if it existed
         match currentFileTabId < 0 with
         | false ->
@@ -203,7 +204,7 @@ let deleteFileTab id =
         match isTabUnsaved id with
         | false -> true
         | true -> Browser.window.confirm(
-                    sprintf "You have unsaved changes, are you sure you want to close %s?" tabName
+                    sprintf "You have unsaved changes, are you sure you want to close %s?" (String.replace "*" "" tabName)
                     )
 
     match confirmDelete with
@@ -298,7 +299,6 @@ let findNamedFile (name:string) =
     fileTabList
     |> List.map (fun id -> (Ref.tabFilePath id).innerText, id)
     |> List.tryFind (fun (path,_) -> 
-        printfn "Comparing %s with %s" path name
         normalisePath path = normalisePath name)
     |> Core.Option.map (fun (_,id) -> id)
     
@@ -311,7 +311,6 @@ let createNamedFileTab fName fPath=
         selectFileTab id
         id        
     | Option.None -> 
-        printfn "Creating new tab"
         let id = createTab fName
         // Create the new view div
         let fv = document.createElement("div")
@@ -355,10 +354,14 @@ let updateEditor tId =
 let setTheme theme = 
     window?monaco?editor?setTheme(theme)
 
+
 let updateAllEditors () =
     editors
     |> Map.iter (fun tId _ -> updateEditor tId)
-    setTheme (editorOptions())?theme |> ignore
+    let theme = getSetting("editor-theme")
+    Ref.setFilePaneBackground (match theme with | "vs-light" -> "white" | _ -> "black")
+    setTheme (theme) |> ignore
+   
 
 // Disable the editor and tab selection during execution
 let disableEditors () = 

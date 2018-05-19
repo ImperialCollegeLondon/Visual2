@@ -69,7 +69,7 @@ let getVisualSettings() =
         EditorWordWrap = "off"
         EditorRenderWhitespace = "None"
     } 
-    |> Helpers.pipeShow "New settings:"
+
 
 
 let setSettingInput (name : string) =

@@ -10,8 +10,8 @@ open Errors
 open Fable.Core.JsInterop
 open Fable.Import
 
-let maxStepsBeforeDisplay: int64 = 5000L
-let maxStepsBeforeSlowDisplay: int64 = 50000L
+let maxStepsBeforeCheckEvents: int64 = 5000L
+let maxStepsBeforeSlowDisplay: int64 = 100000L
 let slowDisplayThreshold: int64 = 20000L
 
 
@@ -84,10 +84,11 @@ let getFlags() =
 
 let setState runState ri =
     setMode (ActiveMode (runState,ri))
-    printf "%A" runState
-    setRunButton runState
+
+   
 
 let showInfo () =
+    let isStopped = match runMode with | ActiveMode(Running,_) -> true | _ -> false
     match runMode with
     | FinishedMode ri
     | ActiveMode (_, ri)
@@ -96,7 +97,8 @@ let showInfo () =
         updateSymTable()
         let dp = ri.dpCurrent
         memoryMap <- makeMemoryMap dp.MM
-        updateMemory()
+        if currentView = Ref.Views.Memory || isStopped then
+            updateMemory()
         setRegs dp.Regs
         setFlags dp.Fl
         updateRegisters()
@@ -123,7 +125,9 @@ let handleRunTimeError e (pInfo:RunInfo)  =
             | _ -> ""
     match e with
     | EXIT ->
+        let prevInstr (pInfo:RunInfo) = { pInfo with LastPC = Option.map (fun n -> n - 4u) pInfo.LastPC }
         setMode (FinishedMode pInfo)
+        highlightCurrentIns "editor-line-highlight" (pInfo) currentFileTabId
         enableEditors()
     | NotInstrMem x -> 
         Browser.window.alert(sprintf "Trying to access non-instruction memory 0x%x" x)
@@ -137,7 +141,7 @@ let handleRunTimeError e (pInfo:RunInfo)  =
             RunErrorMode pInfo), 100, []) |> ignore
     | ``Unknown symbol runtime error`` undefs ->
         Browser.window.alert(sprintf "What? Undefined symbols: %A" undefs)
-    setRunButton Paused
+        setMode (RunMode.RunErrorMode pInfo)
     showInfo()
 
 let imageOfTId tId =
@@ -190,6 +194,8 @@ let getRunInfoFromState (lim:LoadImage) =
         History = []
     }
 
+let mutable lastDisplayStepsDone = 0L
+
 let loopMessage() = 
     let steps = Settings.vSettings.SimulatorMaxSteps
     sprintf "WARNING Possible infinite loop: max number of steps (%d) exceeded. To disable this warning use Edit -> Preferences" steps
@@ -200,34 +206,36 @@ let rec asmStepDisplay steps ri =
             | PSRunning ->  
                 highlightCurrentIns "editor-line-highlight" ri' currentFileTabId
                 showInfo()
+                if ri.StepsDone < slowDisplayThreshold || (ri.StepsDone - lastDisplayStepsDone) >  maxStepsBeforeSlowDisplay then
+                    lastDisplayStepsDone <- ri.StepsDone
+                    showInfo()
                 if running && Settings.vSettings.SimulatorMaxSteps <> 0L then  Browser.window.alert( loopMessage() )
             | PSError e -> handleRunTimeError e ri'
             | PSExit -> handleRunTimeError EXIT ri'
 
     match runMode with
+    | ActiveMode (Stopping,ri') -> 
+        setState RunState.Paused ri'
+        showInfo ()
+        highlightCurrentIns "editor-line-highlight" ri' currentFileTabId
     | ResetMode -> ()
     | _ ->
         let stepsNeeded = steps - ri.StepsDone
         let running = stepsNeeded <> 1L
-        let stepsMax = maxStepsBeforeDisplay + (if ri.StepsDone > slowDisplayThreshold then maxStepsBeforeSlowDisplay else 0L)
+        let stepsMax = maxStepsBeforeCheckEvents
         //printfn "exec with steps=%d and R0=%d" ri.StepsDone ri.dpCurrent.Regs.[R0]
         if stepsNeeded <= stepsMax then
             let ri' = asmStep steps ri
             setState Paused ri'
             displayState ri' running
         else
-            setState RunState.Running ri
             let ri' = asmStep (stepsMax+ri.StepsDone - 1L) ri
             setState RunState.Running ri'
             showInfo()
             match  ri'.State with
             | PSRunning -> 
                  Browser.window.setTimeout( (fun () -> 
-                        match runMode with
-                        | ActiveMode (RunState.Running, _) ->
-                                asmStepDisplay steps ri'
-                        | _ -> setState RunState.Paused ri')
-                        , 0, []) |> ignore
+                        asmStepDisplay steps ri'), 0, []) |> ignore
             | _ -> displayState ri' true
 
 let prepareModeForExecution() =
@@ -238,7 +246,6 @@ let prepareModeForExecution() =
         if currentFileTabIsChanged ri then
             Browser.window.alert "Resetting emulator for new execution" |> ignore
             setMode ResetMode
-            setRunButton Paused
     | _ -> () 
 
 /// Parses and runs the assembler program in the current tab
@@ -291,7 +298,6 @@ let stepCodeBackBy numSteps =
             //printf "Stepping back with done=%d  PC=%A" ri.StepsDone ri.dpCurrent
             let target = ri.StepsDone-numSteps
             if target < 0L then
-                printfn "Mode=%A" runMode
                 Browser.window.alert( sprintf "Can't step back by %d instruction%s" 
                                         numSteps (if numSteps = 1L then "" else "s"))
                 setState RunState.Paused ri
