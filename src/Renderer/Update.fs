@@ -311,7 +311,7 @@ let fileFilterOpts =
     ResizeArray[ 
         createObj [
             "name" ==> "Assembly Code"
-            "extensions" ==> ResizeArray ["S"]
+            "extensions" ==> ResizeArray ["s"]
         ]
     ] |> Some
 

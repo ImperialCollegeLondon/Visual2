@@ -37,6 +37,7 @@ let createMainWindow () =
     options.width <- Some 1200.
     options.height <- Some 800.
     options.frame <- Some true
+    options.icon <- Some (U2.Case2 "app/resources/visual.ico")
     let window = electron.BrowserWindow.Create(options)
 
     // Load the index.html of the app.
@@ -74,7 +75,7 @@ let createMainWindow () =
 
 
     // Maximize the window
-    window.maximize()
+    //window.maximize()
 
     // Clear the menuBar, this is overwritten by the renderer process
     let template = ResizeArray<MenuItemOptions> [

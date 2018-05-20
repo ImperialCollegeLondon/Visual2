@@ -6,8 +6,11 @@
     font-weight: bold;
 }
 
+
+
 .list-group-item {
-    padding: 5px;
+    padding: 2px;
+    border-color: lightgrey
 }
 
 .toolbar-header {
@@ -60,7 +63,8 @@
 #viewer {
     overflow: scroll;
     height: 100%;
-    padding-bottom: 50px; /* Allow scrolling slightly beyond the end */
+    background-color:lightgrey;
+    padding-bottom: 30px; /* Allow scrolling slightly beyond the end */
 }
 
 .invisible {
@@ -103,7 +107,7 @@
 }
 
 .settings-menu {
-    max-width: 800px;
+    max-width: 500px;
     display: inline-block;
     background-color: white;
     text-align: left;

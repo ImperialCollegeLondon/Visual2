@@ -5,11 +5,11 @@
   "scripts": {
     "start": "cd src/Main && dotnet fable webpack --port free -- -w --config webpack.config.js",
     "build": "cd src/Main && dotnet fable webpack --port free -- --config webpack.config.js",
-    "package": "electron-packager . visual2 --all --out=dist --no-prune --ignore=/node_modules --ignore=/src --overwrite",
+    "package": "electron-packager . visual2 --arch=x64 --platform=darwin,linux,win32 --out=dist --no-prune --ignore=/node_modules --ignore=/src --overwrite",
     "package-host": "electron-packager . visual2 --out=dist --no-prune --ignore=/node_modules --ignore=/src --overwrite",
     "package-osx": "electron-packager . visual2 --platform=darwin --arch=x64 --out=dist --no-prune --ignore=/node_modules --ignore=/src --overwrite",
     "package-linux": "electron-packager . visual2 --platform=linux --arch=x64 --out=dist --no-prune --ignore=/node_modules --ignore=/src --overwrite",
-    "package-win": "electron-packager . visual2 --plaform=win32 --arch=x64 --out=dist --no-prune --ignore=/node_modules --ignore=/src --overwrite",
+    "package-win": "electron-packager . visual2 --platform=win32 --arch=x64 --out=dist --no-prune --ignore=/node_modules --ignore=/src --overwrite",
     "launch": "electron ."
   },
   "dependencies": {

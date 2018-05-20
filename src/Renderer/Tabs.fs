@@ -306,7 +306,7 @@ let findNamedFile (name:string) =
 let createNamedFileTab fName fPath=
     let unusedTab = 
         fileTabList 
-        |> List.filter (fun tid -> getTabName tid = "Untitled.S")
+        |> List.filter (fun tid -> getTabName tid = "Untitled.s")
     match findNamedFile fPath, unusedTab with
     | Some id,_ -> 
         // Return existing tab id
