@@ -36,7 +36,9 @@ let createMainWindow () =
     // https://electronjs.org/docs/api/browser-window#new-browserwindowoptions
     options.width <- Some 1200.
     options.height <- Some 800.
+    options.show <- Some false
     options.frame <- Some true
+    options.backgroundColor <- Some "#008B8B"
     options.icon <- Some (U2.Case2 "resources/app/app/resources/visual.ico")
     let window = electron.BrowserWindow.Create(options)
 
@@ -82,6 +84,11 @@ let createMainWindow () =
                         createEmpty<MenuItemOptions>
                     ]
     electron.Menu.setApplicationMenu(electron.Menu.buildFromTemplate(template))
+
+    window.on("ready-to-show", (fun () -> 
+        window.show() 
+        window.focus() )
+     ) |> ignore
 
     mainWindow <- Some window
 

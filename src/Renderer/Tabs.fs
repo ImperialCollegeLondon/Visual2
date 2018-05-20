@@ -329,17 +329,18 @@ let createNamedFileTab fName fPath=
         fv.id <- Ref.fileViewIdFormatter id
 
         Ref.fileViewPane.appendChild(fv) |> ignore
-
-        let editor = window?monaco?editor?create(fv, editorOptions())
+        if fName.StartsWith "mem"  then id
+        else
+            let editor = window?monaco?editor?create(fv, editorOptions())
     
         // Whenever the content of this editor changes
-        editor?onDidChangeModelContent(fun _ ->
-            setTabUnsaved id // Set the unsaved icon in the tab
-        ) |> ignore
+            editor?onDidChangeModelContent(fun _ ->
+                setTabUnsaved id // Set the unsaved icon in the tab
+            ) |> ignore
 
-        editors <- Map.add id editor editors
-        // Return the id of the tab we just created
-        id
+            editors <- Map.add id editor editors
+            // Return the id of the tab we just created
+            id
 
 let createFileTab () = 
     createNamedFileTab "Untitled.s" ""

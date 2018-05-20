@@ -10,7 +10,7 @@
 
 .list-group-item {
     padding: 2px;
-    border-color: lightgrey
+    border-color: lightgrey;
 }
 
 .toolbar-header {
@@ -30,7 +30,7 @@
 /* Register values */
 .btn-reg-con, .btn-reg-con:active {
     width: 85%;
-    font-size: 14px;
+    font-size: 18px;
     cursor: text;
 }
 
