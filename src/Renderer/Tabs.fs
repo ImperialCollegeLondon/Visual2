@@ -342,7 +342,7 @@ let createNamedFileTab fName fPath=
         id
 
 let createFileTab () = 
-    createNamedFileTab "Untitled.S" ""
+    createNamedFileTab "Untitled.s" ""
     |> selectFileTab // Switch to the tab we just created
 
 let deleteCurrentTab () =

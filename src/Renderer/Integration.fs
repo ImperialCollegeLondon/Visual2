@@ -304,7 +304,6 @@ let stepCodeBackBy numSteps =
                 match runMode with
                 | RunErrorMode ri -> ri.StepsDone + 1L - numSteps
                 | _ -> ri.StepsDone - numSteps
-            printf "State is %A" runMode
             setState RunState.Running ri
 
             if target <= 0L then
