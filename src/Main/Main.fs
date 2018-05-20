@@ -37,7 +37,7 @@ let createMainWindow () =
     options.width <- Some 1200.
     options.height <- Some 800.
     options.frame <- Some true
-    options.icon <- Some (U2.Case2 "app/resources/visual.ico")
+    options.icon <- Some (U2.Case2 "resources/app/app/resources/visual.ico")
     let window = electron.BrowserWindow.Create(options)
 
     // Load the index.html of the app.
