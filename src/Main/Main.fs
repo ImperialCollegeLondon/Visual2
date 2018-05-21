@@ -38,6 +38,7 @@ let createMainWindow () =
     options.height <- Some 800.
     options.show <- Some false
     options.frame <- Some true
+    options.hasShadow <- Some true
     options.backgroundColor <- Some "#008B8B"
     options.icon <- Some (U2.Case2 "resources/app/app/resources/visual.ico")
     let window = electron.BrowserWindow.Create(options)
@@ -52,6 +53,13 @@ let createMainWindow () =
     fs.watch(path.join(Node.Globals.__dirname, "/app/js"), fun _ _ ->
         window.webContents.reloadIgnoringCache()
     ) |> ignore
+    fs.watch(path.join(Node.Globals.__dirname, "/app/css"), fun _ _ ->
+        window.webContents.reloadIgnoringCache()
+    ) |> ignore
+    fs.watch(path.join(Node.Globals.__dirname, "/app"), fun _ _ ->
+        window.webContents.reloadIgnoringCache()
+    ) |> ignore
+
     #endif
     let mutable closeAfterSave = false
     window.on("close", 

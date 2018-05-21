@@ -216,7 +216,7 @@ let createSettingsTab () =
     match settingsTab with
     | Some tab -> selectFileTab tab
     | Microsoft.FSharp.Core.option.None ->
-        let id = createTab " Settings"
+        let id = createTab " &nbsp  Settings"
         settingsTab <- Some id
 
         let tabName = fileTabName id

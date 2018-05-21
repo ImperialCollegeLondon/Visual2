@@ -169,7 +169,7 @@ let updateMemory () =
                 sprintf "0x%X" addr
                 (if byteView then 
                     formatterWithWidth 8 currentRep value + 
-                    (chRep |> function | "" -> "" | chr -> sprintf " (%s)" chr)
+                    (chRep |> function | "" -> "" | chr -> sprintf " %s" chr)
                 else formatter currentRep value)   
             ]
 
