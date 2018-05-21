@@ -39,7 +39,7 @@ let createMainWindow () =
     options.show <- Some false
     options.frame <- Some true
     options.hasShadow <- Some true
-    options.backgroundColor <- Some "#008B8B"
+    options.backgroundColor <- Some "#5F9EA0"
     options.icon <- Some (U2.Case2 "resources/app/app/resources/visual.ico")
     let window = electron.BrowserWindow.Create(options)
 
@@ -76,6 +76,11 @@ let createMainWindow () =
         mainWindow <- Option.None
     )) |> ignore
 
+
+    window.on("resize",
+                unbox ( fun e ->
+                    printfn "Resize event received!"
+                    window.webContents.send "resizeWindow")) |> ignore
     
     electron.ipcMain?on ("doClose", unbox (fun () ->
                  closeAfterSave <- true

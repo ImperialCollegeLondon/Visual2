@@ -45,7 +45,9 @@ let setRepresentation rep =
 
     // Reassign currentRep, ew mutability required
     currentRep <- rep
-
+    match rep with
+    | Bin -> setDashboardWidth 500.
+    | _ ->  setDashboardWidth 400.
     updateRegisters()
 
 
