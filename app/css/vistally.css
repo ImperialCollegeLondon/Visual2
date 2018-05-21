@@ -1,3 +1,20 @@
+@keyframes fadein {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+
+
+.window {
+    animation: fadein 0.5s;
+}
+
+
 ::selection {
     background: #ffb7b7;
 }
@@ -137,6 +154,7 @@
     text-align: left;
     padding-left: 20px;
     overflow: auto;
+    animation: fadein 0.5s;
 }
 
 #file-view-pane {
