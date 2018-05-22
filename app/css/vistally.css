@@ -3,6 +3,7 @@
     --dashboard-width-binrep:500px;
     --dashboard-width: 300px;
     --header-height:51px;
+    --register-font-size:13pt;
 }
 
 @keyframes fadein {
@@ -60,8 +61,9 @@
 }
 
 .btn-reg, .btn-reg-con {
-    height: 30px;
-    line-height: 25px;
+    height: calc(var(--register-font-size)  + 7px);
+    line-height: calc(var(--register-font-size) + 2px);
+    font-size: var(--register-font-size)
 }
 
 .btn-reg, .btn-reg:active {
@@ -70,13 +72,13 @@
 }
 
 /* Register values */
-.btn-reg-con, .btn-reg-con:active {
+/*.btn-reg-con, .btn-reg-con:active {
     width: 85%;
     
-    font-size: 18px;
+    font-size: var(--register-font-size);
     font-weight:600;
     cursor: text;
-}
+}*/
 
 .btn-flag, .btn-flag-con {
     font-size: 15px;
@@ -187,14 +189,6 @@
 .editor-line-highlight {
     font-weight: bolder;
     background-color: rgba(56, 76, 141, 0.5)
-    /*text-decoration: underline;*/
-    /* width: 5px !important;
-	left: 3px; */
-}
-
-.editor-line-highlight-error {
-    font-weight: bolder;
-    background-color: rgba(180, 29, 79,0.5)
     /*text-decoration: underline;*/
     /* width: 5px !important;
 	left: 3px; */
