@@ -1,5 +1,7 @@
 :root {
-    --dashboard-width:400px;
+    --dashboard-width-init:300px;
+    --dashboard-width-binrep:500px;
+    --dashboard-width: 300px;
     --header-height:51px;
 }
 

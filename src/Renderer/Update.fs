@@ -43,11 +43,12 @@ let setRepresentation rep =
     let btnNew = representation rep
     btnNew.classList.add("btn-rep-enabled");
 
-    // Reassign currentRep, ew mutability required
+    // Reassign currentRep, new mutability required
+    // keep constants defining GUI sizes in CSS
     currentRep <- rep
     match rep with
-    | Bin -> setDashboardWidth 500.
-    | _ ->  setDashboardWidth 400.
+    | Bin -> setDashboardWidth (getCustomCSS "--dashboard-width-binrep")
+    | _ ->  setDashboardWidth (getCustomCSS "--dashboard-width-init")
     updateRegisters()
 
 
