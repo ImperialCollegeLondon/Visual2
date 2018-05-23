@@ -53,9 +53,11 @@ let formatterWithWidth width rep =
         let bin a =
             [0..width-1]
             |> List.fold (fun s x -> 
-                match ((a >>> x) % 2u) with
-                | 1u -> "1" + s
-                | 0u -> "0" + s
+                match ((a >>> x) % 2u),x with
+                | 1u,7 | 1u,15 | 1u,23 -> "_1" + s
+                | 0u,7 | 0u,15 | 0u,23 -> "_0" + s
+                | 1u,_ -> "1" + s
+                | 0u,_ -> "0" + s
                 | _ -> failwithf "modulo is broken"
             ) ""
         sprintf fmt (bin x)
@@ -329,17 +331,18 @@ let createNamedFileTab fName fPath=
         fv.id <- Ref.fileViewIdFormatter id
 
         Ref.fileViewPane.appendChild(fv) |> ignore
-
-        let editor = window?monaco?editor?create(fv, editorOptions())
+        if fName.StartsWith "mem"  then id
+        else
+            let editor = window?monaco?editor?create(fv, editorOptions())
     
         // Whenever the content of this editor changes
-        editor?onDidChangeModelContent(fun _ ->
-            setTabUnsaved id // Set the unsaved icon in the tab
-        ) |> ignore
+            editor?onDidChangeModelContent(fun _ ->
+                setTabUnsaved id // Set the unsaved icon in the tab
+            ) |> ignore
 
-        editors <- Map.add id editor editors
-        // Return the id of the tab we just created
-        id
+            editors <- Map.add id editor editors
+            // Return the id of the tab we just created
+            id
 
 let createFileTab () = 
     createNamedFileTab "Untitled.s" ""

@@ -1,9 +1,9 @@
 (* 
     High Level Programming @ Imperial College London # Spring 2018
     Project: A user-friendly ARM emulator in F# and Web Technologies ( Github Electron & Fable Compliler )
-    Contributors: Angelos Filos
+    Contributors: Angelos Filos, Thomas Clarke
     Module: Main
-    Description: Electron Renderer Process - Script to executed after `index.html` is loaded.
+    Description: Electron Renderer Process - Top-level F# Script to execute after `index.html` is loaded.
 *)
 
 module Renderer
@@ -23,8 +23,8 @@ open MenuBar
 open Tabs
 open Integration
 
-// Attach a click event on each of the map elements to a function f
-// Which accepts the map element as an argument
+/// Attach a click event on each of the map elements to a function f
+/// which accepts the map element as an argument
 let mapClickAttacher map (refFinder : 'a -> HTMLElement) f =
     let attachRep ref = (refFinder ref).addEventListener_click(fun _ -> f ref)
     map
@@ -32,8 +32,16 @@ let mapClickAttacher map (refFinder : 'a -> HTMLElement) f =
     |> List.map (fst >> attachRep)
     |> ignore
 
+/// Called via IPC message from main process whenever main window is resized.
+/// Work out any CSS dimensions that must change in response and set
+/// them. Note use of CSS custom variables to control multiple
+/// CSS properties
+let resizeGUI() =
+    let headerHeight = (getHtml "vis-header").offsetHeight
+    setCustomCSS "--header-height" (sprintf "%.1fpx" headerHeight)
 
-/// Initialization after `index.html` is loaded
+/// Initialization after `index.html` is loaded.
+/// Equivalent of main() function
 let init () =
     // Show the body once we are ready to go!
     document.getElementById("vis-body").classList.remove("invisible")
@@ -42,6 +50,11 @@ let init () =
     electron.ipcRenderer.on("closingWindow", (fun (event) ->
         checkOKToClose ()        
         )) |> ignore
+    
+    electron.ipcRenderer.on("resizeWindow", (fun (event) ->
+        resizeGUI ()        
+        )) |> ignore
+
 
     // Actions for the buttons
     Ref.explore.addEventListener_click(fun _ ->

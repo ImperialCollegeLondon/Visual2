@@ -62,6 +62,20 @@ let settings : obj = importDefault "electron-settings"
 /// look up a DOM element
 let getHtml = Browser.document.getElementById
 
+
+/// extract CSS custom variable value
+let getCustomCSS (varName:string) =
+    let styles = window.getComputedStyle Browser.document.documentElement
+    styles.getPropertyValue varName
+/// set a custom CSS variable defined in :root pseudoclass
+let setCustomCSS (varName:string) (content:string) =
+    let element = Browser.document.documentElement
+    element.style.setProperty(varName, content)
+
+/// set the CSS variable that determines dashboard width
+let setDashboardWidth (width)=
+    setCustomCSS "--dashboard-width" width
+
 let fontSize = getHtml "font-size" :?> HTMLSelectElement
 let register id = getHtml <| sprintf "R%i" id
 
@@ -138,3 +152,5 @@ let statusBar = getHtml "status-bar"
 
 let setFilePaneBackground color =
     fileViewPane.setAttribute("style", sprintf "background: %s" color)
+
+

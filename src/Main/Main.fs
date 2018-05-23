@@ -36,7 +36,10 @@ let createMainWindow () =
     // https://electronjs.org/docs/api/browser-window#new-browserwindowoptions
     options.width <- Some 1200.
     options.height <- Some 800.
+    options.show <- Some false
     options.frame <- Some true
+    options.hasShadow <- Some true
+    options.backgroundColor <- Some "#5F9EA0"
     options.icon <- Some (U2.Case2 "resources/app/app/resources/visual.ico")
     let window = electron.BrowserWindow.Create(options)
 
@@ -50,6 +53,13 @@ let createMainWindow () =
     fs.watch(path.join(Node.Globals.__dirname, "/app/js"), fun _ _ ->
         window.webContents.reloadIgnoringCache()
     ) |> ignore
+    fs.watch(path.join(Node.Globals.__dirname, "/app/css"), fun _ _ ->
+        window.webContents.reloadIgnoringCache()
+    ) |> ignore
+    fs.watch(path.join(Node.Globals.__dirname, "/app"), fun _ _ ->
+        window.webContents.reloadIgnoringCache()
+    ) |> ignore
+
     #endif
     let mutable closeAfterSave = false
     window.on("close", 
@@ -66,6 +76,10 @@ let createMainWindow () =
         mainWindow <- Option.None
     )) |> ignore
 
+
+    window.on("resize",
+                unbox ( fun _ ->
+                    window.webContents.send "resizeWindow")) |> ignore
     
     electron.ipcMain?on ("doClose", unbox (fun () ->
                  closeAfterSave <- true
@@ -82,6 +96,11 @@ let createMainWindow () =
                         createEmpty<MenuItemOptions>
                     ]
     electron.Menu.setApplicationMenu(electron.Menu.buildFromTemplate(template))
+
+    window.on("ready-to-show", (fun () -> 
+        window.show() 
+        window.focus() )
+     ) |> ignore
 
     mainWindow <- Some window
 

@@ -587,7 +587,7 @@
    min-height: 22px;
    box-shadow: inset 0 1px 0 #f5f4f5;
    background-color: deepskyblue;/* #e8e6e8;*/
-   /*background-image: -webkit-gradient(linear, left top, left bottom, color-stop(0%, #e8e6e8), color-stop(100%, #d1cfd1));
+   /* background-image: -webkit-gradient(linear, left top, left bottom, color-stop(0%, #e8e6e8), color-stop(100%, #d1cfd1));
    background-image: -webkit-linear-gradient(top, #e8e6e8 0%, #d1cfd1 100%);
    background-image: linear-gradient(to bottom, #e8e6e8 0%, #d1cfd1 100%);*/
  }
@@ -599,19 +599,7 @@
    clear: both;
  }
  
- .toolbar-header {
-   border-bottom: 1px solid #c2c0c2;
-   background-color: darkcyan;
- }
- .toolbar-header .title {
-   margin-top: 1px;
- }
- 
- .toolbar-footer {
-   background-color: lightgrey;
-   border-top: 1px solid #c2c0c2;
-   -webkit-app-region: drag;
- }
+
  
  .title {
    margin: 0;
@@ -628,12 +616,11 @@
  }
  
  .toolbar-actions {
-   margin-top: 4px;
-   margin-bottom: 3px;
+   margin-top: 5px;
+   margin-bottom: 2px;
    padding-right: 3px;
    padding-left: 3px;
-   padding-bottom: 3px;
-   -webkit-app-region: drag;
+   padding-bottom: 2px;
  }
  .toolbar-actions:before, .toolbar-actions:after {
    display: table;

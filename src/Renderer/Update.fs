@@ -43,9 +43,16 @@ let setRepresentation rep =
     let btnNew = representation rep
     btnNew.classList.add("btn-rep-enabled");
 
-    // Reassign currentRep, ew mutability required
+    // Reassign currentRep, new mutability required
+    // keep constants defining GUI sizes in CSS
     currentRep <- rep
-
+    let w = 
+        match rep with
+        | Bin -> "--dashboard-width-binrep"
+        | _ ->   "--dashboard-width-init"
+        |> getCustomCSS
+    printf "Setting width to %s" w
+    w |> setDashboardWidth
     updateRegisters()
 
 
@@ -169,7 +176,7 @@ let updateMemory () =
                 sprintf "0x%X" addr
                 (if byteView then 
                     formatterWithWidth 8 currentRep value + 
-                    (chRep |> function | "" -> "" | chr -> sprintf " (%s)" chr)
+                    (chRep |> function | "" -> "" | chr -> sprintf " %s" chr)
                 else formatter currentRep value)   
             ]
 
