@@ -78,8 +78,7 @@ let createMainWindow () =
 
 
     window.on("resize",
-                unbox ( fun e ->
-                    printfn "Resize event received!"
+                unbox ( fun _ ->
                     window.webContents.send "resizeWindow")) |> ignore
     
     electron.ipcMain?on ("doClose", unbox (fun () ->

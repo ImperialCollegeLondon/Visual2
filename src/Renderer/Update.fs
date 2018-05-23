@@ -46,9 +46,13 @@ let setRepresentation rep =
     // Reassign currentRep, new mutability required
     // keep constants defining GUI sizes in CSS
     currentRep <- rep
-    match rep with
-    | Bin -> setDashboardWidth (getCustomCSS "--dashboard-width-binrep")
-    | _ ->  setDashboardWidth (getCustomCSS "--dashboard-width-init")
+    let w = 
+        match rep with
+        | Bin -> "--dashboard-width-binrep"
+        | _ ->   "--dashboard-width-init"
+        |> getCustomCSS
+    printf "Setting width to %s" w
+    w |> setDashboardWidth
     updateRegisters()
 
 

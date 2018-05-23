@@ -1,11 +1,20 @@
 :root {
-    --dashboard-width-init:300px;
-    --dashboard-width-binrep:500px;
-    --dashboard-width: 300px;
-    --header-height:51px;
+    --dashboard-width-init:300px; /* normal viewer width */
+    --dashboard-width-binrep:500px; /* wider viewer width needed for binary */
+
+    /* dashboard-width depends on viewer content and is set from F# when view 
+       representation is changed */
+    --dashboard-width: 300px; /* actual viewer width */
+
+    /* header-height depends on how many lines controls use. It is reset
+       dynamically from F# on window resize that might change this */
+    --header-height:51px; /* initial header height - does not matter because reset */
+
+    /* size of digits (and therefore register box height) in normal register display */
     --register-font-size:13pt;
 }
 
+/* used to animate app and settings windows */
 @keyframes fadein {
     from {
         opacity: 0;
