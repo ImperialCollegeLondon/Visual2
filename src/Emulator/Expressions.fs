@@ -1,6 +1,7 @@
 module Expressions
     open System.Text.RegularExpressions
     open Errors
+    open EEExtensions
 
 
     /// Match the start of txt with pat
@@ -77,13 +78,18 @@ module Expressions
           
         let (|PosLiteralExpr|_|) txt = 
             match txt with
-            | RegexPrefix "0[xX][0-9a-fA-F]+" (num, rst) 
-            | RegexPrefix "0[bB][0-1]+" (num, rst)
-            | RegexPrefix "[0-9]+" (num, rst) -> 
+            | RegexPrefix "0[xX][0-9a-fA-F][0-9a-fA-F_]*" (num, rst) 
+            | RegexPrefix "0[bB][0-1][0-1_]*" (num, rst)
+            | RegexPrefix "[0-9][0-9_]*" (num, rst) -> 
                 try
-                    (uint32 (num.ToLower()) |> Literal, rst) |> Some
+                    let litNum =
+                        num
+                        |> String.replace "_" ""
+                        |> uint32
+                        |> Literal
+                    (litNum, rst) |> Some
                 with
-                    | e -> failwithf "Exception in Expr: uint32(%A)" num
+                    | _ -> failwithf "Exception in Expr: uint32(%A)" num
             | RegexPrefix "&[0-9a-fA-F]+" (num, rst) -> 
                 ("0x" + (removeWs num).[1..] |> uint32 |> Literal, rst) |> Some
             | _ -> None
