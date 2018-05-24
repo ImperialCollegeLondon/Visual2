@@ -1564,11 +1564,11 @@ amdRequire(['vs/editor/editor.main'], function () {
 
         // numbers
         [/#-?\d*\.\d+([eE][\-+]?\d+)?/, 'number.float'],
-        [/#-?0[xX][0-9a-fA-F]+/, 'number.hex'],
-        [/#-?\d+/, 'number'],
+        [/#-?0[xX][0-9a-fA-F][0-9a-fA-F_]*/, 'number.hex'],
+        [/#-?\d[\d_]*/, 'number'],
         [/-?\d*\.\d+([eE][\-+]?\d+)?/, 'number.barefloat'],
-        [/-?0[xX][0-9a-fA-F]+/, 'number.barehex'],
-        [/-?\d+/, 'number.bare'],
+        [/-?0[xX][0-9a-fA-F][0-9a-fA-F_]*/, 'number.barehex'],
+        [/-?\d[\d_]*/, 'number.bare'],
 
         // delimiter: after number because of .\d floats
         [/[,.]/, 'delimiter'],
