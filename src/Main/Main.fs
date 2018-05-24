@@ -14,8 +14,6 @@ open Fable.Import
 open Fable.Import.Electron
 open Node.Exports
 
-
-
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
 let mutable mainWindow: BrowserWindow option = Option.None
@@ -25,9 +23,9 @@ let mutable mainWindow: BrowserWindow option = Option.None
 
 let contextMenu () = jsNative
 
-//[<Emit("require('electron')({});")>]
-//let ipcMain:obj = jsNative
+let settings:obj = importDefault "electron-settings"
 
+printfn "settings=%A" (settings?get "editor-theme")
 
 let createMainWindow () =
     printfn "Starting to create app window..."
@@ -42,7 +40,7 @@ let createMainWindow () =
     options.backgroundColor <- Some "#5F9EA0"
     options.icon <- Some (U2.Case2 "resources/app/app/resources/visual.ico")
     let window = electron.BrowserWindow.Create(options)
-
+    
     // Load the index.html of the app.
     let opts = createEmpty<Node.Url.Url<obj>>
     opts.pathname <- Some <| path.join(Node.Globals.__dirname, "/app/index.html")

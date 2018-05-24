@@ -57,8 +57,8 @@ let viewToIdTab =
 
 /// A reference to the settings for the app
 /// persistent using electron-settings
-let settings : obj = importDefault "electron-settings"
 
+let settings:obj = electron.remote.require "electron-settings"
 /// look up a DOM element
 let getHtml = Browser.document.getElementById
 
