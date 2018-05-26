@@ -8,9 +8,12 @@ Read the [**Wiki**](https://github.com/ImperialCollegeLondon/Visual2/wiki) befor
 
 For a quick start go straight to [Getting Started](#getting-started).
 
+[Licensing](#Licensing) is strong open source but with _execptions_.
+
 For HLP students thinking parts of their code are better than what is collected here: you are probably correct. The initial code here was pulled together quickly and mix and match was not attempted much. Put forward a proposal to replace part of this with your code by raising an issue; I will comment and almost certainly agree if you are willing to do the interface work.
 
 The rest of the README gives a project and code overview.
+
 
 ## Introduction
 
@@ -207,3 +210,7 @@ Other top-level files (never changed manually):
 * `paket.lock`, `paket.dependencies`. Files used by Paket to track nuget (.Net) packages. This project has only _development-time_ .Net dependencies and these do not need to be upgraded.
 * `Nuget.Config`. Used by NuGet. You _can_ view the project under Visual Studio and change packages in a GUi via NuGet but this is not recommended.
 * `ARM.Monaco.Editor.sln`. this solution file allows all three F# projects to be integrated by Visual Studio or Ionode. It is useful for editing code, but compilation is done via FABLE which uses information from `*.fsproj` files and ignores the `*.sln` file.
+
+## Licensing
+
+The project (when published) will use a GPLv3 license with possible exceptions granted on application to the project owner. That allows use in commercial products under negotiated conditions, whilst also ensuring that all code remains open.
