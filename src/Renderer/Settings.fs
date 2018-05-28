@@ -81,6 +81,7 @@ let saveSettings () =
     vSettings <- getVisualSettings()
     updateAllEditors()
 
+
 let makeFormGroup label input =
     let fg = document.createElement("div")
     fg.classList.add("form-group")
@@ -103,7 +104,9 @@ let makeInputVal inType name =
     fi.id <- name
     fi.value <- (getSetting name).ToString()
     // Whenever a form input is changed, set the settings tab unsaved
-    fi.onchange <- setSettingsUnsaved
+    fi.onchange <- setSettingsUnsaved 
+    fi.onerror <- (fun _ -> printfn "Error")
+    fi.onreset <- (fun _ -> printfn "Reset")
     fi
 
 let makeInputSelect options name =
@@ -151,6 +154,9 @@ let makeInputCheckbox name trueVal falseVal =
 let editorForm () =
     let form = document.createElement("form")
 
+    // disable form submission
+    form.onsubmit <- ( fun _ -> false)
+
     let makeAdd label input =
         let group = makeFormGroup label input
         form.appendChild(group) |> ignore
@@ -172,6 +178,9 @@ let editorForm () =
 let simulatorForm () =
     let form = document.createElement("form")
 
+    // disable form submission
+    form.onsubmit <- ( fun _ -> false)
+
     let makeAdd label input =
         let group = makeFormGroup label input
         form.appendChild(group) |> ignore
@@ -186,20 +195,10 @@ let settingsMenu () =
     let menu = document.createElement("div")
     menu.classList.add("settings-menu")
     menu.classList.add("editor")
-    let simulatorHeading = document.createElement("h3")
-    simulatorHeading.innerHTML <- "Simulator"
-    let editorHeading = document.createElement("h3")
-    editorHeading.innerHTML <- "Editor"
- 
-    menu.appendChild(simulatorHeading) |> ignore
-    menu.appendChild(simulatorForm()) |> ignore
-    menu.appendChild(editorHeading) |> ignore
-    menu.appendChild(editorForm()) |> ignore
 
     let saveButton = document.createElement("button")
     saveButton.classList.add("btn")
     saveButton.classList.add("btn-default")
-
     saveButton.innerHTML <- "Save"
     saveButton.addEventListener_click(fun _ -> 
         saveSettings()
@@ -208,6 +207,19 @@ let settingsMenu () =
         )
 
     menu.appendChild(saveButton) |> ignore
+
+
+    let simulatorHeading = document.createElement("h4")
+    simulatorHeading.innerHTML <- "Simulator"
+    let editorHeading = document.createElement("h4")
+    editorHeading.innerHTML <- "Editor"
+ 
+    menu.appendChild(simulatorHeading) |> ignore
+    menu.appendChild(simulatorForm()) |> ignore
+    menu.appendChild(editorHeading) |> ignore
+    menu.appendChild(editorForm()) |> ignore
+
+
 
     menu
 
