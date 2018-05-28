@@ -82,31 +82,19 @@ let saveSettings () =
     updateAllEditors()
 
 
-let makeFormGroup label input =
-    let fg = document.createElement("div")
-    fg.classList.add("form-group")
 
-    let lab = document.createElement("label")
-    lab.innerHTML <- label
-    lab.classList.add("settings-label")
-
-    let br = document.createElement("br")
-
-    fg.appendChild(lab) |> ignore
-    fg.appendChild(br) |> ignore
-    fg.appendChild(input) |> ignore
-
-    fg
-
-let makeInputVal inType name =
+let makeInputVal inType name (min:int,steps:int,max:int)=
     let fi = document.createElement_input()
     fi.``type`` <- inType
     fi.id <- name
+    fi.min <- min.ToString()
+    fi.max <- max.ToString()
+    fi.step <- steps.ToString()
     fi.value <- (getSetting name).ToString()
     // Whenever a form input is changed, set the settings tab unsaved
     fi.onchange <- setSettingsUnsaved 
-    fi.onerror <- (fun _ -> printfn "Error")
-    fi.onreset <- (fun _ -> printfn "Reset")
+    //fi.onerror <- (fun _ -> printfn "Error")
+    //fi.onreset <- (fun _ -> printfn "Reset")
     fi
 
 let makeInputSelect options name =
@@ -117,8 +105,7 @@ let makeInputSelect options name =
         opt
 
     let select = document.createElement_select()
-    select.classList.add("form-control")
-    select.classList.add("settings-select")
+    select.classList.add ([| "form-control";"settings-select"|] )
     select.id <- name
 
     List.map (makeOption >> (fun x -> select.appendChild(x))) options |> ignore
@@ -151,77 +138,64 @@ let makeInputCheckbox name trueVal falseVal =
     checkbox.onchange <- setSettingsUnsaved
     checkbox
 
-let editorForm () =
-    let form = document.createElement("form")
 
-    // disable form submission
+
+let ELEMENT elName classes (htmlElements: HTMLElement list) =
+    let ele = document.createElement elName
+    ele.classList.add (classes |> List.toArray)
+    List.iter (ele.appendChild >> ignore) htmlElements
+    ele
+
+let INNERHTML html (ele:HTMLElement) = (ele.innerHTML <- html) ; ele
+let ID name (ele:HTMLElement) = (ele.id <- name) ; ele
+let CLICKLISTENER listener (ele:HTMLElement) = (ele.addEventListener_click listener) ; ele
+
+let DIV = ELEMENT "div"
+
+let BR() = document.createElement "br"
+
+let FORM classes contents = 
+    let form = ELEMENT "form" classes contents
+        // disable form submission
     form.onsubmit <- ( fun _ -> false)
-
-    let makeAdd label input =
-        let group = makeFormGroup label input
-        form.appendChild(group) |> ignore
-
-    let fontSizeInput = makeInputVal "number" editorFontSize
-    makeAdd "Font Size" fontSizeInput
-
-    let themeSelect = makeInputSelect themes editorTheme
-    makeAdd "Theme" themeSelect
-
-    let wordWrapCheck = makeInputCheckbox editorWordWrap "on" "off"
-    makeAdd "Word Wrap" wordWrapCheck
-
-    let renderWhitespace = makeInputCheckbox editorRenderWhitespace "all" "none"
-    makeAdd "Render Whitespace Characters" renderWhitespace
-
     form
 
-let simulatorForm () =
-    let form = document.createElement("form")
 
-    // disable form submission
-    form.onsubmit <- ( fun _ -> false)
-
-    let makeAdd label input =
-        let group = makeFormGroup label input
-        form.appendChild(group) |> ignore
-
-    let maxStepInput = makeInputVal "number" simulatorMaxSteps
-    makeAdd "Max steps (0 for no max) " maxStepInput
-
-    form
+let makeFormGroup label input =
+    DIV ["form-group"] [
+        ELEMENT "lab" ["settings-label"] [] |> INNERHTML label
+        BR()
+        input
+    ]
 
 // HTML description for the settings menu
 let settingsMenu () =
-    let menu = document.createElement("div")
-    menu.classList.add("settings-menu")
-    menu.classList.add("editor")
-
-    let saveButton = document.createElement("button")
-    saveButton.classList.add("btn")
-    saveButton.classList.add("btn-default")
-    saveButton.innerHTML <- "Save"
-    saveButton.addEventListener_click(fun _ -> 
-        saveSettings()
-        setTabSaved (getSettingsTabId ())
-        Tabs.deleteCurrentTab()
-        )
-
-    menu.appendChild(saveButton) |> ignore
-
-
-    let simulatorHeading = document.createElement("h4")
-    simulatorHeading.innerHTML <- "Simulator"
-    let editorHeading = document.createElement("h4")
-    editorHeading.innerHTML <- "Editor"
- 
-    menu.appendChild(simulatorHeading) |> ignore
-    menu.appendChild(simulatorForm()) |> ignore
-    menu.appendChild(editorHeading) |> ignore
-    menu.appendChild(editorForm()) |> ignore
-
-
-
-    menu
+    FORM ["settings-menu";"editor"] [  
+    
+        DIV ["float-left"] [
+            ELEMENT "h4" [] [] |> INNERHTML "Editor" 
+            makeFormGroup "Font Size" (makeInputVal "number" editorFontSize (6,2,50))
+            makeFormGroup "Theme" (makeInputSelect themes editorTheme)
+            makeFormGroup "Word Wrap" (makeInputCheckbox editorWordWrap "on" "off")
+            makeFormGroup "Render Whitespace Characters" 
+                (makeInputCheckbox editorRenderWhitespace "all" "none")
+        ]
+        DIV [] [
+            ELEMENT "h4" [] [] |> INNERHTML "Simulator"
+            makeFormGroup "Max steps <br> (0 for no max) " 
+                (makeInputVal "number" simulatorMaxSteps (0, 100,10000000))
+        ]
+        
+        DIV ["after"] []
+        DIV [] [
+            ELEMENT "button" ["btn";"btn-default"] []
+            |> INNERHTML "Save"
+            |> CLICKLISTENER (fun _ ->                                
+                        saveSettings()
+                        setTabSaved ( getSettingsTabId () )
+                        Tabs.deleteCurrentTab() )
+        ]
+    ]    
 
 let createSettingsTab () =   
     // If the settings tab already exists, just switch to it, else create it
