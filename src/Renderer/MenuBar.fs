@@ -5,9 +5,11 @@ open Fable.Core.JsInterop
 open Fable.Import
 open Fable.Import.Electron
 open Node.Base
+open Ref
 open Update
 open Settings
 open Tabs
+
 
 let showQuitMessage (callBack:int ->unit) =
     let rem = electron.remote
@@ -59,9 +61,9 @@ let fileMenu =
     makeMenu "File" [
             makeItem "New"      (Some "CmdOrCtrl+N")        createFileTab
             menuSeparator
-            makeItem "Save"     (Some "CmdOrCtrl+S")        saveFile
-            makeItem "Save As"  (Some "CmdOrCtrl+Shift+S")  saveFileAs
-            makeItem "Open"     (Some "CmdOrCtrl+O")        openFile
+            makeItem "Save"     (Some "CmdOrCtrl+S")        Files.saveFile
+            makeItem "Save As"  (Some "CmdOrCtrl+Shift+S")  Files.saveFileAs
+            makeItem "Open"     (Some "CmdOrCtrl+O")        Files.openFile
             menuSeparator
             makeItem "Close"    (Some "Ctrl+W")             deleteCurrentTab
             menuSeparator
@@ -76,17 +78,17 @@ let optCreateSettingsTab() =
 
 let editMenu = 
     makeMenu "Edit" [
-        makeItem "Undo" (Some "CmdOrCtrl+Z") editorUndo
-        makeItem "Redo" (Some "CmdOrCtrl+Shift+Z") editorRedo
+        makeItem "Undo" (Some "CmdOrCtrl+Z") Files.editorUndo
+        makeItem "Redo" (Some "CmdOrCtrl+Shift+Z") Files.editorRedo
         menuSeparator
         makeRoleItem "Cut" (Some "CmdOrCtrl+X") MenuItemRole.Cut
         makeRoleItem "Copy" (Some "CmdOrCtrl+C") MenuItemRole.Copy   
         makeRoleItem "Paste" (Some "CmdOrCtrl+V")  MenuItemRole.Paste
         menuSeparator
-        makeItem "Select All"  (Some "CmdOrCtrl+A")  editorSelectAll
+        makeItem "Select All"  (Some "CmdOrCtrl+A")  Files.editorSelectAll
         menuSeparator
-        makeItem "Find" (Some "CmdOrCtrl+F") editorFind              
-        makeItem "Replace"  (Some "CmdOrCtrl+H") editorFindReplace
+        makeItem "Find" (Some "CmdOrCtrl+F") Files.editorFind              
+        makeItem "Replace"  (Some "CmdOrCtrl+H") Files.editorFindReplace
         menuSeparator
         makeItem  "Preferences"  Option.None optCreateSettingsTab
     ]

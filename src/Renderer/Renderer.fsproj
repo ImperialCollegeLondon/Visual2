@@ -9,6 +9,7 @@
     <Compile Include="Tabs.fs" />
     <Compile Include="Settings.fs" />
     <Compile Include="Update.fs" />
+    <Compile Include="Files.fs" />
     <Compile Include="MenuBar.fs" />
     <Compile Include="Integration.fs" />
     <Compile Include="Tests.fs" />

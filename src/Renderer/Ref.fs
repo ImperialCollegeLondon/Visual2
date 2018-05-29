@@ -1,12 +1,15 @@
-(* 
-    High Level Programming @ Imperial College London # Spring 2018
-    Project: A user-friendly ARM emulator in F# and Web Technologies ( Github Electron & Fable Compliler )
-    Contributors: Angelos Filos
-    Module: Ref
-    Description: References to `HTML` elements from `index.html`.
-*)
+// *******************************************************************************
+// *******************************************************************************
+//
+//                 References to DOM and MUTABLE STATE used in Renderer
+//        DOM is mutable and some (not all) DOM elements contain mutable state
+//
+// *******************************************************************************
+// *******************************************************************************
 
 module Ref
+open CommonData
+open ExecutionTop
 
 open Fable.Core
 open Fable.Core.JsInterop
@@ -14,9 +17,9 @@ open Fable.Import
 open Fable.Import.Browser
 open Microsoft.FSharp.Collections
 
-[<Emit("$0 === undefined")>]
-let isUndefined (_: 'a) : bool = jsNative
-
+// **********************************************************************************
+//                               Types used in this module
+// **********************************************************************************
 
 /// Bases to display data in for all Views
 /// Udec = unsigned ecimal
@@ -26,6 +29,17 @@ type Representations =
     | Dec
     | UDec
 
+/// Select View in RH window
+type Views =
+    | Registers
+    | Memory
+    | Symbols
+
+// ***********************************************************************************
+//                       Functions Relating to Left-hand View Panel
+// ***********************************************************************************
+
+
 /// used to get ID of button for each representation
 let repToId = 
     Map.ofList [
@@ -34,11 +48,6 @@ let repToId =
         Dec, "rep-dec";
         UDec, "rep-udec";
     ]
-/// Select View in RH window
-type Views =
-    | Registers
-    | Memory
-    | Symbols
 
 /// used to get ID used in DOM for each View
 let viewToIdView = 
@@ -55,9 +64,16 @@ let viewToIdTab =
         Symbols, "tab-sym"
     ]
 
+// ************************************************************************************
+//                         Utility functions used in this module
+// ************************************************************************************
+
+/// Determine whether JS value is undefined
+[<Emit("$0 === undefined")>]
+let isUndefined (_: 'a) : bool = jsNative
+
 /// A reference to the settings for the app
 /// persistent using electron-settings
-
 let settings:obj = electron.remote.require "electron-settings"
 /// look up a DOM element
 let getHtml = Browser.document.getElementById
@@ -76,16 +92,29 @@ let setCustomCSS (varName:string) (content:string) =
 let setDashboardWidth (width)=
     setCustomCSS "--dashboard-width" width
 
+/// Element in settings tab DOM holding editor font size.
+/// Only valid when settings tab is active
 let fontSize = getHtml "font-size" :?> HTMLSelectElement
-let register id = getHtml <| sprintf "R%i" id
 
-//----------------BUTTONS on ToolBar--------------------
-let explore = getHtml "explore" :?> HTMLButtonElement
-let save = getHtml "save" :?> HTMLButtonElement
-let run: HTMLButtonElement = getHtml "run" :?> HTMLButtonElement
-let resetBtn = getHtml "reset" :?> HTMLButtonElement
-let stepfBtn = getHtml "stepf" :?> HTMLButtonElement
-let stepbBtn = getHtml "stepb" :?> HTMLButtonElement
+/// Element in Register view representing register rNum
+let register rNum = getHtml <| sprintf "R%i" rNum
+
+// *************************************************************************************
+//                               References to DOM elements
+// *************************************************************************************
+
+//--------------------------- Buttons -------------------------------
+
+let openFileBtn = getHtml "explore" :?> HTMLButtonElement
+let saveFileBtn = getHtml "save" :?> HTMLButtonElement
+let runSimulationBtn: HTMLButtonElement = getHtml "run" :?> HTMLButtonElement
+let resetSimulationBtn = getHtml "reset" :?> HTMLButtonElement
+let stepForwardBtn = getHtml "stepf" :?> HTMLButtonElement
+let stepBackBtn = getHtml "stepb" :?> HTMLButtonElement
+/// get byte/word switch button element
+let byteViewBtn = getHtml "byte-view"
+
+//----------------------- View pane elements -------------------------
 
 /// Get Flag display element from ID ("C", "V", "N", "Z")
 let flag id = getHtml <| sprintf "flag_%s" id
@@ -99,8 +128,6 @@ let viewView view = getHtml viewToIdView.[view]
 /// get View Tab element from view
 let viewTab view = getHtml viewToIdTab.[view]
 
-/// get byte/word switch button element
-let byteViewBtn = getHtml "byte-view"
 
 /// get memory list element
 let memList = getHtml "mem-list"
@@ -110,6 +137,8 @@ let symView = getHtml "sym-view"
 
 /// get symbol table element
 let symTable = getHtml "sym-table"
+
+//---------------------File tab elements-------------------------------
 
 /// get element containing all tab headers
 let fileTabMenu = getHtml "tabs-files"
@@ -140,17 +169,59 @@ let fileTabName id = getHtml <| tabNameIdFormatter id
 
 /// get id of element containing file path
 let tabFilePathIdFormatter = sprintf "file-view-path-%d"
-
-// get (invisible)  element containing file path
+/// get (invisible)  element containing file path
 let tabFilePath id = getHtml <| tabFilePathIdFormatter id
+/// get the editor window overlay element
 
+//--------------- Simulation Indicator elements----------------------
 
 let darkenOverlay = getHtml "darken-overlay"
-
 /// get element for status-bar button (and indicator)
 let statusBar = getHtml "status-bar"
 
+/// Set the background of file panes.
+/// This is done based on theme (light or dark) to prevent flicker
 let setFilePaneBackground color =
     fileViewPane.setAttribute("style", sprintf "background: %s" color)
 
 
+// ***********************************************************************************************
+//                                       Mutable state
+// ***********************************************************************************************
+
+/// Sensible initial value of R13 so that code with subroutines works as expected
+let initStackPointer = 0xff000000u
+
+/// initial value of all registers (note special case for SP R13)
+let initialRegMap : Map<CommonData.RName, uint32> = 
+    [0..15]
+    |> List.map ( CommonData.register >> function | R13 -> R13,initStackPointer | rn -> rn,0u)
+    |> Map.ofList
+
+let initialFlags =  { N=false ; Z=false; C=false; V=false}  
+/// File Tab currently selected (and therefore visible) 
+let mutable currentFileTabId = -1 // By default no tab is open
+/// List of all in use file tabs
+let mutable fileTabList : int list = []
+/// Map tabIds to the editors which are contained in them
+let mutable editors : Map<int, obj> = Map.ofList []
+/// id of tab containing settings form, if this exists
+let mutable settingsTab : int option = Microsoft.FSharp.Core.option.None
+/// The current number representation being used
+let mutable currentRep = Hex
+/// The current View in the Left-hand pane
+let mutable currentView = Registers
+/// Whether the Memory View is byte of word based
+let mutable byteView = false
+/// Number of instructions imulated before break. If 0 run forever
+let mutable maxStepsToRun = 50000
+/// Contents of data memory
+let mutable memoryMap : Map<uint32, uint32> = Map.empty
+/// Contents of CPU registers
+let mutable regMap : Map<CommonData.RName,uint32> = initialRegMap
+/// Contents of CPU flags
+let mutable flags: CommonData.Flags = initialFlags
+/// Values of all Defined Symols
+let mutable symbolMap : Map<string, uint32> = Map.empty
+/// Current state of simulator
+let mutable runMode: RunMode = ResetMode

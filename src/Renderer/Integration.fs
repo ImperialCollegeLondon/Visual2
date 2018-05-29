@@ -6,6 +6,7 @@ open CommonData
 open ParseTop
 open ExecutionTop
 open Errors
+open Ref
 
 open Fable.Core.JsInterop
 open Fable.Import
@@ -151,7 +152,7 @@ let handleRunTimeError e (pInfo:RunInfo)  =
 
 let imageOfTId tId =
     let asm = 
-        getCode tId 
+        Files.getCode tId 
         |> (fun (x : string) -> x.Split [|'\n'|]) 
         |> Array.toList
     reLoadProgram asm
@@ -170,7 +171,7 @@ let tryParseCode tId =
         //Browser.console.log(sprintf "%A" lim)
         let editor = editors.[tId]
         let newCode = String.concat "\n" indentedAsm
-        if getCode tId <> newCode then 
+        if Files.getCode tId <> newCode then 
             (editor?setValue newCode) |> ignore
         (lim, indentedAsm) |> Some
     | lim -> 

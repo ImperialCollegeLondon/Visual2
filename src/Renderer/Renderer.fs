@@ -21,7 +21,7 @@ open Ref
 open Update
 open MenuBar
 open Tabs
-open Integration
+
 
 /// Attach a click event on each of the map elements to a function f
 /// which accepts the map element as an argument
@@ -57,24 +57,24 @@ let init () =
 
 
     // Actions for the buttons
-    Ref.explore.addEventListener_click(fun _ ->
-        openFile ()
+    Ref.openFileBtn.addEventListener_click(fun _ ->
+        Files.openFile ()
     )
-    Ref.save.addEventListener_click(fun _ ->
-        saveFile ()
+    Ref.saveFileBtn.addEventListener_click(fun _ ->
+        Files.saveFile ()
     )
-    Ref.run.addEventListener_click(fun _ ->
-        runCode ()
+    Ref.runSimulationBtn.addEventListener_click(fun _ ->
+        Integration.runCode ()
     )
-    stepfBtn.addEventListener_click(fun _ ->
-        stepCode ()
+    stepForwardBtn.addEventListener_click(fun _ ->
+        Integration.stepCode ()
     )
-    stepbBtn.addEventListener_click(fun _ ->
-        stepCodeBack ()
+    stepBackBtn.addEventListener_click(fun _ ->
+        Integration.stepCodeBack ()
     )
 
-    resetBtn.addEventListener_click(fun _ ->
-        resetEmulator()
+    resetSimulationBtn.addEventListener_click(fun _ ->
+        Update.resetEmulator()
     )
 
     mapClickAttacher repToId Ref.representation (fun rep ->

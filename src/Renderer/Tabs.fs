@@ -8,37 +8,11 @@ open Fable.Core
 open EEExtensions
 open CommonData
 open ExecutionTop
+open Ref
 open Editor
 
 
 
-let initialMemoryMap : Map<uint32, uint32> = Map.ofList []
-let initialSymbolMap : Map<string, uint32> = Map.ofList []
-
-let initialRegMap : Map<CommonData.RName, uint32> = 
-    [0..15]
-    |> List.map ( CommonData.register >> fun rn -> rn,0u)
-    |> Map.ofList
-
-let initialFlags =   { N=false ; Z=false; C=false; V=false}  
-let mutable currentFileTabId = -1 // By default no tab is open
-let mutable fileTabList : int list = []
-
-// Map tabIds to the editors which are contained in them
-let mutable editors : Map<int, obj> = Map.ofList []
-
-let mutable settingsTab : int option = Microsoft.FSharp.Core.option.None
-
-// The current number representation being used
-let mutable currentRep = Ref.Hex
-let mutable currentView = Ref.Registers
-let mutable byteView = false
-let mutable maxStepsToRun = 50000
-let mutable memoryMap : Map<uint32, uint32> = Map.ofList []
-let mutable regMap : Map<CommonData.RName,uint32> = initialRegMap
-let mutable flags: CommonData.Flags = initialFlags
-let mutable symbolMap : Map<string, uint32> = Map.ofList []
-let mutable runMode: RunMode = ResetMode
 
 [<Emit "'0x' + ($0 >>> 0).toString(16)">]
 let hexFormatter _ : string = jsNative
@@ -127,9 +101,9 @@ let setNoStatus () =
 let setRunButton (mode:RunMode) =
     match mode with 
     | ActiveMode (Running,_) ->
-        Ref.run.innerText <- "Pause"; 
+        Ref.runSimulationBtn.innerText <- "Pause"; 
     |_ -> 
-        Ref.run.innerText <- "Run"
+        Ref.runSimulationBtn.innerText <- "Run"
 
 let setMode (rm:RunMode) =
     match rm with
