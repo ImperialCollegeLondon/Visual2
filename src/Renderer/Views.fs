@@ -6,21 +6,16 @@
     Description: Event helper functions for `HTML` elements in `index.html`.
 *)
 
-module Update
+module Views
 
 open Fable.Core
 open Fable.Core.JsInterop
 open Fable.Import
-open Fable.Import.Electron
-open Node.Exports
-open Fable.PowerPack
-
 open Fable.Import.Browser
 
 
-open Ref
+open Refs
 open Fable
-open Settings
 open Tabs
 
 open CommonData
@@ -245,25 +240,6 @@ let updateSymTable () =
     symTable.innerHTML <- ""
     // Add the new one
     addToDOM symTable ([tr] @ symTabRows) |> ignore
- 
- //************************************************************************************
- //                          CHANGE EMULATOR STATE
- //************************************************************************************
-
-
-let resetEmulator () =
-    printfn "Resetting..."
-    removeEditorDecorations currentFileTabId
-    enableEditors()   
-    memoryMap <- Map.empty
-    symbolMap <- Map.empty
-    regMap <- initialRegMap
-    setMode ResetMode
-    updateMemory()
-    updateSymTable()
-    updateRegisters ()
-    resetRegs()
-    resetFlags()
 
 /// Set View to view
 let setView view =

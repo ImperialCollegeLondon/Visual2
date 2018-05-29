@@ -4,11 +4,10 @@
     <TargetFramework>netstandard2.0</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="Ref.fs" />
-    <Compile Include="Editor.fs" />
+    <Compile Include="Refs.fs" />
     <Compile Include="Tabs.fs" />
     <Compile Include="Settings.fs" />
-    <Compile Include="Update.fs" />
+    <Compile Include="Views.fs" />
     <Compile Include="Files.fs" />
     <Compile Include="MenuBar.fs" />
     <Compile Include="Integration.fs" />

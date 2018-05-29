@@ -5,8 +5,8 @@ open Fable.Core.JsInterop
 open Fable.Import
 open Fable.Import.Electron
 open Node.Base
-open Ref
-open Update
+open Refs
+open Views
 open Settings
 open Tabs
 
@@ -16,7 +16,7 @@ let showQuitMessage (callBack:int ->unit) =
     let mess = "You have unsaved changes. Would you like to save them first?"
     let detail = "Your changes will be lost if you don\'t save them."
     let buttons =  [ "Save" ; "Dont Save" ] 
-    Editor.showMessage callBack mess detail buttons
+    Refs.showMessage callBack mess detail buttons
         
 let checkOKToClose() =
     let close() = electron.ipcRenderer.send "doClose" |> ignore

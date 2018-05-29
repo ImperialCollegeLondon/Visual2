@@ -17,8 +17,8 @@ open Fable.Import.Browser
 // Menu -> View -> Toggle Developer Tools
 Browser.console.log "Hi from the renderer.js" |> ignore
 
-open Ref
-open Update
+open Refs
+open Views
 open MenuBar
 open Tabs
 
@@ -57,13 +57,13 @@ let init () =
 
 
     // Actions for the buttons
-    Ref.openFileBtn.addEventListener_click(fun _ ->
+    Refs.openFileBtn.addEventListener_click(fun _ ->
         Files.openFile ()
     )
-    Ref.saveFileBtn.addEventListener_click(fun _ ->
+    Refs.saveFileBtn.addEventListener_click(fun _ ->
         Files.saveFile ()
     )
-    Ref.runSimulationBtn.addEventListener_click(fun _ ->
+    Refs.runSimulationBtn.addEventListener_click(fun _ ->
         Integration.runCode ()
     )
     stepForwardBtn.addEventListener_click(fun _ ->
@@ -74,28 +74,28 @@ let init () =
     )
 
     resetSimulationBtn.addEventListener_click(fun _ ->
-        Update.resetEmulator()
+        Files.resetEmulator()
     )
 
-    mapClickAttacher repToId Ref.representation (fun rep ->
+    mapClickAttacher repToId Refs.representation (fun rep ->
         Browser.console.log (sprintf "Representation changed to %A" rep) |> ignore
         setRepresentation rep |> ignore
         updateMemory ()
         updateSymTable ()
     )
 
-    mapClickAttacher viewToIdTab Ref.viewTab (fun view ->
+    mapClickAttacher viewToIdTab Refs.viewTab (fun view ->
         Browser.console.log (sprintf "View changed to %A" view) |> ignore
         setView view
     )
 
-    (Ref.byteViewBtn).addEventListener_click(fun _ ->
+    (Refs.byteViewBtn).addEventListener_click(fun _ ->
         Browser.console.log "Toggling byte view" |> ignore
         toggleByteView ()
         updateMemory ()
     )
 
-    (Ref.newFileTab).addEventListener_click(fun _ ->
+    (Refs.newFileTab).addEventListener_click(fun _ ->
         Browser.console.log "Creating a new file tab" |> ignore
         createFileTab ()
     )

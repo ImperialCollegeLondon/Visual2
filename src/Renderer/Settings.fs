@@ -2,9 +2,9 @@ module Settings
 
 open Fable.Import.Browser
 
-open Ref
+open Refs
 open Tabs
-open Editor
+
 
 let editorFontSize = "editor-font-size"
 let simulatorMaxSteps = "simulator-max-steps"

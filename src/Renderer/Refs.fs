@@ -7,7 +7,7 @@
 // *******************************************************************************
 // *******************************************************************************
 
-module Ref
+module Refs
 open CommonData
 open ExecutionTop
 
@@ -78,6 +78,56 @@ let settings:obj = electron.remote.require "electron-settings"
 /// look up a DOM element
 let getHtml = Browser.document.getElementById
 
+// Default settings if they haven't already been defined by electron-settings
+let defaultSettings = Map.ofList [
+                            "simulator-max-steps" ==> "200000"
+                            "editor-font-size" ==> "16"
+                            "editor-theme" ==> "vs-dark-pro"
+                            "editor-word-wrap" ==> "off"
+                            "editor-render-whitespace" ==> "none"
+                            "current-file-path" ==> Fable.Import.Node.Exports.os.homedir()
+                        ]
+
+let getSetting (name : string) =
+    let setting = settings?get(name)
+    match isUndefined setting with
+    | true -> defaultSettings.[name]
+    | false -> setting
+    |> (fun x -> x.ToString())
+
+let setSetting (name : string) (value : obj) =
+    settings?set(name, value) |> ignore
+
+let editorOptions () = createObj [
+
+                        // User defined settings
+                        "theme" ==> getSetting "editor-theme";
+                        "renderWhitespace" ==> getSetting "editor-render-whitespace"
+                        "fontSize" ==> getSetting "editor-font-size";
+                        "wordWrap" ==> getSetting "editor-word-wrap";
+
+                        // Application defined settings
+                        "value" ==> "";
+                        "language" ==> "arm";
+                        "roundedSelection" ==> false;
+                        "scrollBeyondLastLine" ==> false;
+                        "automaticLayout" ==> true;
+                        "minimap" ==> createObj [ "enabled" ==> false ]
+                    ]
+
+    
+let showMessage (callBack:int ->unit) (message:string) (detail:string) (buttons:string list) =
+    let rem = electron.remote
+    let retFn = unbox callBack
+    rem.dialog.showMessageBox(
+       (let opts = createEmpty<Fable.Import.Electron.ShowMessageBoxOptions>
+        opts.title <- FSharp.Core.Option.None
+        opts.message <- message |> Some
+        opts.detail <- detail |> Some
+        opts.``type`` <- "none" |> Some
+        opts.buttons <- buttons |> List.toSeq |> ResizeArray |> Some
+        opts), retFn)   
+    |> ignore
 
 /// extract CSS custom variable value
 let getCustomCSS (varName:string) =
@@ -91,10 +141,6 @@ let setCustomCSS (varName:string) (content:string) =
 /// set the CSS variable that determines dashboard width
 let setDashboardWidth (width)=
     setCustomCSS "--dashboard-width" width
-
-/// Element in settings tab DOM holding editor font size.
-/// Only valid when settings tab is active
-let fontSize = getHtml "font-size" :?> HTMLSelectElement
 
 /// Element in Register view representing register rNum
 let register rNum = getHtml <| sprintf "R%i" rNum

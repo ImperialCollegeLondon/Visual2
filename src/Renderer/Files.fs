@@ -18,15 +18,29 @@ open Fable.PowerPack
 open Fable.Import.Browser
 
 
-open Ref
+open Refs
 open Fable
 open Settings
 open Tabs
-open Update
+open Views
 
 open CommonData
 open ExecutionTop
 
+
+let resetEmulator () =
+    printfn "Resetting..."
+    removeEditorDecorations currentFileTabId
+    enableEditors()   
+    memoryMap <- Map.empty
+    symbolMap <- Map.empty
+    regMap <- initialRegMap
+    setMode ResetMode
+    updateMemory()
+    updateSymTable()
+    updateRegisters ()
+    resetRegs()
+    resetFlags()
 
 
 //*************************************************************************************
@@ -76,7 +90,7 @@ let openFile () =
     let options = createEmpty<OpenDialogOptions>
     options.properties <- ResizeArray(["openFile"; "multiSelections"]) |> Some
     options.filters <- fileFilterOpts
-    options.defaultPath <- Some (Editor.getSetting "current-file-path")
+    options.defaultPath <- Some (Refs.getSetting "current-file-path")
     let readPath (path, tId) = 
         fs.readFile(path, (fun err data -> // TODO: find out what this error does
             loadFileIntoTab tId data

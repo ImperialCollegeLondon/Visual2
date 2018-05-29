@@ -1,12 +1,12 @@
 module Integration
 
 open Tabs
-open Update
+open Views
 open CommonData
 open ParseTop
 open ExecutionTop
 open Errors
-open Ref
+open Refs
 
 open Fable.Core.JsInterop
 open Fable.Import
@@ -98,7 +98,7 @@ let showInfo () =
         updateSymTable()
         let dp = ri.dpCurrent
         memoryMap <- makeMemoryMap dp.MM
-        if currentView = Ref.Views.Memory || isStopped then
+        if currentView = Refs.Views.Memory || isStopped then
             updateMemory()
         setRegs dp.Regs
         setFlags dp.Fl
@@ -278,7 +278,7 @@ let runEditorTab steps =
 let runCode () = 
     match runMode with
     | FinishedMode _ 
-    | RunErrorMode _ -> resetEmulator()
+    | RunErrorMode _ -> Files.resetEmulator()
     | _ -> ()
     match runMode with
     | ActiveMode(RunState.Running,ri) -> setState(RunState.Stopping) ri
@@ -308,7 +308,7 @@ let stepCodeBackBy numSteps =
             setState RunState.Running ri
 
             if target <= 0L then
-                resetEmulator()
+                Files.resetEmulator()
                 removeEditorDecorations currentFileTabId
                 showInfo()
             else
