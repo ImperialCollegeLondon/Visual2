@@ -138,20 +138,16 @@ let selectFileTab id =
         // Only remove active from the previously selected tab if it existed
         match currentFileTabId < 0 with
         | false ->
-            let oldTab = Refs.fileTab currentFileTabId
-            oldTab.classList.remove("active")
-            let oldView = Refs.fileView currentFileTabId
-            oldView.classList.add("invisible")
+            (Refs.fileTab currentFileTabId).classList.remove("active")
+            (Refs.fileView currentFileTabId).classList.add("invisible")
         | true -> ()
 
         // If the new id is -1, no tab is selected
         match id < 0 with
         | true -> ()
         | false ->
-            let newTab = Refs.fileTab id
-            newTab.classList.add("active")
-            let newView = Refs.fileView id
-            newView.classList.remove("invisible")
+            (Refs.fileTab id).classList.add("active")
+            (Refs.fileView id).classList.remove("invisible")
 
         currentFileTabId <- id
     | false -> ()
@@ -223,48 +219,28 @@ let setTabName id name = (Refs.fileTabName id).innerHTML <- name
 
 // Create a new tab of a particular name and then return its id
 let createTab name =
-    let tab = document.createElement("div")
-    tab.classList.add("tab-item")
-    tab.classList.add("tab-file")
-
-    let defaultFileName = document.createElement("span")
-    defaultFileName.classList.add("tab-file-name")
-
-    let cancel = document.createElement("span")
-    cancel.classList.add("icon")
-    cancel.classList.add("icon-cancel")
-    cancel.classList.add("icon-close-tab")
-
     let id = uniqueTabId ()
-    tab.id <- Refs.fileTabIdFormatter id
 
-    // Create an empty span to store the filepath of this tab
-    let filePath = document.createElement("span")
-    filePath.classList.add("invisible")
-    filePath.id <- Refs.tabFilePathIdFormatter id
-
-    // Add the necessary elements to create the new tab
-    tab.appendChild(filePath) |> ignore
-    tab.appendChild(cancel) |> ignore
-    tab.appendChild(defaultFileName) |> ignore
-
-    defaultFileName.innerHTML <- name
-
-    defaultFileName.id <- Refs.tabNameIdFormatter id
-
-    cancel.addEventListener_click(fun _ -> 
-        Browser.console.log(sprintf "Deleting tab #%d" id)
-        deleteFileTab id
-    )
-
-    tab.addEventListener_click (fun _ -> selectFileTab id)
+    DIV ["tab-item";"tab-file"] [
+        // filepath element (invisible)
+        ELEMENT "span" ["invisible"] []
+        |> ID  (Refs.tabFilePathIdFormatter id)
+        // cancel icon (visible on hover)
+        ELEMENT "span" ["icon";"icon-cancel";"icon-close-tab"] []
+        |> CLICKLISTENER (fun _ -> deleteFileTab id)
+        // filename element (visible)
+        ELEMENT "span" ["tab-file-name"] []
+        |> INNERHTML name
+        |> ID (Refs.tabNameIdFormatter id)
+    ]
+    |> ID (Refs.fileTabIdFormatter id)
+    |> CLICKLISTENER (fun _ -> selectFileTab id)
+    |> (fun tab -> Refs.fileTabMenu.insertBefore(tab, Refs.newFileTab))
+    |> ignore
 
     fileTabList <- fileTabList @ [id]
-
-    Refs.fileTabMenu.insertBefore(tab, Refs.newFileTab) |> ignore
     setTabSaved id
     id
-
 
 let findNamedFile (name:string) =
     let normalisePath (path:string) =
@@ -292,31 +268,27 @@ let createNamedFileTab fName fPath=
     | _, [tId] ->
         printfn "Found unused tab %A" tId
         selectFileTab tId
-        let tabName = Refs.fileTabName tId
-        tabName.innerHTML <- fName
+        (Refs.fileTabName tId).innerHTML <- fName
         (Refs.tabFilePath tId).innerHTML <- fPath
         tId   
     | Option.None, _ -> 
         let id = createTab fName
-        // Create the new view div
-        let fv = document.createElement("div")
-        fv.classList.add("editor")
-        fv.classList.add("invisible")    
-        fv.id <- Refs.fileViewIdFormatter id
 
-        Refs.fileViewPane.appendChild(fv) |> ignore
-        if fName.StartsWith "mem"  then id
-        else
-            let editor = window?monaco?editor?create(fv, editorOptions())
-    
-        // Whenever the content of this editor changes
+        let addEditor (fv ) =
+            let editor = window?monaco?editor?create(fv, editorOptions())   
+                    // Whenever the content of this editor changes
             editor?onDidChangeModelContent(fun _ ->
                 setTabUnsaved id // Set the unsaved icon in the tab
-            ) |> ignore
-
+                ) |> ignore
             editors <- Map.add id editor editors
-            // Return the id of the tab we just created
-            id
+
+        // Create the new fileView div
+        let fv =
+            DIV ["editor";"invisible"] []
+            |> ID (Refs.fileViewIdFormatter id)
+        Refs.fileViewPane.appendChild fv |> ignore
+        addEditor fv
+        id
 
 let createFileTab () = 
     createNamedFileTab "Untitled.s" ""

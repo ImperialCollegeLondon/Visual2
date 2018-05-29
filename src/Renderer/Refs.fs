@@ -271,3 +271,27 @@ let mutable flags: CommonData.Flags = initialFlags
 let mutable symbolMap : Map<string, uint32> = Map.empty
 /// Current state of simulator
 let mutable runMode: RunMode = ResetMode
+
+// ***********************************************************************************************
+//                                  Mini DSL for creating HTML
+// ***********************************************************************************************
+
+let ELEMENT elName classes (htmlElements: HTMLElement list) =
+    let ele = document.createElement elName
+    ele.classList.add (classes |> List.toArray)
+    List.iter (ele.appendChild >> ignore) htmlElements
+    ele
+
+let INNERHTML html (ele:HTMLElement) = (ele.innerHTML <- html) ; ele
+let ID name (ele:HTMLElement) = (ele.id <- name) ; ele
+let CLICKLISTENER listener (ele:HTMLElement) = (ele.addEventListener_click listener) ; ele
+
+let DIV = ELEMENT "div"
+
+let BR() = document.createElement "br"
+
+let FORM classes contents = 
+    let form = ELEMENT "form" classes contents
+        // disable form submission
+    form.onsubmit <- ( fun _ -> false)
+    form
