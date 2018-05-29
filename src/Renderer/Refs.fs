@@ -36,7 +36,7 @@ type Views =
     | Symbols
 
 // ***********************************************************************************
-//                       Functions Relating to Left-hand View Panel
+//                       Functions Relating to Right-hand View Panel
 // ***********************************************************************************
 
 
@@ -255,7 +255,7 @@ let mutable editors : Map<int, obj> = Map.ofList []
 let mutable settingsTab : int option = Microsoft.FSharp.Core.option.None
 /// The current number representation being used
 let mutable currentRep = Hex
-/// The current View in the Left-hand pane
+/// The current View in the right-hand pane
 let mutable currentView = Registers
 /// Whether the Memory View is byte of word based
 let mutable byteView = false
