@@ -9,7 +9,7 @@
 
 module Refs
 open CommonData
-open ExecutionTop
+
 
 open Fable.Core
 open Fable.Core.JsInterop
@@ -270,7 +270,7 @@ let mutable flags: CommonData.Flags = initialFlags
 /// Values of all Defined Symols
 let mutable symbolMap : Map<string, uint32> = Map.empty
 /// Current state of simulator
-let mutable runMode: RunMode = ResetMode
+let mutable runMode: ExecutionTop.RunMode = ExecutionTop.ResetMode
 
 // ***********************************************************************************************
 //                                  Mini DSL for creating HTML

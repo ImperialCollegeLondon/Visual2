@@ -9,22 +9,20 @@ open Fable.Import
 open Fable.Import.Browser
 open Fable.Core
 open EEExtensions
-open CommonData
-open ExecutionTop
-open Refs
-open Tabs
+
+
 
 let updateEditor tId =
-    editors.[tId]?updateOptions(editorOptions()) |> ignore
+    Refs.editors.[tId]?updateOptions(Refs.editorOptions()) |> ignore
 
 let setTheme theme = 
     window?monaco?editor?setTheme(theme)
 
 
 let updateAllEditors () =
-    editors
+    Refs.editors
     |> Map.iter (fun tId _ -> updateEditor tId)
-    let theme = getSetting("editor-theme")
+    let theme = Refs.getSetting("editor-theme")
     Refs.setFilePaneBackground (match theme with | "vs-light" -> "white" | _ -> "black")
     setTheme (theme) |> ignore
    
@@ -32,7 +30,7 @@ let updateAllEditors () =
 // Disable the editor and tab selection during execution
 let disableEditors () = 
     Refs.fileTabMenu.classList.add("disabled-click")
-    (Refs.fileView currentFileTabId).classList.add("disabled-click")
+    (Refs.fileView Refs.currentFileTabId).classList.add("disabled-click")
     Refs.fileViewPane.onclick <- (fun _ ->
         Browser.window.alert("Cannot use editor pane during execution")
     )
@@ -41,7 +39,7 @@ let disableEditors () =
 // Enable the editor once execution has completed
 let enableEditors () =
     Refs.fileTabMenu.classList.remove("disabled-click")
-    (Refs.fileView currentFileTabId).classList.remove("disabled-click")
+    (Refs.fileView Refs.currentFileTabId).classList.remove("disabled-click")
     Refs.fileViewPane.onclick <- ignore
     Refs.darkenOverlay.classList.add("invisible")
 
@@ -62,7 +60,7 @@ let removeDecorations _editor _decorations =
 
 // Remove all text decorations associated with an editor
 let removeEditorDecorations tId =
-    List.iter (fun x -> removeDecorations editors.[tId] x) decorations
+    List.iter (fun x -> removeDecorations Refs.editors.[tId] x) decorations
     decorations <- []
 
 let editorLineDecorate editor number decoration =
@@ -77,7 +75,7 @@ let editorLineDecorate editor number decoration =
 // highlight a particular line
 let highlightLine tId number className = 
     editorLineDecorate 
-        editors.[tId]
+        Refs.editors.[tId]
         number
         (createObj[
             "isWholeLine" ==> true
@@ -96,7 +94,7 @@ let makeErrorInEditor tId lineNumber (markdownLst:string list) =
         |> Array.map (fun txt ->  createObj [ "isTrusted" ==> true; "value" ==> txt ])
 
     editorLineDecorate 
-        editors.[tId]
+        Refs.editors.[tId]
         lineNumber 
         (createObj[
             "isWholeLine" ==> true

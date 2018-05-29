@@ -30,8 +30,8 @@ open ExecutionTop
 
 let resetEmulator () =
     printfn "Resetting..."
-    removeEditorDecorations currentFileTabId
-    enableEditors()   
+    Editors.removeEditorDecorations currentFileTabId
+    Editors.enableEditors()   
     memoryMap <- Map.empty
     symbolMap <- Map.empty
     regMap <- initialRegMap

@@ -7,7 +7,6 @@ open Fable.Import.Browser
 open Fable.Core
 open EEExtensions
 open CommonData
-open ExecutionTop
 open Refs
 
 
@@ -45,10 +44,10 @@ let formatter = formatterWithWidth 32
 
 let setRegister (id: RName) (value: uint32) =
     let el = Refs.register id.RegNum
-    el.innerHTML <- formatter currentRep value
+    el.innerHTML <- formatter Refs.currentRep value
 
 let updateRegisters () =
-    Map.iter setRegister regMap
+    Map.iter setRegister Refs.regMap
 
 
 let getFlag (id: string) =
@@ -98,48 +97,48 @@ let setNoStatus () =
     Refs.statusBar.classList.remove("btn-primary")
     Refs.statusBar.innerHTML <- "-"
 
-let setRunButton (mode:RunMode) =
+let setRunButton (mode:ExecutionTop.RunMode) =
     match mode with 
-    | ActiveMode (Running,_) ->
+    | ExecutionTop.ActiveMode (ExecutionTop.Running,_) ->
         Refs.runSimulationBtn.innerText <- "Pause"; 
     |_ -> 
         Refs.runSimulationBtn.innerText <- "Run"
 
-let setMode (rm:RunMode) =
+let setMode (rm:ExecutionTop.RunMode) =
     match rm with
-    | ParseErrorMode -> setErrorStatus "Errors in Code"
-    | RunErrorMode _ -> setErrorStatus "Runtime Error"
-    | ResetMode -> setNoStatus()
-    | ActiveMode (_,_) -> setStepExecutionStatus ()
-    | FinishedMode _ -> setExecutionCompleteStatus ()
+    | ExecutionTop.ParseErrorMode -> setErrorStatus "Errors in Code"
+    | ExecutionTop.RunErrorMode _ -> setErrorStatus "Runtime Error"
+    | ExecutionTop.ResetMode -> setNoStatus()
+    | ExecutionTop.ActiveMode (_,_) -> setStepExecutionStatus ()
+    | ExecutionTop.FinishedMode _ -> setExecutionCompleteStatus ()
     setRunButton rm
-    runMode <- rm
+    Refs.runMode <- rm
 
 
     
 
 
 let getSettingsTabId () =
-    match settingsTab with
+    match Refs.settingsTab with
     | Some x -> x
     | _ -> failwithf "No settings tab exists"
 
 
 let uniqueTabId () =
     // Look in fileTabList and find the next unique id
-    match List.isEmpty fileTabList with
+    match List.isEmpty Refs.fileTabList with
     | true -> 0
-    | false -> (List.last fileTabList) + 1
+    | false -> (List.last Refs.fileTabList) + 1
 
 let selectFileTab id =
     // Hacky match, but otherwise deleting also attempts to select the deleted tab
-    match List.contains id fileTabList || id < 0 with
+    match List.contains id Refs.fileTabList || id < 0 with
     | true ->
         // Only remove active from the previously selected tab if it existed
-        match currentFileTabId < 0 with
+        match Refs.currentFileTabId < 0 with
         | false ->
-            (Refs.fileTab currentFileTabId).classList.remove("active")
-            (Refs.fileView currentFileTabId).classList.add("invisible")
+            (Refs.fileTab Refs.currentFileTabId).classList.remove("active")
+            (Refs.fileView Refs.currentFileTabId).classList.add("invisible")
         | true -> ()
 
         // If the new id is -1, no tab is selected
@@ -149,7 +148,7 @@ let selectFileTab id =
             (Refs.fileTab id).classList.add("active")
             (Refs.fileView id).classList.remove("invisible")
 
-        currentFileTabId <- id
+        Refs.currentFileTabId <- id
     | false -> ()
 
 let getTabName id = 
@@ -161,7 +160,7 @@ let isTabUnsaved id =
 
 let deleteFileTab id =
     let isSettingsTab =
-        match settingsTab with
+        match Refs.settingsTab with
         | Microsoft.FSharp.Core.option.None -> false
         | Some tab when tab = id -> true
         | _ -> false
@@ -182,23 +181,23 @@ let deleteFileTab id =
     match confirmDelete with
     | false -> ()
     | true ->
-        fileTabList <- List.filter (fun x -> x <> id) fileTabList
-        match currentFileTabId with
+        Refs.fileTabList <- List.filter (fun x -> x <> id) Refs.fileTabList
+        match Refs.currentFileTabId with
         | x when x = id ->
             selectFileTab
-                <| match List.isEmpty fileTabList with
+                <| match List.isEmpty Refs.fileTabList with
                    | true -> -1
-                   | false -> List.last fileTabList
+                   | false -> List.last Refs.fileTabList
         | _ -> ()
         Refs.fileTabMenu.removeChild(Refs.fileTab id) |> ignore
         Refs.fileViewPane.removeChild(Refs.fileView id) |> ignore
         match isSettingsTab with
         | true -> 
-            settingsTab <- Microsoft.FSharp.Core.option.None
+            Refs.settingsTab <- Microsoft.FSharp.Core.option.None
         | false ->
-            let editor = editors.[id]
+            let editor = Refs.editors.[id]
             editor?dispose() |> ignore // Delete the Monaco editor
-            editors <- Map.remove id editors
+            Refs.editors <- Map.remove id Refs.editors
     
 let setTabUnsaved id = 
     let tabName = Refs.fileTabName id
@@ -238,7 +237,7 @@ let createTab name =
     |> (fun tab -> Refs.fileTabMenu.insertBefore(tab, Refs.newFileTab))
     |> ignore
 
-    fileTabList <- fileTabList @ [id]
+    Refs.fileTabList <- Refs.fileTabList @ [id]
     setTabSaved id
     id
 
@@ -248,7 +247,7 @@ let findNamedFile (name:string) =
         |> Array.toList
         |> List.map String.toLower
 
-    fileTabList
+    Refs.fileTabList
     |> List.map (fun id -> (Refs.tabFilePath id).innerText, id)
     |> List.tryFind (fun (path,_) -> 
         normalisePath path = normalisePath name)
@@ -257,7 +256,7 @@ let findNamedFile (name:string) =
 
 let createNamedFileTab fName fPath=
     let unusedTab = 
-        fileTabList 
+        Refs.fileTabList 
         |> List.filter (fun tid -> getTabName tid = "Untitled.s")
     match findNamedFile fPath, unusedTab with
     | Some id,_ -> 
@@ -275,12 +274,12 @@ let createNamedFileTab fName fPath=
         let id = createTab fName
 
         let addEditor (fv ) =
-            let editor = window?monaco?editor?create(fv, editorOptions())   
+            let editor = window?monaco?editor?create(fv, Refs.editorOptions())   
                     // Whenever the content of this editor changes
             editor?onDidChangeModelContent(fun _ ->
                 setTabUnsaved id // Set the unsaved icon in the tab
                 ) |> ignore
-            editors <- Map.add id editor editors
+            Refs.editors <- Map.add id editor Refs.editors
 
         // Create the new fileView div
         let fv =
@@ -295,105 +294,11 @@ let createFileTab () =
     |> selectFileTab // Switch to the tab we just created
 
 let deleteCurrentTab () =
-    match currentFileTabId >= 0 with
+    match Refs.currentFileTabId >= 0 with
     | false -> ()
-    | true -> deleteFileTab currentFileTabId
+    | true -> deleteFileTab Refs.currentFileTabId
 
 let unsavedTabs() =
-    fileTabList
+    Refs.fileTabList
     |> List.filter isTabUnsaved
 
-//*******************************************************************************
-//                        Interaction with Editors   
-//*******************************************************************************
-
-let updateEditor tId =
-    editors.[tId]?updateOptions(editorOptions()) |> ignore
-
-let setTheme theme = 
-    window?monaco?editor?setTheme(theme)
-
-
-let updateAllEditors () =
-    editors
-    |> Map.iter (fun tId _ -> updateEditor tId)
-    let theme = getSetting("editor-theme")
-    Refs.setFilePaneBackground (match theme with | "vs-light" -> "white" | _ -> "black")
-    setTheme (theme) |> ignore
-   
-
-// Disable the editor and tab selection during execution
-let disableEditors () = 
-    Refs.fileTabMenu.classList.add("disabled-click")
-    (Refs.fileView currentFileTabId).classList.add("disabled-click")
-    Refs.fileViewPane.onclick <- (fun _ ->
-        Browser.window.alert("Cannot use editor pane during execution")
-    )
-    Refs.darkenOverlay.classList.remove("invisible")
-
-// Enable the editor once execution has completed
-let enableEditors () =
-    Refs.fileTabMenu.classList.remove("disabled-click")
-    (Refs.fileView currentFileTabId).classList.remove("disabled-click")
-    Refs.fileViewPane.onclick <- ignore
-    Refs.darkenOverlay.classList.add("invisible")
-
-let mutable decorations : obj list = []
-let mutable lineDecorations : obj list = []
-
-[<Emit "new monaco.Range($0,$1,$2,$3)">]
-let monacoRange _ _ _ _ = jsNative
-
-[<Emit "$0.deltaDecorations($1, [
-    { range: $2, options: $3},
-  ]);">]
-let lineDecoration _editor _decorations _range _name = jsNative
-
-[<Emit "$0.deltaDecorations($1, [{ range: new monaco.Range(1,1,1,1), options : { } }]);">]
-let removeDecorations _editor _decorations = 
-    jsNative
-
-// Remove all text decorations associated with an editor
-let removeEditorDecorations tId =
-    List.iter (fun x -> removeDecorations editors.[tId] x) decorations
-    decorations <- []
-
-let editorLineDecorate editor number decoration =
-    let model = editor?getModel()
-    let lineWidth = model?getLineMaxColumn(number)
-    let newDecs = lineDecoration editor
-                    decorations
-                    (monacoRange number 1 number lineWidth)
-                    decoration
-    decorations <- List.append decorations [newDecs]
-
-// highlight a particular line
-let highlightLine tId number className = 
-    editorLineDecorate 
-        editors.[tId]
-        number
-        (createObj[
-            "isWholeLine" ==> true
-            "inlineClassName" ==> className
-        ])
-
-/// Decorate a line with an error indication and set up a hover message
-/// Distinct message lines must be elements of markdownLst
-/// markdownLst: string list - list of markdown paragraphs
-/// tId: int - tab identifier
-/// lineNumber: int - line to decorate, starting at 1
-let makeErrorInEditor tId lineNumber (markdownLst:string list) = 
-    let makeMarkDown textLst =
-        textLst
-        |> List.toArray
-        |> Array.map (fun txt ->  createObj [ "isTrusted" ==> true; "value" ==> txt ])
-
-    editorLineDecorate 
-        editors.[tId]
-        lineNumber 
-        (createObj[
-            "isWholeLine" ==> true
-            "isTrusted" ==> true
-            "inlineClassName" ==> "editor-line-error"
-            "hoverMessage" ==> makeMarkDown markdownLst
-        ])

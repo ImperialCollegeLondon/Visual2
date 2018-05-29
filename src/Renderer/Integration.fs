@@ -7,6 +7,7 @@ open ParseTop
 open ExecutionTop
 open Errors
 open Refs
+open Editors
 
 open Fable.Core.JsInterop
 open Fable.Import

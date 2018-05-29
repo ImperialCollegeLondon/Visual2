@@ -18,9 +18,8 @@ open Fable.Import.Browser
 Browser.console.log "Hi from the renderer.js" |> ignore
 
 open Refs
-open Views
 open MenuBar
-open Tabs
+
 
 
 /// Attach a click event on each of the map elements to a function f
@@ -79,31 +78,31 @@ let init () =
 
     mapClickAttacher repToId Refs.representation (fun rep ->
         Browser.console.log (sprintf "Representation changed to %A" rep) |> ignore
-        setRepresentation rep |> ignore
-        updateMemory ()
-        updateSymTable ()
+        Views.setRepresentation rep |> ignore
+        Views.updateMemory ()
+        Views.updateSymTable ()
     )
 
     mapClickAttacher viewToIdTab Refs.viewTab (fun view ->
         Browser.console.log (sprintf "View changed to %A" view) |> ignore
-        setView view
+        Views.setView view
     )
 
     (Refs.byteViewBtn).addEventListener_click(fun _ ->
         Browser.console.log "Toggling byte view" |> ignore
-        toggleByteView ()
-        updateMemory ()
+        Views.toggleByteView ()
+        Views.updateMemory ()
     )
 
     (Refs.newFileTab).addEventListener_click(fun _ ->
         Browser.console.log "Creating a new file tab" |> ignore
-        createFileTab ()
+        Tabs.createFileTab ()
     )
 
     // Create an empty tab to start with
-    createFileTab ()
+    Tabs.createFileTab ()
     Settings.vSettings <- Settings.getVisualSettings()
-    updateAllEditors()
+    Editors.updateAllEditors()
 
 
 setMainMenu Tests.runAllEmulatorTests // pass this out-of-order dependency in to the menu code.

@@ -79,7 +79,7 @@ let setSettingInput (name : string) =
 let saveSettings () =
     List.map setSettingInput inputSettings |> ignore
     vSettings <- getVisualSettings()
-    updateAllEditors()
+    Editors.updateAllEditors()
 
 
 
