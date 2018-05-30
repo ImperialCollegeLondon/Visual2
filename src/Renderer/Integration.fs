@@ -16,7 +16,6 @@ let maxStepsBeforeCheckEvents: int64 = 5000L
 let maxStepsBeforeSlowDisplay: int64 = 100000L
 let slowDisplayThreshold: int64 = 20000L
 
-
 /// Generate the hover error box
 /// the text generated is full GH markdown
 /// TODO: rationalise ename,eTxt,eMess and generate better messages
@@ -47,7 +46,6 @@ let highlightErrorParse ((err:ParseError), lineNo) tId =
         | e -> sprintf "Error Code without getErrNames entry: %A" e
     errUnpacker (getErrNames,errStr, errMess) tId lineNo
     setMode ParseErrorMode
-
 
 let makeMemoryMap mm =
     Map.toList mm
@@ -87,8 +85,6 @@ let getFlags() =
 let setState runState ri =
     setMode (ActiveMode (runState,ri))
 
-   
-
 let showInfo () =
     let isStopped = match runMode with | ActiveMode(Running,_) -> true | _ -> false
     match runMode with
@@ -115,7 +111,6 @@ let highlightCurrentIns classname pInfo tId  =
         | Some (ci, lineNo) -> highlightLine tId lineNo classname
         | Option.None
         | Some _ -> failwithf "What? Current PC value (%x) is not an instruction: this should be impossible!" pc
-
 
 let handleRunTimeError e (pInfo:RunInfo)  =
     let getCodeLineMess pInfo pos =
@@ -179,7 +174,6 @@ let tryParseCode tId =
         List.map (fun x -> highlightErrorParse x tId) lim.Errors |> ignore
         Core.Option.None
 
-
 let getRunInfoFromState (lim:LoadImage) =
     let getData map mm : Map<WAddr,Data> =
         let dLocs = map |> Map.toList
@@ -204,8 +198,8 @@ let getRunInfoFromState (lim:LoadImage) =
 let mutable lastDisplayStepsDone = 0L
 
 let loopMessage() = 
-    let steps = Settings.vSettings.SimulatorMaxSteps
-    sprintf "WARNING Possible infinite loop: max number of steps (%d) exceeded. To disable this warning use Edit -> Preferences" steps
+    let steps = Refs.vSettings.SimulatorMaxSteps
+    sprintf "WARNING Possible infinite loop: max number of steps (%s) exceeded. To disable this warning use Edit -> Preferences" steps
    
 let rec asmStepDisplay steps ri =
     let displayState ri' running =
@@ -216,7 +210,7 @@ let rec asmStepDisplay steps ri =
                 if ri.StepsDone < slowDisplayThreshold || (ri.StepsDone - lastDisplayStepsDone) >  maxStepsBeforeSlowDisplay then
                     lastDisplayStepsDone <- ri.StepsDone
                     showInfo()
-                if running && Settings.vSettings.SimulatorMaxSteps <> 0L then  Browser.window.alert( loopMessage() )
+                if running && (int64 Refs.vSettings.SimulatorMaxSteps) <> 0L then  Browser.window.alert( loopMessage() )
             | PSError e -> handleRunTimeError e ri'
             | PSExit -> handleRunTimeError EXIT ri'
 
@@ -285,7 +279,7 @@ let runCode () =
     | ActiveMode(RunState.Running,ri) -> setState(RunState.Stopping) ri
     | _ ->
         runEditorTab <|
-                match Settings.vSettings.SimulatorMaxSteps with
+                match int64 Refs.vSettings.SimulatorMaxSteps with
                 | 0L -> System.Int64.MaxValue
                 | n when n > 0L -> n
                 | _ -> System.Int64.MaxValue
@@ -328,6 +322,3 @@ let stepCodeBackBy numSteps =
     | _ -> ()
 
 let stepCodeBack () = stepCodeBackBy 1L
-
-
-

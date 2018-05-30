@@ -6,10 +6,8 @@ open Fable.Import
 open Fable.Import.Electron
 open Node.Base
 open Refs
-open Views
 open Settings
 open Tabs
-
 
 let showQuitMessage (callBack:int ->unit) =
     let rem = electron.remote
@@ -93,7 +91,6 @@ let editMenu =
         makeItem  "Preferences"  Option.None optCreateSettingsTab
     ]
 
-
 let viewMenu = 
         let devToolsKey = if Node.Globals.``process``.platform = NodeJS.Platform.Darwin then "Alt+Command+I" else "Ctrl+Shift+I"
         makeMenu "View" [
@@ -106,12 +103,12 @@ let viewMenu =
             makeItem "Toggle Dev Tools" (Some "F12") (electron.remote.getCurrentWebContents()).toggleDevTools
         ]
 
-let helpMenu runTests =
+let helpMenu =
         let runPage page () = electron.shell.openExternal page |> ignore ; ()
         makeMenu "Help" [
             makeItem "Website" Core.Option.None (runPage "https://intranet.ee.ic.ac.uk/t.clarke/hlp/")
             makeItem "ARM documentation" Core.Option.None (runPage "http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.ddi0234b/i1010871.html")
-            makeItem "Run Emulator Tests" Core.Option.None runTests
+            makeItem "Run Emulator Tests" Core.Option.None Tests.runAllEmulatorTests
             makeItem "About" Core.option.None ( fun () -> 
                 electron.remote.dialog.showMessageBox (
                       let opts = createEmpty<ShowMessageBoxOptions>
@@ -125,13 +122,13 @@ let helpMenu runTests =
                 ) |> ignore; () )
          ]   
 
-let setMainMenu runTests =
+let mainMenu() =
     let template = 
         ResizeArray<MenuItemOptions> [
             fileMenu
             editMenu
             viewMenu
-            helpMenu runTests
+            helpMenu
         ]
     template
     |> electron.remote.Menu.buildFromTemplate

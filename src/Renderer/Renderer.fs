@@ -15,12 +15,9 @@ open Fable.Import.Browser
 
 // open DevTools to see the message
 // Menu -> View -> Toggle Developer Tools
-Browser.console.log "Hi from the renderer.js" |> ignore
+Browser.console.log "Hi from renderer.fs" |> ignore
 
 open Refs
-open MenuBar
-
-
 
 /// Attach a click event on each of the map elements to a function f
 /// which accepts the map element as an argument
@@ -47,7 +44,7 @@ let init () =
     
     // Set up window close interlock using IPC from/to main process
     electron.ipcRenderer.on("closingWindow", (fun (event) ->
-        checkOKToClose ()        
+        MenuBar.checkOKToClose ()        
         )) |> ignore
     
     electron.ipcRenderer.on("resizeWindow", (fun (event) ->
@@ -99,16 +96,14 @@ let init () =
         Tabs.createFileTab ()
     )
 
+    // create electron menus
+    MenuBar.mainMenu()
+
     // Create an empty tab to start with
     Tabs.createFileTab ()
-    Settings.vSettings <- Settings.getVisualSettings()
+    vSettings <- checkSettings (getJSONSettings())
     Editors.updateAllEditors()
-
-
-setMainMenu Tests.runAllEmulatorTests // pass this out-of-order dependency in to the menu code.
 
 let handleMonacoReady (_: Event) = init ()
 
-let listener: U2<EventListener, EventListenerObject> = U2.Case1 handleMonacoReady
-
-document.addEventListener("monaco-ready", listener)
+document.addEventListener("monaco-ready", U2.Case1 handleMonacoReady)

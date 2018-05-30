@@ -16,6 +16,7 @@ open Fable.Core.JsInterop
 open Fable.Import
 open Fable.Import.Browser
 open Microsoft.FSharp.Collections
+open Node.Exports
 
 // **********************************************************************************
 //                               Types used in this module
@@ -34,6 +35,15 @@ type Views =
     | Registers
     | Memory
     | Symbols
+
+type VSettings = {
+    EditorFontSize : string
+    SimulatorMaxSteps : string
+    EditorTheme: string
+    EditorWordWrap: string
+    EditorRenderWhitespace: string
+    CurrentFilePath: string
+    }
 
 // ***********************************************************************************
 //                       Functions Relating to Right-hand View Panel
@@ -78,44 +88,84 @@ let settings:obj = electron.remote.require "electron-settings"
 /// look up a DOM element
 let getHtml = Browser.document.getElementById
 
-// Default settings if they haven't already been defined by electron-settings
-let defaultSettings = Map.ofList [
-                            "simulator-max-steps" ==> "200000"
-                            "editor-font-size" ==> "16"
-                            "editor-theme" ==> "vs-dark-pro"
-                            "editor-word-wrap" ==> "off"
-                            "editor-render-whitespace" ==> "none"
-                            "current-file-path" ==> Fable.Import.Node.Exports.os.homedir()
-                        ]
 
-let getSetting (name : string) =
-    let setting = settings?get(name)
-    match isUndefined setting with
-    | true -> defaultSettings.[name]
-    | false -> setting
-    |> (fun x -> x.ToString())
+let mutable vSettings = {
+    EditorFontSize = "16"
+    SimulatorMaxSteps = "20000"
+    EditorTheme = "one-dark-pro"
+    EditorWordWrap = "off"
+    EditorRenderWhitespace = "none"
+    CurrentFilePath = Fable.Import.Node.Exports.os.homedir()
+    }
 
-let setSetting (name : string) (value : obj) =
-    settings?set(name, value) |> ignore
+let themes =  [
+                "vs-light", "Light"; 
+                "vs-dark", "Dark"; 
+                "one-dark-pro", "One Dark Pro";
+              ]
 
-let editorOptions () = createObj [
+let checkSettings (vs: VSettings) = 
+    printfn "Checking: %A" vs
+    let vso = vSettings
+    let checkPath (p:string) = 
+        match (fs.statSync (U2.Case1 p)).isDirectory() with
+        | true -> p
+        | false -> os.homedir()
+    try
+        let checkNum (n:string) (min:int64) (max:int64) (def:string) = 
+            printfn "checking number %A %A %A %A" n min max def
+            match int64 n with
+            | x when x > max -> def
+            | x when x < min -> def
+            | x -> printfn "number is Ok %A" x; x.ToString()
+        {
+        vs with 
+            EditorTheme = 
+                match List.tryFind ( fun (th , _) -> (th = vs.EditorTheme)) themes with
+                | Some _ ->  vs.EditorTheme
+                | _ ->  printfn "Setting theme to default"
+                        vSettings.EditorTheme
+            SimulatorMaxSteps = checkNum vs.SimulatorMaxSteps 0L System.Int64.MaxValue vso.SimulatorMaxSteps
+            EditorFontSize = checkNum vs.EditorFontSize 6L 60L vso.EditorFontSize
+            CurrentFilePath = checkPath vs.CurrentFilePath
+        }
+    with
+        | _ ->  printf "Error parsing stored settings: %A" vs
+                vs
 
-                        // User defined settings
-                        "theme" ==> getSetting "editor-theme";
-                        "renderWhitespace" ==> getSetting "editor-render-whitespace"
-                        "fontSize" ==> getSetting "editor-font-size";
-                        "wordWrap" ==> getSetting "editor-word-wrap";
 
-                        // Application defined settings
-                        "value" ==> "";
-                        "language" ==> "arm";
-                        "roundedSelection" ==> false;
-                        "scrollBeyondLastLine" ==> false;
-                        "automaticLayout" ==> true;
-                        "minimap" ==> createObj [ "enabled" ==> false ]
-                    ]
 
+
+
+
+
+
+
+
+let getJSONSettings() = 
+    let json = settings?get("JSON") :?> string
+    match isUndefined json with
+    | true ->
+            printfn "No JSON settings found on this PC"
+            vSettings
+    | false -> 
+        try
+            printfn "Using JSON settings from this PC %A" json
+            (Fable.Import.JS.JSON.parse json) :?> VSettings
+        with
+        | e -> 
+            printfn "default settings"
+            vSettings
+
+let setJSONSettings() =
+    let setSetting (name : string) (value : string) =
+        printf "Saving JSON: %A" value
+        settings?set(name, value) |> ignore
+    setSetting "JSON" (Fable.Import.JS.JSON.stringify vSettings)
     
+  
+
+
 let showMessage (callBack:int ->unit) (message:string) (detail:string) (buttons:string list) =
     let rem = electron.remote
     let retFn = unbox callBack

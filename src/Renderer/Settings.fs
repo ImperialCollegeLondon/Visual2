@@ -12,92 +12,76 @@ let editorTheme = "editor-theme"
 let editorWordWrap = "editor-word-wrap"
 let editorRenderWhitespace = "editor-render-whitespace"
 
-let inputSettings = [
-                        simulatorMaxSteps
-                        editorFontSize
-                        editorTheme
-                        editorWordWrap
-                        editorRenderWhitespace
-                    ]
 
 
-let themes = [
-                "vs-light", "Light"; 
-                "vs-dark", "Dark"; 
-                "one-dark-pro", "One Dark Pro";
-              ]
 
 let setSettingsUnsaved = (fun _ -> setTabUnsaved (getSettingsTabId ()))
 
-let getSettingInput (name : string) =
-    let input = document.getElementById(name) :?> HTMLInputElement
-    input.value
 
 
-type VSettings = {
-    EditorFontSize : uint32
-    SimulatorMaxSteps : int64
-    EditorTheme: string
-    EditorWordWrap: string
-    EditorRenderWhitespace: string
-    }
-
-let mutable vSettings = {
-    EditorFontSize = 16u
-    SimulatorMaxSteps = 200000L
-    EditorTheme = "one-dark-pro"
-    EditorWordWrap = "off"
-    EditorRenderWhitespace = "None"
-    }
-
-let getIntSetting mini maxi defi settingName = 
-    let (|INT|_|) = function
-        | Helpers.LITERALNUMB (n,"") -> Some n 
-        | _ -> Core.Option.None
-    match getSetting settingName with
-    | INT n when n >= mini && n <= maxi -> n
-    | INT n when n < mini -> mini
-    | INT n when n > maxi -> maxi
+let getIntSetting mini maxi (defi:string) setting = 
+    let (|INT|_|) (n:string) = 
+        try 
+            Some (int64 n)
+        with
+            | e -> Some (defi |> int64)
+    match setting with
+    | INT n when n >= mini && n <= maxi -> n |> string
+    | INT n when n < mini -> mini |> string
+    | INT n when n > maxi -> maxi |> string
     | _ -> defi
 
-let getVisualSettings() =
-    printfn "getting settings"
-    {
-        EditorFontSize = getIntSetting 8u 100u 12u editorFontSize
-        SimulatorMaxSteps = getIntSetting 0u 1000000000u 10000u simulatorMaxSteps |> uint64 |> int64
-        EditorTheme = getSetting editorTheme
-        EditorWordWrap = "off"
-        EditorRenderWhitespace = "None"
-    } 
+let getFormSettings() = 
+    let getS (name : string) =
+        let input = document.getElementById(name) :?> HTMLInputElement
+        input.value
+    let vs = {
+            SimulatorMaxSteps = getIntSetting 0L 1000000000L vSettings.SimulatorMaxSteps (getS simulatorMaxSteps)
+            EditorFontSize = getIntSetting 6L 100L vSettings.EditorFontSize (getS editorFontSize)
+            EditorTheme = getS editorTheme
+            EditorWordWrap = getS editorWordWrap
+            EditorRenderWhitespace = getS editorRenderWhitespace
+            CurrentFilePath = vSettings.CurrentFilePath
+        }
+    let vs1 = checkSettings vs
+    printfn "Checked settings are: %A" vs1
+    vSettings <- vs1
+    printfn "Saving settings: %A" vSettings
+    setJSONSettings()
+
+let initFormSettings() = 
+    let setS (name : string) (v:string) =
+        let input = document.getElementById(name) :?> HTMLInputElement
+        printfn "name=%A,dom=%A, value=%A" name input v
+        input.value <- v
+    let vs = vSettings
+    setS simulatorMaxSteps <| (uint64 vs.SimulatorMaxSteps).ToString()
+    setS editorFontSize <| (uint64 vs.EditorFontSize).ToString()
+    setS editorTheme vs.EditorTheme
+    setS editorWordWrap vs.EditorWordWrap
+    setS editorRenderWhitespace vs.EditorRenderWhitespace
 
 
 
-let setSettingInput (name : string) =
-    setSetting name (getSettingInput name)
-
-// Go through the form extracting all of the relevant settings
-let saveSettings () =
-    List.map setSettingInput inputSettings |> ignore
-    vSettings <- getVisualSettings()
-    Editors.updateAllEditors()
 
 
 
-let makeInputVal inType name (min:int,steps:int,max:int)=
+
+let makeInputVal inType name (min:int,steps:int,max:int) defi =
     let fi = document.createElement_input()
     fi.``type`` <- inType
     fi.id <- name
     fi.min <- min.ToString()
     fi.max <- max.ToString()
     fi.step <- steps.ToString()
-    fi.value <- (getSetting name).ToString()
+    fi.value <- defi.ToString()
     // Whenever a form input is changed, set the settings tab unsaved
     fi.onchange <- setSettingsUnsaved 
     //fi.onerror <- (fun _ -> printfn "Error")
     //fi.onreset <- (fun _ -> printfn "Reset")
     fi
 
-let makeInputSelect options name =
+let makeInputSelect options name defV =
     let makeOption (optionValue, optionName) =
         let opt = document.createElement_option()
         opt.innerHTML <- optionName
@@ -110,13 +94,13 @@ let makeInputSelect options name =
 
     List.map (makeOption >> (fun x -> select.appendChild(x))) options |> ignore
 
-    select.value <- (getSetting name).ToString()
+    select.value <- defV
 
     select.onchange <- setSettingsUnsaved
 
     select
 
-let makeInputCheckbox name trueVal falseVal =
+let makeInputCheckbox name trueVal falseVal defVal =
     let checkbox = document.createElement_input()
     checkbox.``type`` <- "checkbox"
     checkbox.id <- name
@@ -129,7 +113,7 @@ let makeInputCheckbox name trueVal falseVal =
     // When the checkbox is ticked, update its value
     checkbox.addEventListener_click (fun _ -> setValue())
 
-    checkbox.``checked`` <- match (getSetting name).ToString() with
+    checkbox.``checked`` <- match defVal.ToString() with
                             | x when x = trueVal -> true
                             | _ -> false
     
@@ -156,16 +140,16 @@ let settingsMenu () =
     
         DIV ["float-left"] [
             ELEMENT "h4" [] [] |> INNERHTML "Editor" 
-            makeFormGroup "Font Size" (makeInputVal "number" editorFontSize (6,2,50))
-            makeFormGroup "Theme" (makeInputSelect themes editorTheme)
-            makeFormGroup "Word Wrap" (makeInputCheckbox editorWordWrap "on" "off")
+            makeFormGroup "Font Size" (makeInputVal "number" editorFontSize (6,2,50) vSettings.EditorFontSize)
+            makeFormGroup "Theme" (makeInputSelect themes editorTheme vSettings.EditorTheme)
+            makeFormGroup "Word Wrap" (makeInputCheckbox editorWordWrap "on" "off" "on")
             makeFormGroup "Render Whitespace Characters" 
-                (makeInputCheckbox editorRenderWhitespace "all" "none")
+                (makeInputCheckbox editorRenderWhitespace "all" "none" "none")
         ]
         DIV [] [
             ELEMENT "h4" [] [] |> INNERHTML "Simulator"
             makeFormGroup "Max steps <br> (0 for no max) " 
-                (makeInputVal "number" simulatorMaxSteps (0, 100,10000000))
+                (makeInputVal "number" simulatorMaxSteps (0, 100,10000000) vSettings.SimulatorMaxSteps)
         ]
         
         DIV ["after"] []
@@ -173,9 +157,10 @@ let settingsMenu () =
             ELEMENT "button" ["btn";"btn-default"] []
             |> INNERHTML "Save"
             |> CLICKLISTENER (fun _ ->                                
-                        saveSettings()
+                        getFormSettings()
                         setTabSaved ( getSettingsTabId () )
-                        Tabs.deleteCurrentTab() )
+                        Tabs.deleteCurrentTab()
+                        Editors.updateAllEditors() )
         ]
     ]    
 
@@ -197,4 +182,5 @@ let createSettingsTab () =
         sv.id <- fileViewIdFormatter id
 
         fileViewPane.appendChild(sv) |> ignore
+        initFormSettings()
         selectFileTab id

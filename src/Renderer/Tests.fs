@@ -1,20 +1,15 @@
 ﻿module Tests
+
 open System
-open System.IO
 open ExecutionTop
 open Integration
 open Errors
 open EEExtensions
 open Fable.Core
-open Fable.Core.JsInterop
 open Fable.Import
-open Fable.Import.Electron
-open Fable.Import.Browser
 open Node.Exports
-open Fable.PowerPack.Keyboard
 open CommonData
-open Fable.PowerPack.Keyboard
-open Fable.PowerPack.Keyboard
+
 open Helpers
 
 
@@ -205,8 +200,7 @@ let writeResultsToFile fn rt resL =
             ([0..3]
             |> List.map (dispFlag before.TFlags after.Fl model.TFlags)
             |> String.concat "\n")
-            
-
+  
         let dispReg b model after n =
             let model =
                 match model.TRegs.[n] = after.Regs.[register n] with
@@ -244,8 +238,6 @@ let writeResultsToFile fn rt resL =
         |> String.concat "\n"
         |> (fun txt -> 
                 writeFileViaNode fName  txt)
-
-
 
 let processTestResults (fn: string) (res: Map<TestT,(TestT*TestSetup*RunInfo*string) list>) allowed =
     let getNum rt = 
@@ -341,12 +333,4 @@ let runAllEmulatorTests () =
 
     List.iter (runEmulatorTestFile allowed) files
     printfn "Finished. See './test-results' for result files"
-    
  
-    
-
-
-
-
-
-

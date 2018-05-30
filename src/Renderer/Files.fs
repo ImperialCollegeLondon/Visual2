@@ -14,6 +14,7 @@ open Fable.Import
 open Fable.Import.Electron
 open Node.Exports
 open Fable.PowerPack
+open EEExtensions
 
 open Fable.Import.Browser
 
@@ -54,12 +55,12 @@ let setTabFilePath id path =
 let getTabFilePath id =
     let fp = (tabFilePath id)
     fp.innerHTML
-
+/// get file name and extension from path
 let baseFilePath (path : string) =
     path.Split [|'/';'\\'|]
     |> Array.last
 
-// Load the node Buffer into the specified tab
+/// Load the node Buffer into the specified tab
 let loadFileIntoTab tId (fileData : Node.Buffer.Buffer) =
     if currentFileTabId = tId then
         resetEmulator()
@@ -67,12 +68,12 @@ let loadFileIntoTab tId (fileData : Node.Buffer.Buffer) =
     editor?setValue(fileData.toString("utf8")) |> ignore
     setTabSaved tId
 
-// Return the code in tab id tId as a string
+/// Return the text in tab id tId as a string
 let getCode tId =
     let editor = editors.[tId]
     editor?getValue() :?> string
 
-// If x is undefined, return errCase, else return Ok x
+/// If x is undefined, return errCase, else return Ok x
 let resultUndefined errCase x =
     match isUndefined x with
     | true -> Result.Error errCase
@@ -90,7 +91,7 @@ let openFile () =
     let options = createEmpty<OpenDialogOptions>
     options.properties <- ResizeArray(["openFile"; "multiSelections"]) |> Some
     options.filters <- fileFilterOpts
-    options.defaultPath <- Some (Refs.getSetting "current-file-path")
+    options.defaultPath <- Some vSettings.CurrentFilePath
     let readPath (path, tId) = 
         fs.readFile(path, (fun err data -> // TODO: find out what this error does
             loadFileIntoTab tId data
@@ -103,15 +104,24 @@ let openFile () =
         setTabFilePath tId path
         (path, tId)
 
-    let checkResult (res : ResizeArray<string>) =
-        match isUndefined res with
-        | true -> Result.Error () // No files were opened, so don't do anything
-        | false -> Result.Ok (res.ToArray())
-
+    let updateCurrentPath (res : string list) =
+        printfn "Updating path to: %A" res
+        match res with
+        | [p] ->
+            let dir = p |> String.split [|'\\';'/'|]
+            if dir.Length > 1 then
+                let path = path.join dir.[0..dir.Length-2]
+                printfn "Made path=%A" path
+                if (fs.statSync (U2.Case1 path)).isDirectory() then
+                    printf "Changing current path from %A to %A" vSettings.CurrentFilePath path
+                    vSettings <- {vSettings with CurrentFilePath = path}
+        | _ -> ()
+        res
     electron.remote.dialog.showOpenDialog(options)
     |> resultUndefined ()
     |> Result.map (fun x -> x.ToArray())
     |> Result.map Array.toList
+    |> Result.map updateCurrentPath
     |> Result.map (List.map (makeTab >> readPath))
     |> Result.map List.last
     |> Result.map selectFileTab
@@ -151,6 +161,7 @@ let saveFileAs () =
         |> resultIter writeCurrentCodeToFile
         |> resultIter (setTabFilePath currentFileTabId)
         |> Result.map baseFilePath
+
         |> Result.map (setTabName currentFileTabId)
         |> Result.map (fun _ -> setTabSaved (currentFileTabId))
         |> ignore
@@ -160,7 +171,7 @@ let saveFile () =
     // Save the settings if the current tab is the settings tab
     match settingsTab with
     | Some x when x = currentFileTabId -> 
-        saveSettings()
+        getFormSettings()
         setTabSaved (currentFileTabId)
     | _ ->
         match getTabFilePath currentFileTabId with

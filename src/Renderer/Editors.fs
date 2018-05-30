@@ -10,10 +10,30 @@ open Fable.Import.Browser
 open Fable.Core
 open EEExtensions
 
+let editorOptions () = 
+    let vs = Refs.vSettings
+    createObj [
+
+                        // User defined settings
+                        "theme" ==> vs.EditorTheme
+                        "renderWhitespace" ==> vs.EditorRenderWhitespace
+                        "fontSize" ==> vs.EditorFontSize
+                        "wordWrap" ==> vs.EditorWordWrap
+
+                        // Application defined settings
+                        "value" ==> "";
+                        "language" ==> "arm";
+                        "roundedSelection" ==> false;
+                        "scrollBeyondLastLine" ==> false;
+                        "automaticLayout" ==> true;
+                        "minimap" ==> createObj [ "enabled" ==> false ]
+              ]
 
 
 let updateEditor tId =
-    Refs.editors.[tId]?updateOptions(Refs.editorOptions()) |> ignore
+    let eo = editorOptions()
+    printfn "Options: %A" eo
+    Refs.editors.[tId]?updateOptions(eo) |> ignore
 
 let setTheme theme = 
     window?monaco?editor?setTheme(theme)
@@ -22,7 +42,7 @@ let setTheme theme =
 let updateAllEditors () =
     Refs.editors
     |> Map.iter (fun tId _ -> updateEditor tId)
-    let theme = Refs.getSetting("editor-theme")
+    let theme = Refs.vSettings.EditorTheme
     Refs.setFilePaneBackground (match theme with | "vs-light" -> "white" | _ -> "black")
     setTheme (theme) |> ignore
    

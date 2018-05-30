@@ -5,14 +5,14 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Refs.fs" />
-    <Compile Include="Tabs.fs" />
     <Compile Include="Editors.fs" />
+    <Compile Include="Tabs.fs" />
     <Compile Include="Settings.fs" />
     <Compile Include="Views.fs" />
     <Compile Include="Files.fs" />
-    <Compile Include="MenuBar.fs" />
     <Compile Include="Integration.fs" />
     <Compile Include="Tests.fs" />
+    <Compile Include="MenuBar.fs" />
     <Compile Include="Renderer.fs" />
   </ItemGroup>
   <ItemGroup>
