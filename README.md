@@ -171,7 +171,7 @@ It works around the fact that _packaging tools_ do not understand the non-standa
 
 ## Packaging VisUAL2 as binaries
 
-After you have compiled code (and checked it works) `yarn run package` will run electron packager and generate `./dist/os-name/*` files. See [the packaging issue](https://github.com/ImperialCollegeLondon/Visual2/issues/7) for more details. Note that if this breaks you can still run individual targets as below.
+After you have compiled code (and checked it works) `yarn run package` will run electron packager and generate `./dist/os-name/*` files. See also `run-packager-all.bat` if using windows host to make os-x binary. See [the packaging issue](https://github.com/ImperialCollegeLondon/Visual2/issues/7) for more details of how this has been customised to work. Note that if this breaks you can still run individual targets as below.
 
 `yarn run package-host` will generate just the distro for the host OS and platform.
 
@@ -180,6 +180,7 @@ Useful shortcuts for specific common target OS:
 * `yarn run package-win` (windows)
 * `yarn run package-linux` (linux)
 * `./run-packager-os2.bat`. For windows hosts and OS-X targets the packager must be run with admin privileges: this bat file will provide these.
+* `./run-packager-all.bat`. For windows hosts runs `yarn run packager` with admin priviledges needed to generate os-x binaries.
 
 
 
@@ -213,6 +214,6 @@ Other top-level files (never changed manually):
 
 ## Licensing
 
-No license while still closed source in imperialcollege. Will be MIT licensed when opened up.
+No license while still closed source in imperialcollege. 
 
 The project (when published) will use a GPLv3 license with possible exceptions granted on application to the project owner. That allows use in commercial products under negotiated conditions, whilst also ensuring that all code remains open.
