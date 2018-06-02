@@ -43,7 +43,7 @@ let updateAllEditors () =
     Refs.editors
     |> Map.iter (fun tId _ -> updateEditor tId)
     let theme = Refs.vSettings.EditorTheme
-    Refs.setFilePaneBackground (match theme with | "vs-light" -> "white" | _ -> "black")
+    Refs.setFilePaneBackground (match theme with | "one-light-pro" -> "white" | _ -> "black")
     setTheme (theme) |> ignore
    
 

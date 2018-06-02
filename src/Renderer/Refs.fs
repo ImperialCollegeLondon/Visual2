@@ -99,9 +99,8 @@ let mutable vSettings = {
     }
 
 let themes =  [
-                "vs-light", "Light"; 
-                "vs-dark", "Dark"; 
                 "one-dark-pro", "One Dark Pro";
+                "one-light-pro","One Light Pro";
               ]
 
 let checkSettings (vs: VSettings) = 

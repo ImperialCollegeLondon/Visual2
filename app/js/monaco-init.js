@@ -212,11 +212,12 @@ amdRequire(['vs/editor/editor.main'], function () {
         [/@\s*[a-zA-Z_\$][\w\$]*/, { token: 'annotation', log: 'annotation token: $0' }],
 
         // numbers
-        [/#-?\d*\.\d+([eE][\-+]?\d+)?/, 'number.float'],
+      
         [/#-?0[xX][0-9a-fA-F][0-9a-fA-F_]*/, 'number.hex'],
+        [/#-?0[bB][0-1][01_]*/, 'number.bin'],
         [/#-?\d[\d_]*/, 'number'],
-        [/-?\d*\.\d+([eE][\-+]?\d+)?/, 'number.barefloat'],
         [/-?0[xX][0-9a-fA-F][0-9a-fA-F_]*/, 'number.barehex'],
+        [/-?0[bB][0-1][01_]*/, 'number.barebin'],
         [/-?\d[\d_]*/, 'number.bare'],
 
         // delimiter: after number because of .\d floats
@@ -252,98 +253,44 @@ amdRequire(['vs/editor/editor.main'], function () {
     }
   });
 
+ function cs (color)  { 
+    return color.substr(1);
+ }
+
+  monaco.editor.defineTheme('one-light-pro', {
+    base: 'vs',
+    inherit: true, // can also be false to completely replace the builtin rules
+    rules: [
+      { token: 'operator', foreground: cs('#808080')},
+      { token: 'keyword', foreground: cs('#0000ff')},
+      { token: 'symbols', foreground: cs('#808080')},
+      { token: 'comment', foreground: cs('#208020')},
+      { token: 'escape', foreground: cs('#ff0000')},
+        { token: 'string', foreground: cs('#e06c75') },
+        {token: 'number.bare', foreground: cs("#c08000")},
+        {token: 'number.barehex', foreground:cs( "#c08000")},
+        {token: 'number.barebin', foreground:cs("#c08000")}
+    ],
+    "colors": {
+    }
+  });
+
   monaco.editor.defineTheme('one-dark-pro', {
     base: 'vs-dark',
     inherit: true, // can also be false to completely replace the builtin rules
     rules: [
-      { token: 'operators', foreground: '56b6c2'},
-      { token: 'keywords', foreground: '56b6c2'},
-      { token: 'symbols', foreground: '56b6c2'},
-      { token: 'escape', foreground: '57b6c2'},
-      { token: 'string', foreground: 'e06c75'}
+      { token: 'operator', foreground: cs('#b0b0ff')},
+      { token: 'symbol', foreground: cs('#76d6f2')},
+      { token: 'comment', foreground: cs('#40ff40')},
+      { token: 'escape', foreground: cs('#57b6c2')},
+        { token: 'string', foreground: cs('#e06c75')},
+        {token: 'number.bare', foreground: cs("#f0c000")},
+        {token: 'number.barehex', foreground: cs("#f0c000")},
+        {token: 'number.barebin', foreground: cs("#f0c000")}
     ],
     "colors": {
-      "activityBar.background": "#2F333D",
-      "activityBar.foreground": "#D7DAE0",
-      "activityBarBadge.background": "#4D78CC",
-      "activityBarBadge.foreground": "#F8FAFD",
-      "badge.background": "#282c34",
-      "button.background": "#404754",
-      "debugToolBar.background": "#21252b",
-      "dropdown.background": "#1d1f23",
-      "diffEditor.insertedTextBackground": "#00809B33",
-      "dropdown.border": "#181A1F",
-      "editor.background": "#282c34",
-      "editorError.foreground": "#c24038",
-      "editorMarkerNavigation.background": "#21252b",
-      "editorRuler.foreground": "#abb2bf26",
-      "editor.lineHighlightBackground": "#2c313c",
-      "editor.selectionBackground": "#67769660",
-      "editor.selectionHighlightBackground": "#ffffff10",
-      "editor.selectionHighlightBorder": "#ddd",
-      "editorCursor.background": "#ffffffc9",
-      "editorCursor.foreground": "#528bff",
-      "editorBracketMatch.border": "#515a6b",
-      "editorBracketMatch.background": "#515a6b",
-      "editor.findMatchBackground": "#42557B",
-      "editor.findMatchBorder": "#457dff",
-      "editor.findMatchHighlightBackground": "#314365",
-      "editor.wordHighlightBackground": "#484e5b",
-      "editor.wordHighlightBorder": "#7f848e",
-      "editor.wordHighlightStrongBackground": "#abb2bf26",
-      "editor.wordHighlightStrongBorder": "#7f848e",
-      "editorGroup.background": "#181A1F",
-      "editorGroup.border": "#181A1F",
-      "editorGroupHeader.tabsBackground": "#21252B",
-      "editorIndentGuide.background": "#3B4048",
-      "editorLineNumber.foreground": "#495162",
-      "editorActiveLineNumber.foreground": "#737984",
-      "editorWhitespace.foreground": "#3B4048",
-      "editorHoverWidget.background": "#21252B",
-      "editorHoverWidget.border": "#181A1F",
-      "editorSuggestWidget.background": "#21252B",
-      "editorSuggestWidget.border": "#181A1F",
-      "editorSuggestWidget.selectedBackground": "#2c313a",
-      "editorWidget.background": "#21252B",
-      "input.background": "#1d1f23",
-      "list.activeSelectionBackground": "#2c313a",
-      "list.activeSelectionForeground": "#d7dae0",
-      "list.focusBackground": "#383E4A",
-      "list.hoverBackground": "#292d35",
-      "list.highlightForeground": "#C5C5C5",
-      "list.inactiveSelectionBackground": "#2c313a",
-      "list.inactiveSelectionForeground": "#d7dae0",
-      "peekViewEditor.matchHighlightBackground": "#29244b",
-      "scrollbarSlider.background": "#4e566660",
-      "scrollbarSlider.activeBackground": "#747D9180",
-      "scrollbarSlider.hoverBackground": "#5A637580",
-      "sideBar.background": "#21252b",
-      "sideBarSectionHeader.background": "#282c34",
-      "statusBar.background": "#21252B",
-      "statusBar.foreground": "#9da5b4",
-      "statusBarItem.hoverBackground": "#2c313a",
-      "statusBar.noFolderBackground": "#21252B",
-      "statusBar.debuggingBackground": "#7e0097",
-      "statusBar.debuggingBorder": "#66017a",
-      "statusBar.debuggingForeground": "#ffffff",
-      "tab.activeBackground": "#2c313a",
-      "tab.border": "#181A1F",
-      "tab.inactiveBackground": "#21252B",
-      "tab.hoverBackground": "#323842",
-      "tab.unfocusedHoverBackground": "#323842",
-      "terminal.foreground":"#C8C8C8",
-      "terminal.ansiBlack": "#2D3139",
-      "terminal.ansiBlue": "#2e8ccf",
-      "terminal.ansiGreen": "#98c379cc",
-      "terminal.ansiYellow": "#B4881D",
-      "titleBar.activeBackground": "#282c34",
-      "titleBar.activeForeground": "#9da5b4",
-      "titleBar.inactiveBackground": "#282C34",
-      "titleBar.inactiveForeground": "#6B717D",
     }
   });
-
-
 
 
   // window.code = monaco.editor.create(document.getElementById('editor'), {
