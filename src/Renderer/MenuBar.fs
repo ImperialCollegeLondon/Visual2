@@ -88,6 +88,8 @@ let editMenu =
         makeItem "Find" (Some "CmdOrCtrl+F") Files.editorFind              
         makeItem "Replace"  (Some "CmdOrCtrl+H") Files.editorFindReplace
         menuSeparator
+        makeItem "Increase Font Size" (Some "CmdOrCtrl+.") (fun () -> Settings.alterFontSize 2)
+        makeItem "Decrease Font Size" (Some "CmdOrCtrl+,") (fun () -> Settings.alterFontSize -2)
         makeItem  "Preferences"  Option.None optCreateSettingsTab
     ]
 

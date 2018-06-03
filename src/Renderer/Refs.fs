@@ -102,6 +102,9 @@ let themes =  [
                 "one-dark-pro", "One Dark Pro";
                 "one-light-pro","One Light Pro";
               ]
+let minFontSize = 6L
+let maxFontSize = 60L
+
 
 let checkSettings (vs: VSettings) = 
     printfn "Checking: %A" vs
@@ -125,7 +128,7 @@ let checkSettings (vs: VSettings) =
                 | _ ->  printfn "Setting theme to default"
                         vSettings.EditorTheme
             SimulatorMaxSteps = checkNum vs.SimulatorMaxSteps 0L System.Int64.MaxValue vso.SimulatorMaxSteps
-            EditorFontSize = checkNum vs.EditorFontSize 6L 60L vso.EditorFontSize
+            EditorFontSize = checkNum vs.EditorFontSize minFontSize maxFontSize vso.EditorFontSize
             CurrentFilePath = checkPath vs.CurrentFilePath
         }
     with

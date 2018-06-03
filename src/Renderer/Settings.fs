@@ -4,6 +4,7 @@ open Fable.Import.Browser
 
 open Refs
 open Tabs
+open Editors
 
 
 let editorFontSize = "editor-font-size"
@@ -16,7 +17,6 @@ let editorRenderWhitespace = "editor-render-whitespace"
 
 
 let setSettingsUnsaved = (fun _ -> setTabUnsaved (getSettingsTabId ()))
-
 
 
 let getIntSetting mini maxi (defi:string) setting = 
@@ -140,7 +140,7 @@ let settingsMenu () =
     
         DIV ["float-left"] [
             ELEMENT "h4" [] [] |> INNERHTML "Editor" 
-            makeFormGroup "Font Size" (makeInputVal "number" editorFontSize (6,2,50) vSettings.EditorFontSize)
+            makeFormGroup "Font Size" (makeInputVal "number" editorFontSize (int minFontSize,2,int maxFontSize) vSettings.EditorFontSize)
             makeFormGroup "Theme" (makeInputSelect themes editorTheme vSettings.EditorTheme)
             makeFormGroup "Word Wrap" (makeInputCheckbox editorWordWrap "on" "off" "on")
             makeFormGroup "Render Whitespace Characters" 
@@ -184,3 +184,12 @@ let createSettingsTab () =
         fileViewPane.appendChild(sv) |> ignore
         initFormSettings()
         selectFileTab id
+
+let alterFontSize (n:int) =
+    let fontSize = int64 Refs.vSettings.EditorFontSize
+    let newSize = fontSize + int64 n
+    Refs.vSettings <- checkSettings
+        {Refs.vSettings with 
+            EditorFontSize = (int64 newSize).ToString()
+        }
+    updateAllEditors()

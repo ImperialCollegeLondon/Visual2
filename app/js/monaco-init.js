@@ -1,16 +1,3 @@
-//export default class CodeEditor extends Component {
-//  render() {
-//    return (
-//        <MonacoEditor
-//          requireConfig={{
-//            url: `${appPath}/vs/loader.js`,
-//            baseUrl: `${appPath}`
-//          }}
-//        />
-//    )
-//  }
-//}
-
 
 // Save Monaco's amd require and restore Node's require
 var amdRequire = global.require;
@@ -265,7 +252,7 @@ amdRequire(['vs/editor/editor.main'], function () {
     rules: [
       { token: 'operator', foreground: cs('#303030')},
       { token: 'keyword', foreground: cs('#1010a0')},
-      { token: 'symbols', foreground: cs('#c0c0c0')},
+      { token: 'symbols', foreground: cs('#303030')},
       { token: 'comment', foreground: cs('#308030')},
       { token: 'escape', foreground: cs('#ff0000')},
       { token: 'string', foreground: cs('#e06c75') },
@@ -292,20 +279,6 @@ amdRequire(['vs/editor/editor.main'], function () {
     "colors": {
     }
   });
-
-
-  // window.code = monaco.editor.create(document.getElementById('editor'), {
-   //  value: [
-   //    'mov r0, #5',
-   //    'mov r1, r0'
-    // ].join('\n'),
-    // language: 'arm',
-    // theme: 'vs-light',
-    // renderWhitespace: 'all',
-    // roundedSelection: false,
-    // scrollBeyondLastLine: false,
-    // automaticLayout: true
-   //});
 
   var mevent = new CustomEvent("monaco-ready", { "detail": "ready now!" });
 
