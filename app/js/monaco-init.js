@@ -58,7 +58,7 @@ amdRequire(['vs/editor/editor.main'], function () {
     ],
 
     keywords: [
-      "ADC","ADCAL",      "ADCEQ",     "ADCGE","ADCGT","ADCHI","ADCHS","ADCLE","ADCLO","ADCLS","ADCLT","ADCMI",
+      "ADC","ADCAL","ADCEQ","ADCGE","ADCGT","ADCHI","ADCHS","ADCLE","ADCLO","ADCLS","ADCLT","ADCMI",
       "ADCNE","ADCNV","ADCPL","ADCS","ADCSAL","ADCSEQ","ADCSGE","ADCSGT","ADCSHI","ADCSHS","ADCSLE",
       "ADCSLO","ADCSLS","ADCSLT","ADCSMI","ADCSNE","ADCSNV","ADCSPL","ADCSVC","ADCSVS","ADCVC","ADCVS","ADD",
       "ADDAL","ADDEQ","ADDGE","ADDGT","ADDHI","ADDHS","ADDLE","ADDLO","ADDLS","ADDLT","ADDMI","ADDNE","ADDNV",
@@ -213,11 +213,11 @@ amdRequire(['vs/editor/editor.main'], function () {
 
         // numbers
       
-        [/#-?0[xX][0-9a-fA-F][0-9a-fA-F_]*/, 'number.hex'],
-        [/#-?0[bB][0-1][01_]*/, 'number.bin'],
-        [/#-?\d[\d_]*/, 'number'],
-        [/-?0[xX][0-9a-fA-F][0-9a-fA-F_]*/, 'number.barehex'],
-        [/-?0[bB][0-1][01_]*/, 'number.barebin'],
+        [/#-?0[xX][0-9a-fA-F][0-9a-fA-F_]*/, 'number.hash.hex'],
+        [/#-?0[bB][0-1][01_]*/, 'number.hash.bin'],
+        [/#-?\d[\d_]*/, 'number.hash'],
+        [/-?0[xX][0-9a-fA-F][0-9a-fA-F_]*/, 'number.bare.hex'],
+        [/-?0[bB][0-1][01_]*/, 'number.bare.bin'],
         [/-?\d[\d_]*/, 'number.bare'],
 
         // delimiter: after number because of .\d floats
@@ -253,6 +253,8 @@ amdRequire(['vs/editor/editor.main'], function () {
     }
   });
 
+  // Convert CSS-stle hex color (with #) to form needed by syntax highlighting.
+  // Add a JS color display extension to have colors displayed in source
  function cs (color)  { 
     return color.substr(1);
  }
@@ -261,15 +263,14 @@ amdRequire(['vs/editor/editor.main'], function () {
     base: 'vs',
     inherit: true, // can also be false to completely replace the builtin rules
     rules: [
-      { token: 'operator', foreground: cs('#808080')},
-      { token: 'keyword', foreground: cs('#0000ff')},
-      { token: 'symbols', foreground: cs('#808080')},
-      { token: 'comment', foreground: cs('#208020')},
+      { token: 'operator', foreground: cs('#303030')},
+      { token: 'keyword', foreground: cs('#1010a0')},
+      { token: 'symbols', foreground: cs('#c0c0c0')},
+      { token: 'comment', foreground: cs('#308030')},
       { token: 'escape', foreground: cs('#ff0000')},
-        { token: 'string', foreground: cs('#e06c75') },
-        {token: 'number.bare', foreground: cs("#c08000")},
-        {token: 'number.barehex', foreground:cs( "#c08000")},
-        {token: 'number.barebin', foreground:cs("#c08000")}
+      { token: 'string', foreground: cs('#e06c75') },
+      {token: 'number.bare', foreground: cs("#c08000") },
+      { token: 'number.hash', foreground: cs("#408080")}
     ],
     "colors": {
     }
@@ -279,14 +280,14 @@ amdRequire(['vs/editor/editor.main'], function () {
     base: 'vs-dark',
     inherit: true, // can also be false to completely replace the builtin rules
     rules: [
-      { token: 'operator', foreground: cs('#b0b0ff')},
-      { token: 'symbol', foreground: cs('#76d6f2')},
-      { token: 'comment', foreground: cs('#40ff40')},
+      { token: 'operator', foreground: cs('#b0b0b0')},
+      { token: 'keyword', foreground: cs('#99ccff')},
+      { token: 'symbol', foreground: cs('#a0a0a0')},
+      { token: 'comment', foreground: cs('#20a020')},
       { token: 'escape', foreground: cs('#57b6c2')},
-        { token: 'string', foreground: cs('#e06c75')},
-        {token: 'number.bare', foreground: cs("#f0c000")},
-        {token: 'number.barehex', foreground: cs("#f0c000")},
-        {token: 'number.barebin', foreground: cs("#f0c000")}
+      { token: 'string', foreground: cs('#e06c75')},
+      { token: 'number.hash', foreground: cs("#80c0c0")},
+      {token: 'number.bare', foreground: cs("#f0f080")}
     ],
     "colors": {
     }
