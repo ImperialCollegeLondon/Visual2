@@ -35,19 +35,27 @@ let createMainWindow () =
     options.width <- Some 1200.
     options.height <- Some 800.
     options.show <- Some false
+    let prefs = createEmpty<WebPreferences>
+    prefs.devTools <- Some true    
+    options.webPreferences <- Some prefs
+    
     options.frame <- Some true
     options.hasShadow <- Some true
     options.backgroundColor <- Some "#5F9EA0"
     options.icon <- Some (U2.Case2 "resources/app/app/resources/visual.ico")
     let window = electron.BrowserWindow.Create(options)
-    
+    //window.webContents.openDevTools();
     // Load the index.html of the app.
     let opts = createEmpty<Node.Url.Url<obj>>
     opts.pathname <- Some <| path.join(Node.Globals.__dirname, "/app/index.html")
     opts.protocol <- Some "file:"
+    printfn "Loading HTML: %A, icon=%A" opts.pathname options.icon
     window.loadURL(url.format(opts))
-
+    //window.show()
+    printfn "load complete"
+    (*
     #if DEBUG
+    printfn "Adding DEBUG Code..."
     fs.watch(path.join(Node.Globals.__dirname, "/app/js"), fun _ _ ->
         window.webContents.reloadIgnoringCache()
     ) |> ignore
@@ -57,8 +65,8 @@ let createMainWindow () =
     fs.watch(path.join(Node.Globals.__dirname, "/app"), fun _ _ ->
         window.webContents.reloadIgnoringCache()
     ) |> ignore
-
-    #endif
+    
+    #endif *)
     let mutable closeAfterSave = false
     window.on("close", 
                 unbox (fun e ->

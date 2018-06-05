@@ -168,7 +168,7 @@
 .settings-menu {
     max-width: 400px;
     display: inline-block;
-    background-color: white;
+    background-color: lightgrey;
     text-align: left;
     padding-left: 20px;
     overflow: auto;
@@ -184,12 +184,24 @@
 
 .monaco-editor {
     text-align: left;
+    /*-webkit-font-smoothing: antialiased;*/
+
 }
+
 
 .settings-select {
     max-width: 150px;
+    font-size: 12px;
+    border-width: 1px;
+    border-color: grey;
 }
-
+.settings-input {
+    font-size: 12px;
+    text-indent: 12px;
+    border-width: 1px;
+    border-radius: 4px;
+    border-color: grey;
+}
 .settings-label {
     margin-bottom: 0px;
     margin-top: 10px;

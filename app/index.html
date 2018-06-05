@@ -251,6 +251,7 @@
         // Monaco uses a custom amd loader that over-rides node's require.
         // Keep a reference to node's require so we can restore it after executing the amd loader file.
         var nodeRequire = global.require;
+        global.require('electron-settings');
     </script>
     <script>console.log('hello from index.html')</script>
     <script src="js/renderer.js"></script>

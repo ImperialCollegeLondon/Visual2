@@ -4,12 +4,12 @@
   "main": "main.js",
   "scripts": {
     "start": "cd src/Main && dotnet fable webpack --port free -- -w --config webpack.config.js",
-    "build": "cd src/Main && dotnet fable webpack --port free -- --config webpack.config.js",
-    "package": "electron-packager . visual2 --arch=x64 --platform=darwin,linux,win32 --out=dist --no-prune --ignore=/node_modules --ignore=/src --overwrite",
-    "package-host": "electron-packager . visual2 --out=dist --no-prune --ignore=/node_modules --ignore=/src --overwrite",
-    "package-osx": "electron-packager . visual2 --platform=darwin --arch=x64 --out=dist --no-prune --ignore=/node_modules --ignore=/src --overwrite",
-    "package-linux": "electron-packager . visual2 --platform=linux --arch=x64 --out=dist --no-prune --ignore=/node_modules --ignore=/src --overwrite",
-    "package-win": "electron-packager . visual2 --platform=win32 --arch=x64 --out=dist --no-prune --ignore=/node_modules --ignore=/src --overwrite",
+    "build": "cd src/Main && dotnet fable -p webpack --port free -- --config webpack.config.js",
+    "package": "electron-packager . visual2 --arch=x64 --platform=darwin,linux,win32 --out=dist --prune --asar --ignore=/dist --ignore=/src --overwrite",
+    "package-host": "electron-packager . visual2 --out=dist --prune --asar --ignore=/dist --ignore=/src --overwrite",
+    "package-osx": "electron-packager . visual2 --platform=darwin --arch=x64 --out=dist --prune --asar --ignore=/dist --ignore=/src --overwrite",
+    "package-linux": "electron-packager . visual2 --platform=linux --arch=x64 --out=dist --prune --asar --ignore=/dist --ignore=/src --overwrite",
+    "package-win": "electron-packager . visual2 --platform=win32 --arch=x64 --out=dist --prune --asar --ignore=/dist --ignore=/src --overwrite",
     "launch": "electron ."
   },
   "dependencies": {
@@ -17,7 +17,7 @@
     "babel-runtime": "^6.26.0",
     "copyfiles": "^2.0.0",
     "electron-context-menu": "^0.9.1",
-    "electron-settings": "^3.1.4",
+    "electron-settings": "^3.2.0",
     "electron-tabs": "^0.9.1",
     "monaco-editor": "^0.12.0",
     "requirejs": "^2.3.5"

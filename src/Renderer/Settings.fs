@@ -71,6 +71,7 @@ let makeInputVal inType name (min:int,steps:int,max:int) defi =
     let fi = document.createElement_input()
     fi.``type`` <- inType
     fi.id <- name
+    fi.classList.add [|"settings-input"|]
     fi.min <- min.ToString()
     fi.max <- max.ToString()
     fi.step <- steps.ToString()

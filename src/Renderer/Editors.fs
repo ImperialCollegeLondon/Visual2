@@ -22,6 +22,8 @@ let editorOptions () =
 
                         // Application defined settings
                         "value" ==> "";
+                        "fontFamily" ==> "fira-code"
+                        "fontWeight" ==> "bold"
                         "language" ==> "arm";
                         "roundedSelection" ==> false;
                         "scrollBeyondLastLine" ==> false;
@@ -43,7 +45,10 @@ let updateAllEditors () =
     Refs.editors
     |> Map.iter (fun tId _ -> updateEditor tId)
     let theme = Refs.vSettings.EditorTheme
-    Refs.setFilePaneBackground (match theme with | "one-light-pro" -> "white" | _ -> "black")
+    Refs.setFilePaneBackground (
+        match theme with 
+        | "one-light-pro" | "solarised-light" -> "white" 
+        | _ -> "black")
     setTheme (theme) |> ignore
    
 

@@ -92,7 +92,7 @@ let getHtml = Browser.document.getElementById
 let mutable vSettings = {
     EditorFontSize = "16"
     SimulatorMaxSteps = "20000"
-    EditorTheme = "one-dark-pro"
+    EditorTheme = "solarised-dark"
     EditorWordWrap = "off"
     EditorRenderWhitespace = "none"
     CurrentFilePath = Fable.Import.Node.Exports.os.homedir()
@@ -101,6 +101,8 @@ let mutable vSettings = {
 let themes =  [
                 "one-dark-pro", "One Dark Pro";
                 "one-light-pro","One Light Pro";
+                "solarised-dark", "Solarised Dark";
+                "solarised-light", "Solarised Light";
               ]
 let minFontSize = 6L
 let maxFontSize = 60L
