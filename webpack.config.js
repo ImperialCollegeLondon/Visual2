@@ -11,7 +11,7 @@ var babelOptions = fableUtils.resolveBabelOptions({
   plugins: ["transform-runtime"]
 });
 
-var isProduction = process.argv.indexOf("-p") >= 0;
+var isProduction = process.argv.indexOf("-w") < 0;
 console.log("Bundling for " + (isProduction ? "production" : "development") + "...");
 
 var basicConfig = {
@@ -30,7 +30,7 @@ var basicConfig = {
           loader: "fable-loader",
           options: {
             babel: babelOptions,
-            define: isProduction ? [] : ["DEBUG"]
+            define: isProduction ? ["DEBUG"] : ["DEBUG", "WATCH"]
           }
         }
       },

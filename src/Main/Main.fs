@@ -49,13 +49,18 @@ let createMainWindow () =
     let opts = createEmpty<Node.Url.Url<obj>>
     opts.pathname <- Some <| path.join(Node.Globals.__dirname, "/app/index.html")
     opts.protocol <- Some "file:"
-    printfn "Loading HTML: %A, icon=%A" opts.pathname options.icon
+    // printfn "Loading HTML: %A, icon=%A" opts.pathname options.icon
     window.loadURL(url.format(opts))
     //window.show()
     printfn "load complete"
-    (*
-    #if DEBUG
-    printfn "Adding DEBUG Code..."
+
+
+    #if WATCH
+    printfn "Adding extra DEBUG Code..."
+    fs.watch(path.join(Node.Globals.__dirname, "/"), fun _ _ ->
+        window.webContents.reloadIgnoringCache()
+    ) |> ignore
+
     fs.watch(path.join(Node.Globals.__dirname, "/app/js"), fun _ _ ->
         window.webContents.reloadIgnoringCache()
     ) |> ignore
@@ -66,7 +71,7 @@ let createMainWindow () =
         window.webContents.reloadIgnoringCache()
     ) |> ignore
     
-    #endif *)
+    #endif 
     let mutable closeAfterSave = false
     window.on("close", 
                 unbox (fun e ->
