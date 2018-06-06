@@ -1,0 +1,1101 @@
+
+--------------dp3Imm:221----------------
+Bad output:R0 is 0x0 should be 0x80000003
+Bad output:R1 is 0x0 should be 0xfffffffc
+Bad output:R2 is 0x0 should be 0x80000003
+Bad output:R3 is 0x0 should be 0x7ffffffe
+Bad output:R4 is 0x0 should be 0x80000000
+Bad output:R6 is 0x0 should be 0x80000004
+Bad output:R7 is 0x0 should be 0x7ffffffd
+Bad output:R8 is 0x0 should be 0xfffffffc
+Bad output:R9 is 0x0 should be 0x4
+Bad output:R10 is 0x0 should be 0xfffffffe
+Bad output:R11 is 0x284 should be 0x280
+Bad output:R12 is 0x0 should be 0x7fffffff
+Bad output:R13 is 0x0 should be 0x7ffffffc
+Bad output:R14 is 0x0 should be 0xfffffffc
+
+Register  Input      Actual Out    Model Out
+R0        2147483651          0 2147483651
+R1        4294967292          0 4294967292
+R2        2147483651          0 2147483651
+R3        2147483646          0 2147483646
+R4        2147483648          0 2147483648
+R5                 0          0           
+R6        2147483652          0 2147483652
+R7        2147483645          0 2147483645
+R8        4294967292          0 4294967292
+R9                 4          0          4
+R10       4294967294          0 4294967294
+R11       2147483649        644        640
+R12       2147483647          0 2147483647
+R13       2147483644          0 2147483644
+R14       4294967292          0 4294967292
+Flag          Before        After        Model
+N                    1          0          1
+Z                    0          0           
+C                    1          0          1
+V                    0          0           
+
+       ---------ASM----------
+ADD R11,R1, #644
+----------------------------------
+
+
+
+--------------dp3Imm:227----------------
+Bad output:R0 is 0x0 should be 0x3
+Bad output:R1 is 0x0 should be 0x80000000
+Bad output:R2 is 0x0 should be 0x80000004
+Bad output:R3 is 0x0 should be 0x4
+Bad output:R4 is 0x0 should be 0x7ffffffe
+Bad output:R5 is 0x0 should be 0xfffffffd
+Bad output:R6 is 0x0 should be 0x80000003
+Bad output:R7 is 0x0 should be 0x80000002
+Bad output:R8 is 0x0 should be 0xffffffff
+Bad output:R9 is 0x0 should be 0x7ffffffc
+Bad output:R10 is 0xa6000 should be 0xa5ffe
+Bad output:R11 is 0x0 should be 0xfffffffe
+Bad output:R12 is 0x0 should be 0x7ffffffd
+Bad output:R13 is 0x0 should be 0x7ffffffc
+Bad output:R14 is 0x0 should be 0x80000002
+
+Register  Input      Actual Out    Model Out
+R0                 3          0          3
+R1        2147483648          0 2147483648
+R2        2147483652          0 2147483652
+R3                 4          0          4
+R4        2147483646          0 2147483646
+R5        4294967293          0 4294967293
+R6        2147483651          0 2147483651
+R7        2147483650          0 2147483650
+R8        4294967295          0 4294967295
+R9        2147483644          0 2147483644
+R10       4294967293     679936     679934
+R11       4294967294          0 4294967294
+R12       2147483645          0 2147483645
+R13       2147483644          0 2147483644
+R14       2147483650          0 2147483650
+Flag          Before        After        Model
+N                    0          0           
+Z                    0          0           
+C                    1          0          1
+V                    1          0          1
+
+       ---------ASM----------
+ADC R10 ,R5 , #679936
+----------------------------------
+
+
+
+--------------dp3Imm:239----------------
+Bad output:R0 is 0x0 should be 0x80000000
+Bad output:R1 is 0xfffca3ff should be 0x7ffca3fc
+Bad output:R2 is 0x0 should be 0xfffffffc
+Bad output:R3 is 0x0 should be 0x7ffffffe
+Bad output:R4 is 0x0 should be 0xfffffffe
+Bad output:R5 is 0x0 should be 0xfffffffe
+Bad output:R6 is 0x0 should be 0xfffffffe
+Bad output:R7 is 0x0 should be 0x7ffffffe
+Bad output:R8 is 0x0 should be 0xfffffffe
+Bad output:R9 is 0x0 should be 0x7ffffffd
+Bad output:R10 is 0x0 should be 0x7ffffffd
+Bad output:R11 is 0x0 should be 0xffffffff
+Bad output:R12 is 0x0 should be 0x7ffffffc
+Bad output:R13 is 0x0 should be 0x80000004
+Bad output:R14 is 0x0 should be 0x80000000
+
+Register  Input      Actual Out    Model Out
+R0        2147483648          0 2147483648
+R1        2147483647 4294747135 2147263484
+R2        4294967292          0 4294967292
+R3        2147483646          0 2147483646
+R4        4294967294          0 4294967294
+R5        4294967294          0 4294967294
+R6        4294967294          0 4294967294
+R7        2147483646          0 2147483646
+R8        4294967294          0 4294967294
+R9        2147483645          0 2147483645
+R10       2147483645          0 2147483645
+R11       4294967295          0 4294967295
+R12       2147483644          0 2147483644
+R13       2147483652          0 2147483652
+R14       2147483648          0 2147483648
+Flag          Before        After        Model
+N                    1          0          1
+Z                    0          0           
+C                    1          0          1
+V                    1          0          1
+
+       ---------ASM----------
+SBC R1,R12, #220160
+----------------------------------
+
+
+
+--------------dp3Imm:172----------------
+Bad output:R0 is 0x0 should be 0x80000004
+Bad output:R1 is 0x0 should be 0x1
+Bad output:R2 is 0x0 should be 0x7ffffffd
+Bad output:R3 is 0x15c0 should be 0x15c3
+Bad output:R4 is 0x0 should be 0x7ffffffd
+Bad output:R5 is 0x0 should be 0x7ffffffd
+Bad output:R6 is 0x0 should be 0x7fffffff
+Bad output:R7 is 0x0 should be 0x4
+Bad output:R8 is 0x0 should be 0xfffffffc
+Bad output:R9 is 0x0 should be 0x80000000
+Bad output:R10 is 0x0 should be 0x80000002
+Bad output:R11 is 0x0 should be 0x7ffffffe
+Bad output:R13 is 0x0 should be 0x7ffffffe
+Bad output:R14 is 0x0 should be 0xfffffffc
+
+Register  Input      Actual Out    Model Out
+R0        2147483652          0 2147483652
+R1                 1          0          1
+R2        2147483645          0 2147483645
+R3                 3       5568       5571
+R4        2147483645          0 2147483645
+R5        2147483645          0 2147483645
+R6        2147483647          0 2147483647
+R7                 4          0          4
+R8        4294967292          0 4294967292
+R9        2147483648          0 2147483648
+R10       2147483650          0 2147483650
+R11       2147483646          0 2147483646
+R12                0          0           
+R13       2147483646          0 2147483646
+R14       4294967292          0 4294967292
+Flag          Before        After        Model
+N                    1          0           
+Z                    0          0           
+C                    0          0           
+V                    0          0           
+
+       ---------ASM----------
+ADDS R3,R3 ,#5568
+----------------------------------
+
+
+
+--------------dp3Imm:178----------------
+Bad output:R0 is 0x0 should be 0x4
+Bad output:R1 is 0x0 should be 0x80000000
+Bad output:R2 is 0x0 should be 0x80000000
+Bad output:R3 is 0x0 should be 0xfffffffe
+Bad output:R4 is 0x0 should be 0x7fffffff
+Bad output:R5 is 0x0 should be 0x1
+Bad output:R7 is 0x0 should be 0x7fffffff
+Bad output:R8 is 0x0 should be 0x80000003
+Bad output:R9 is 0xc0000001 should be 0x40000001
+Bad output:R10 is 0x0 should be 0x2
+Bad output:R11 is 0x0 should be 0xfffffffe
+Bad output:R12 is 0x0 should be 0x80000000
+Bad output:R13 is 0x0 should be 0x1
+Bad output:R14 is 0x0 should be 0x1
+
+Register  Input      Actual Out    Model Out
+R0                 4          0          4
+R1        2147483648          0 2147483648
+R2        2147483648          0 2147483648
+R3        4294967294          0 4294967294
+R4        2147483647          0 2147483647
+R5                 1          0          1
+R6                 0          0           
+R7        2147483647          0 2147483647
+R8        2147483651          0 2147483651
+R9        2147483644 3221225473 1073741825
+R10                2          0          2
+R11       4294967294          0 4294967294
+R12       2147483648          0 2147483648
+R13                1          0          1
+R14                1          0          1
+Flag          Before        After        Model
+N                    0          1          0
+Z                    0          0           
+C                    0          0          1
+V                    0          0          1
+
+       ---------ASM----------
+ADCS R9,R12 , #-1073741823
+----------------------------------
+
+
+
+--------------dp3Imm:196----------------
+Bad output:R0 is 0x0 should be 0xfffffffe
+Bad output:R1 is 0x0 should be 0x7ffffffd
+Bad output:R2 is 0x0 should be 0x1
+Bad output:R3 is 0x0 should be 0x80000003
+Bad output:R4 is 0x0 should be 0x80000001
+Bad output:R5 is 0x0 should be 0x7ffffffe
+Bad output:R6 is 0x373f should be 0x8000373b
+Bad output:R7 is 0x0 should be 0xfffffffd
+Bad output:R8 is 0x0 should be 0x1
+Bad output:R9 is 0x0 should be 0x80000004
+Bad output:R10 is 0x0 should be 0xfffffffc
+Bad output:R11 is 0x0 should be 0x80000001
+Bad output:R12 is 0x0 should be 0x80000002
+Bad output:R13 is 0x0 should be 0xfffffffd
+Bad output:R14 is 0x0 should be 0x7ffffffc
+
+Register  Input      Actual Out    Model Out
+R0        4294967294          0 4294967294
+R1        2147483645          0 2147483645
+R2                 1          0          1
+R3        2147483651          0 2147483651
+R4        2147483649          0 2147483649
+R5        2147483646          0 2147483646
+R6        2147483651      14143 2147497787
+R7        4294967293          0 4294967293
+R8                 1          0          1
+R9        2147483652          0 2147483652
+R10       4294967292          0 4294967292
+R11       2147483649          0 2147483649
+R12       2147483650          0 2147483650
+R13       4294967293          0 4294967293
+R14       2147483644          0 2147483644
+Flag          Before        After        Model
+N                    0          0          1
+Z                    0          0           
+C                    0          1          0
+V                    0          0          1
+
+       ---------ASM----------
+RSCS R6,R9 ,#14144
+----------------------------------
+
+
+
+--------------dp3Imm:123----------------
+Bad output:R0 is 0x0 should be 0x80000004
+Bad output:R1 is 0x0 should be 0x4
+Bad output:R2 is 0x0 should be 0x7ffffffe
+Bad output:R3 is 0x0 should be 0x80000002
+Bad output:R4 is 0xffffccc0 should be 0x7fffccbe
+Bad output:R5 is 0x0 should be 0xfffffffc
+Bad output:R7 is 0x0 should be 0x80000000
+Bad output:R8 is 0x0 should be 0x80000001
+Bad output:R9 is 0x0 should be 0xfffffffc
+Bad output:R10 is 0x0 should be 0x80000003
+Bad output:R11 is 0x0 should be 0x7ffffffd
+Bad output:R12 is 0x0 should be 0xfffffffd
+Bad output:R13 is 0x0 should be 0x80000001
+Bad output:R14 is 0x0 should be 0xfffffffe
+
+Register  Input      Actual Out    Model Out
+R0        2147483652          0 2147483652
+R1                 4          0          4
+R2        2147483646          0 2147483646
+R3        2147483650          0 2147483650
+R4        2147483649 4294954176 2147470526
+R5        4294967292          0 4294967292
+R6                 0          0           
+R7        2147483648          0 2147483648
+R8        2147483649          0 2147483649
+R9        4294967292          0 4294967292
+R10       2147483651          0 2147483651
+R11       2147483645          0 2147483645
+R12       4294967293          0 4294967293
+R13       2147483649          0 2147483649
+R14       4294967294          0 4294967294
+Flag          Before        After        Model
+N                    0          0           
+Z                    0          0           
+C                    0          0           
+V                    1          0          1
+
+       ---------ASM----------
+SUB R4 ,R2 , #13120
+----------------------------------
+
+
+
+--------------dp3Imm:135----------------
+Bad output:R0 is 0x0 should be 0xfffffffc
+Bad output:R1 is 0x0 should be 0x80000002
+Bad output:R2 is 0x0 should be 0x80000001
+Bad output:R3 is 0x69000 should be 0x69001
+Bad output:R4 is 0x0 should be 0x7ffffffd
+Bad output:R5 is 0x0 should be 0xfffffffe
+Bad output:R6 is 0x0 should be 0xfffffffc
+Bad output:R7 is 0x0 should be 0x80000003
+Bad output:R8 is 0x0 should be 0x80000000
+Bad output:R9 is 0x0 should be 0x80000004
+Bad output:R10 is 0x0 should be 0x1
+Bad output:R11 is 0x0 should be 0x2
+Bad output:R12 is 0x0 should be 0x80000003
+Bad output:R13 is 0x0 should be 0x4
+Bad output:R14 is 0x0 should be 0xffffffff
+
+Register  Input      Actual Out    Model Out
+R0        4294967292          0 4294967292
+R1        2147483650          0 2147483650
+R2        2147483649          0 2147483649
+R3        2147483648     430080     430081
+R4        2147483645          0 2147483645
+R5        4294967294          0 4294967294
+R6        4294967292          0 4294967292
+R7        2147483651          0 2147483651
+R8        2147483648          0 2147483648
+R9        2147483652          0 2147483652
+R10                1          0          1
+R11                2          0          2
+R12       2147483651          0 2147483651
+R13                4          0          4
+R14       4294967295          0 4294967295
+Flag          Before        After        Model
+N                    0          0           
+Z                    1          0          1
+C                    1          0          1
+V                    0          0           
+
+       ---------ASM----------
+RSB R3 ,R14 , #430080
+----------------------------------
+
+
+
+--------------dp3Imm:141----------------
+Bad output:R0 is 0x177ff should be 0x80017801
+Bad output:R1 is 0x0 should be 0x1
+Bad output:R3 is 0x0 should be 0x80000001
+Bad output:R4 is 0x0 should be 0x80000004
+Bad output:R6 is 0x0 should be 0x7ffffffc
+Bad output:R7 is 0x0 should be 0x2
+Bad output:R8 is 0x0 should be 0xfffffffd
+Bad output:R9 is 0x0 should be 0xfffffffd
+Bad output:R10 is 0x0 should be 0x7fffffff
+Bad output:R11 is 0x0 should be 0x7ffffffe
+Bad output:R12 is 0x0 should be 0x80000004
+Bad output:R13 is 0x0 should be 0x80000001
+Bad output:R14 is 0x0 should be 0x7ffffffd
+
+Register  Input      Actual Out    Model Out
+R0                 4      96255 2147579905
+R1                 1          0          1
+R2                 0          0           
+R3        2147483649          0 2147483649
+R4        2147483652          0 2147483652
+R5                 0          0           
+R6        2147483644          0 2147483644
+R7                 2          0          2
+R8        4294967293          0 4294967293
+R9        4294967293          0 4294967293
+R10       2147483647          0 2147483647
+R11       2147483646          0 2147483646
+R12       2147483652          0 2147483652
+R13       2147483649          0 2147483649
+R14       2147483645          0 2147483645
+Flag          Before        After        Model
+N                    0          0           
+Z                    0          0           
+C                    0          0           
+V                    1          0          1
+
+       ---------ASM----------
+RSC R0,R11, #96256
+----------------------------------
+
+
+
+--------------dp3Imm:153----------------
+Bad output:R0 is 0x4a0000 should be 0x7fb5fffe
+Bad output:R1 is 0x0 should be 0x7ffffffd
+Bad output:R2 is 0x0 should be 0x80000000
+Bad output:R3 is 0x0 should be 0xfffffffd
+Bad output:R4 is 0x0 should be 0x4
+Bad output:R5 is 0x0 should be 0xfffffffe
+Bad output:R6 is 0x0 should be 0x4
+Bad output:R7 is 0x0 should be 0x80000004
+Bad output:R8 is 0x0 should be 0x7ffffffc
+Bad output:R9 is 0x0 should be 0x80000000
+Bad output:R10 is 0x0 should be 0x7ffffffe
+Bad output:R11 is 0x0 should be 0x4
+Bad output:R12 is 0x0 should be 0x2
+Bad output:R13 is 0x0 should be 0x80000003
+Bad output:R14 is 0x0 should be 0x2
+
+Register  Input      Actual Out    Model Out
+R0                 0    4849664 2142633982
+R1        2147483645          0 2147483645
+R2        2147483648          0 2147483648
+R3        4294967293          0 4294967293
+R4                 4          0          4
+R5        4294967294          0 4294967294
+R6                 4          0          4
+R7        2147483652          0 2147483652
+R8        2147483644          0 2147483644
+R9        2147483648          0 2147483648
+R10       2147483646          0 2147483646
+R11                4          0          4
+R12                2          0          2
+R13       2147483651          0 2147483651
+R14                2          0          2
+Flag          Before        After        Model
+N                    0          0           
+Z                    1          0          1
+C                    1          0          1
+V                    1          0          1
+
+       ---------ASM----------
+EOR R0 ,R10 ,#4849664
+----------------------------------
+
+
+
+--------------dp3Imm:159----------------
+Bad output:R0 is 0x0 should be 0x80000004
+Bad output:R1 is 0x0 should be 0xffffffff
+Bad output:R2 is 0x0 should be 0xffffffff
+Bad output:R3 is 0x0 should be 0x7fffffff
+Bad output:R4 is 0x0 should be 0x80000002
+Bad output:R5 is 0x0 should be 0x80000003
+Bad output:R6 is 0x0 should be 0x80000003
+Bad output:R9 is 0x0 should be 0x4
+Bad output:R10 is 0x0 should be 0x4
+Bad output:R11 is 0x0 should be 0x3
+Bad output:R12 is 0x0 should be 0x2
+Bad output:R13 is 0x0 should be 0x80000004
+Bad output:R14 is 0x0 should be 0xffffffff
+
+Register  Input      Actual Out    Model Out
+R0        2147483652          0 2147483652
+R1        4294967295          0 4294967295
+R2        4294967295          0 4294967295
+R3        2147483647          0 2147483647
+R4        2147483650          0 2147483650
+R5        2147483651          0 2147483651
+R6        2147483651          0 2147483651
+R7                 0          0           
+R8                 0          0           
+R9                 4          0          4
+R10       2147483651          0          4
+R11                3          0          3
+R12                2          0          2
+R13       2147483652          0 2147483652
+R14       4294967295          0 4294967295
+Flag          Before        After        Model
+N                    1          0          1
+Z                    0          0           
+C                    1          0          1
+V                    0          0           
+
+       ---------ASM----------
+BIC R10 ,R9, #8650752
+----------------------------------
+
+
+
+--------------dp3Imm:86----------------
+Bad output:R1 is 0x0 should be 0x3
+Bad output:R2 is 0x0 should be 0xfffffffe
+Bad output:R3 is 0x0 should be 0x4
+Bad output:R4 is 0x0 should be 0x80000002
+Bad output:R5 is 0x0 should be 0x7fffffff
+Bad output:R6 is 0x0 should be 0x80000004
+Bad output:R7 is 0x0 should be 0x80000004
+Bad output:R8 is 0x0 should be 0x2
+Bad output:R9 is 0x0 should be 0x7ffffffc
+Bad output:R10 is 0x26ffff should be 0x8026fffb
+Bad output:R11 is 0x0 should be 0x1
+Bad output:R12 is 0x0 should be 0x1
+Bad output:R13 is 0x0 should be 0xfffffffd
+Bad output:R14 is 0x0 should be 0x7ffffffd
+
+Register  Input      Actual Out    Model Out
+R0                 0          0           
+R1                 3          0          3
+R2        4294967294          0 4294967294
+R3                 4          0          4
+R4        2147483650          0 2147483650
+R5        2147483647          0 2147483647
+R6        2147483652          0 2147483652
+R7        2147483652          0 2147483652
+R8                 2          0          2
+R9        2147483644          0 2147483644
+R10                0    2555903 2150039547
+R11                1          0          1
+R12                1          0          1
+R13       4294967293          0 4294967293
+R14       2147483645          0 2147483645
+Flag          Before        After        Model
+N                    0          0          1
+Z                    0          0           
+C                    0          1          0
+V                    1          0          1
+
+       ---------ASM----------
+RSCS R10 ,R7 , #2555904
+----------------------------------
+
+
+
+--------------dp3Imm:92----------------
+Bad output:R0 is 0x0 should be 0x80000002
+Bad output:R1 is 0x0 should be 0x80000002
+Bad output:R2 is 0x0 should be 0x7ffffffc
+Bad output:R3 is 0x0 should be 0x7ffffffd
+Bad output:R4 is 0x0 should be 0x80000003
+Bad output:R5 is 0x0 should be 0x4
+Bad output:R6 is 0x0 should be 0xffffffff
+Bad output:R7 is 0x0 should be 0x80000001
+Bad output:R9 is 0x0 should be 0xffffffff
+Bad output:R10 is 0x0 should be 0x80000004
+Bad output:R12 is 0x0 should be 0x80000001
+Bad output:R13 is 0x0 should be 0x3
+Bad output:R14 is 0x0 should be 0x7ffffffc
+
+Register  Input      Actual Out    Model Out
+R0        4294967293          0 2147483650
+R1        2147483650          0 2147483650
+R2        2147483644          0 2147483644
+R3        2147483645          0 2147483645
+R4        2147483651          0 2147483651
+R5                 4          0          4
+R6        4294967295          0 4294967295
+R7        2147483649          0 2147483649
+R8                 0          0           
+R9        4294967295          0 4294967295
+R10       2147483652          0 2147483652
+R11                0          0           
+R12       2147483649          0 2147483649
+R13                3          0          3
+R14       2147483644          0 2147483644
+Flag          Before        After        Model
+N                    1          0          1
+Z                    0          1          0
+C                    0          1           
+V                    0          0           
+
+       ---------ASM----------
+ANDS R0 ,R1, #-1073741789
+----------------------------------
+
+
+
+--------------dp3Imm:104----------------
+Bad output:R0 is 0x0 should be 0x80000001
+Bad output:R1 is 0x0 should be 0x1
+Bad output:R2 is 0x0 should be 0xffffffff
+Bad output:R3 is 0x0 should be 0x80000001
+Bad output:R4 is 0x0 should be 0xffffffff
+Bad output:R5 is 0x0 should be 0x1
+Bad output:R6 is 0x0 should be 0x7fffffff
+Bad output:R7 is 0x0 should be 0x80000000
+Bad output:R8 is 0x0 should be 0x4
+Bad output:R9 is 0x0 should be 0x1
+Bad output:R10 is 0x0 should be 0x80000000
+Bad output:R11 is 0x0 should be 0x80000001
+Bad output:R13 is 0x0 should be 0x80000001
+Bad output:R14 is 0x0 should be 0x7ffffffe
+
+Register  Input      Actual Out    Model Out
+R0        2147483649          0 2147483649
+R1                 1          0          1
+R2        4294967295          0 4294967295
+R3        2147483649          0 2147483649
+R4        4294967295          0 4294967295
+R5                 1          0          1
+R6        2147483647          0 2147483647
+R7        2147483648          0 2147483648
+R8                 4          0          4
+R9                 1          0          1
+R10       2147483648          0 2147483648
+R11       2147483649          0 2147483649
+R12                0          0           
+R13       2147483649          0 2147483649
+R14       2147483646          0 2147483646
+Flag          Before        After        Model
+N                    0          0          1
+Z                    0          1          0
+C                    1          0          1
+V                    0          0           
+
+       ---------ASM----------
+BICS R11 ,R11,#3555328
+----------------------------------
+
+
+
+--------------dp3Imm:116----------------
+Bad output:R0 is 0x0 should be 0x7ffffffe
+Bad output:R1 is 0x0 should be 0x80000000
+Bad output:R2 is 0x0 should be 0x7fffffff
+Bad output:R3 is 0x0 should be 0x7ffffffe
+Bad output:R4 is 0x140000 should be 0x80140002
+Bad output:R5 is 0x0 should be 0x80000001
+Bad output:R6 is 0x0 should be 0x80000001
+Bad output:R7 is 0x0 should be 0x3
+Bad output:R9 is 0x0 should be 0x4
+Bad output:R10 is 0x0 should be 0x80000002
+Bad output:R11 is 0x0 should be 0x7ffffffc
+Bad output:R12 is 0x0 should be 0x80000003
+Bad output:R13 is 0x0 should be 0x3
+Bad output:R14 is 0x0 should be 0x7fffffff
+
+Register  Input      Actual Out    Model Out
+R0        2147483646          0 2147483646
+R1        2147483648          0 2147483648
+R2        2147483647          0 2147483647
+R3        2147483646          0 2147483646
+R4                 2    1310720 2148794370
+R5        2147483649          0 2147483649
+R6        2147483649          0 2147483649
+R7                 3          0          3
+R8                 0          0           
+R9                 4          0          4
+R10       2147483650          0 2147483650
+R11       2147483644          0 2147483644
+R12       2147483651          0 2147483651
+R13                3          0          3
+R14       2147483647          0 2147483647
+Flag          Before        After        Model
+N                    0          0           
+Z                    0          0           
+C                    1          0          1
+V                    1          0          1
+
+       ---------ASM----------
+ADC R4 ,R6 ,#1310720
+----------------------------------
+
+
+
+--------------dp3Imm:43----------------
+Bad output:R0 is 0x0 should be 0x7fffffff
+Bad output:R1 is 0x0 should be 0xffffffff
+Bad output:R2 is 0x0 should be 0x1
+Bad output:R3 is 0x0 should be 0x7ffffffe
+Bad output:R4 is 0x0 should be 0xfffffffc
+Bad output:R5 is 0x0 should be 0xffffffff
+Bad output:R6 is 0x0 should be 0x80000002
+Bad output:R7 is 0x0 should be 0x80000000
+Bad output:R8 is 0x40000034 should be 0x3fffffc9
+Bad output:R9 is 0x0 should be 0x7ffffffd
+Bad output:R10 is 0x0 should be 0x7ffffffe
+Bad output:R11 is 0x0 should be 0xfffffffd
+Bad output:R12 is 0x0 should be 0x80000002
+Bad output:R13 is 0x0 should be 0x4
+
+Register  Input      Actual Out    Model Out
+R0        2147483647          0 2147483647
+R1        4294967295          0 4294967295
+R2                 1          0          1
+R3        2147483646          0 2147483646
+R4        4294967292          0 4294967292
+R5        4294967295          0 4294967295
+R6        2147483650          0 2147483650
+R7        2147483648          0 2147483648
+R8        2147483645 1073741876 1073741769
+R9        2147483645          0 2147483645
+R10       2147483646          0 2147483646
+R11       4294967293          0 4294967293
+R12       2147483650          0 2147483650
+R13                4          0          4
+R14                0          0           
+Flag          Before        After        Model
+N                    1          0          1
+Z                    0          0           
+C                    0          0           
+V                    1          0          1
+
+       ---------ASM----------
+EOR R8 ,R8 , #1073741876
+----------------------------------
+
+
+
+--------------dp3Imm:55----------------
+Bad output:R0 is 0x0 should be 0x2
+Bad output:R1 is 0x0 should be 0x80000001
+Bad output:R2 is 0x0 should be 0x7ffffffe
+Bad output:R3 is 0x0 should be 0xffffffff
+Bad output:R4 is 0x0 should be 0xfffffffc
+Bad output:R6 is 0x0 should be 0x7ffffffd
+Bad output:R7 is 0x0 should be 0xfffffffe
+Bad output:R8 is 0x0 should be 0x7ffffffe
+Bad output:R9 is 0x0 should be 0xfffffffe
+Bad output:R10 is 0x0 should be 0x80000001
+Bad output:R11 is 0x0 should be 0x80000000
+Bad output:R12 is 0x0 should be 0x1
+Bad output:R13 is 0x0 should be 0x80000003
+Bad output:R14 is 0x16c0 should be 0x800016c1
+
+Register  Input      Actual Out    Model Out
+R0                 2          0          2
+R1        2147483649          0 2147483649
+R2        2147483646          0 2147483646
+R3        4294967295          0 4294967295
+R4        4294967292          0 4294967292
+R5                 0          0           
+R6        2147483645          0 2147483645
+R7        4294967294          0 4294967294
+R8        2147483646          0 2147483646
+R9        4294967294          0 4294967294
+R10       2147483649          0 2147483649
+R11       2147483648          0 2147483648
+R12                1          0          1
+R13       2147483651          0 2147483651
+R14       4294967292       5824 2147489473
+Flag          Before        After        Model
+N                    1          0          1
+Z                    0          0           
+C                    1          0          1
+V                    0          0           
+
+       ---------ASM----------
+ORR R14 ,R1 ,#5824
+----------------------------------
+
+
+
+--------------dp3Imm:61----------------
+Bad output:R0 is 0x0 should be 0x80000004
+Bad output:R1 is 0x0 should be 0x7ffffffd
+Bad output:R2 is 0x0 should be 0xfffffffc
+Bad output:R3 is 0x0 should be 0xfffffffd
+Bad output:R4 is 0x0 should be 0xfffffffe
+Bad output:R5 is 0x0 should be 0x2
+Bad output:R6 is 0x0 should be 0xfffffffc
+Bad output:R7 is 0x0 should be 0xfffffffd
+Bad output:R8 is 0x0 should be 0x80000000
+Bad output:R10 is 0x0 should be 0x80000002
+Bad output:R11 is 0x1f0000 should be 0x1efffd
+Bad output:R12 is 0x0 should be 0x80000001
+Bad output:R13 is 0x0 should be 0x4
+Bad output:R14 is 0x0 should be 0x4
+
+Register  Input      Actual Out    Model Out
+R0        2147483652          0 2147483652
+R1        2147483645          0 2147483645
+R2        4294967292          0 4294967292
+R3        4294967293          0 4294967293
+R4        4294967294          0 4294967294
+R5                 2          0          2
+R6        4294967292          0 4294967292
+R7        4294967293          0 4294967293
+R8        2147483648          0 2147483648
+R9                 0          0           
+R10       2147483650          0 2147483650
+R11       2147483645    2031616    2031613
+R12       2147483649          0 2147483649
+R13                4          0          4
+R14                4          0          4
+Flag          Before        After        Model
+N                    1          0           
+Z                    0          0           
+C                    0          0          1
+V                    1          0           
+
+       ---------ASM----------
+ADDS R11,R7 , #2031616
+----------------------------------
+
+
+
+--------------dp3Imm:67----------------
+Bad output:R0 is 0x0 should be 0x3
+Bad output:R1 is 0x1c80 should be 0x1c82
+Bad output:R2 is 0x0 should be 0xfffffffc
+Bad output:R3 is 0x0 should be 0x80000004
+Bad output:R5 is 0x0 should be 0x80000003
+Bad output:R6 is 0x0 should be 0x80000004
+Bad output:R8 is 0x0 should be 0x80000004
+Bad output:R9 is 0x0 should be 0x7fffffff
+Bad output:R10 is 0x0 should be 0x80000004
+Bad output:R11 is 0x0 should be 0x2
+Bad output:R12 is 0x0 should be 0xfffffffe
+Bad output:R13 is 0x0 should be 0x80000000
+Bad output:R14 is 0x0 should be 0xfffffffc
+
+Register  Input      Actual Out    Model Out
+R0                 3          0          3
+R1                 0       7296       7298
+R2        4294967292          0 4294967292
+R3        2147483652          0 2147483652
+R4                 0          0           
+R5        2147483651          0 2147483651
+R6        2147483652          0 2147483652
+R7                 0          0           
+R8        2147483652          0 2147483652
+R9        2147483647          0 2147483647
+R10       2147483652          0 2147483652
+R11                2          0          2
+R12       4294967294          0 4294967294
+R13       2147483648          0 2147483648
+R14       4294967292          0 4294967292
+Flag          Before        After        Model
+N                    1          0           
+Z                    0          0           
+C                    0          0           
+V                    1          0           
+
+       ---------ASM----------
+ADCS R1 ,R11, #7296
+----------------------------------
+
+
+
+--------------dp3Imm:73----------------
+Bad output:R0 is 0xfffffd67 should be 0xfffffd66
+Bad output:R1 is 0x0 should be 0x80000001
+Bad output:R2 is 0x0 should be 0x2
+Bad output:R3 is 0x0 should be 0xffffffff
+Bad output:R4 is 0x0 should be 0xfffffffe
+Bad output:R5 is 0x0 should be 0xfffffffd
+Bad output:R6 is 0x0 should be 0x1
+Bad output:R7 is 0x0 should be 0x2
+Bad output:R8 is 0x0 should be 0xfffffffe
+Bad output:R9 is 0x0 should be 0x4
+Bad output:R10 is 0x0 should be 0x3
+Bad output:R11 is 0x0 should be 0x1
+Bad output:R12 is 0x0 should be 0x1
+Bad output:R13 is 0x0 should be 0x80000004
+Bad output:R14 is 0x0 should be 0x80000000
+
+Register  Input      Actual Out    Model Out
+R0        4294967293 4294966631 4294966630
+R1        2147483649          0 2147483649
+R2                 2          0          2
+R3        4294967295          0 4294967295
+R4        4294967294          0 4294967294
+R5        4294967293          0 4294967293
+R6                 1          0          1
+R7                 2          0          2
+R8        4294967294          0 4294967294
+R9                 4          0          4
+R10                3          0          3
+R11                1          0          1
+R12                1          0          1
+R13       2147483652          0 2147483652
+R14       2147483648          0 2147483648
+Flag          Before        After        Model
+N                    0          1           
+Z                    0          0           
+C                    1          0          1
+V                    0          0           
+
+       ---------ASM----------
+SBCS R0 ,R4 ,#664
+----------------------------------
+
+
+
+--------------dp3Imm:12----------------
+Bad output:R0 is 0x0 should be 0x2
+Bad output:R2 is 0x0 should be 0x7fffffff
+Bad output:R3 is 0x0 should be 0x7fffffff
+Bad output:R4 is 0x0 should be 0x2
+Bad output:R5 is 0x0 should be 0xffffffff
+Bad output:R6 is 0x0 should be 0x80000001
+Bad output:R7 is 0x0 should be 0x3
+Bad output:R8 is 0x0 should be 0x7ffffffc
+Bad output:R9 is 0xfffffea8 should be 0xfffffea7
+Bad output:R10 is 0x0 should be 0xfffffffc
+Bad output:R11 is 0x0 should be 0x1
+Bad output:R12 is 0x0 should be 0x80000001
+Bad output:R13 is 0x0 should be 0x1
+Bad output:R14 is 0x0 should be 0x7ffffffe
+
+Register  Input      Actual Out    Model Out
+R0                 2          0          2
+R1                 0          0           
+R2        2147483647          0 2147483647
+R3        2147483647          0 2147483647
+R4                 2          0          2
+R5        4294967295          0 4294967295
+R6        2147483649          0 2147483649
+R7                 3          0          3
+R8        2147483644          0 2147483644
+R9        4294967294 4294966952 4294966951
+R10       4294967292          0 4294967292
+R11                1          0          1
+R12       2147483649          0 2147483649
+R13                1          0          1
+R14       2147483646          0 2147483646
+Flag          Before        After        Model
+N                    1          0          1
+Z                    0          0           
+C                    1          0          1
+V                    0          0           
+
+       ---------ASM----------
+SUB R9 ,R5 ,#344
+----------------------------------
+
+
+
+--------------dp3Imm:18----------------
+Bad output:R0 is 0x0 should be 0x7ffffffc
+Bad output:R1 is 0x0 should be 0x7ffffffe
+Bad output:R3 is 0x0 should be 0xfffffffe
+Bad output:R4 is 0x0 should be 0x1
+Bad output:R5 is 0x0 should be 0xfffffffc
+Bad output:R6 is 0x0 should be 0x2
+Bad output:R7 is 0x0 should be 0x80000004
+Bad output:R8 is 0x0 should be 0x7fffffff
+Bad output:R9 is 0xfffffe43 should be 0x7ffffe42
+Bad output:R10 is 0x0 should be 0xfffffffe
+Bad output:R11 is 0x0 should be 0x7ffffffc
+Bad output:R12 is 0x0 should be 0x1
+Bad output:R13 is 0x0 should be 0x80000001
+Bad output:R14 is 0x0 should be 0x7ffffffc
+
+Register  Input      Actual Out    Model Out
+R0        2147483644          0 2147483644
+R1        2147483646          0 2147483646
+R2                 0          0           
+R3        4294967294          0 4294967294
+R4                 1          0          1
+R5        4294967292          0 4294967292
+R6                 2          0          2
+R7        2147483652          0 2147483652
+R8        2147483647          0 2147483647
+R9        2147483645 4294966851 2147483202
+R10       4294967294          0 4294967294
+R11       2147483644          0 2147483644
+R12                1          0          1
+R13       2147483649          0 2147483649
+R14       2147483644          0 2147483644
+Flag          Before        After        Model
+N                    1          0          1
+Z                    0          0           
+C                    0          0           
+V                    0          0           
+
+       ---------ASM----------
+SBC R9 ,R8 , #444
+----------------------------------
+
+
+
+--------------dp3Imm:24----------------
+Bad output:R0 is 0x0 should be 0x80000003
+Bad output:R1 is 0x0 should be 0x80000002
+Bad output:R2 is 0x0 should be 0x7ffffffd
+Bad output:R3 is 0x3b0000 should be 0x3afffe
+Bad output:R4 is 0x0 should be 0x80000003
+Bad output:R5 is 0x0 should be 0x80000002
+Bad output:R6 is 0x0 should be 0x80000000
+Bad output:R7 is 0x0 should be 0x2
+Bad output:R8 is 0x0 should be 0x80000001
+Bad output:R9 is 0x0 should be 0x4
+Bad output:R10 is 0x0 should be 0x7ffffffd
+Bad output:R11 is 0x0 should be 0x1
+Bad output:R12 is 0x0 should be 0xfffffffc
+Bad output:R13 is 0x0 should be 0xfffffffc
+Bad output:R14 is 0x0 should be 0x7fffffff
+
+Register  Input      Actual Out    Model Out
+R0        2147483651          0 2147483651
+R1        2147483650          0 2147483650
+R2        2147483645          0 2147483645
+R3        2147483645    3866624    3866622
+R4        2147483651          0 2147483651
+R5        2147483650          0 2147483650
+R6        2147483648          0 2147483648
+R7                 2          0          2
+R8        2147483649          0 2147483649
+R9                 4          0          4
+R10       2147483645          0 2147483645
+R11                1          0          1
+R12       4294967292          0 4294967292
+R13       4294967292          0 4294967292
+R14       2147483647          0 2147483647
+Flag          Before        After        Model
+N                    1          0          1
+Z                    0          0           
+C                    0          0           
+V                    0          0           
+
+       ---------ASM----------
+RSB R3 ,R7 , #3866624
+----------------------------------
+
+
+
+--------------dp3Imm:30----------------
+Bad output:R0 is 0x0 should be 0x2
+Bad output:R1 is 0x0 should be 0x80000003
+Bad output:R2 is 0x217f should be 0x217e
+Bad output:R3 is 0x0 should be 0xffffffff
+Bad output:R4 is 0x0 should be 0x80000000
+Bad output:R5 is 0x0 should be 0x7ffffffc
+Bad output:R6 is 0x0 should be 0x7ffffffe
+Bad output:R7 is 0x0 should be 0x3
+Bad output:R9 is 0x0 should be 0x7ffffffe
+Bad output:R11 is 0x0 should be 0x2
+Bad output:R12 is 0x0 should be 0x80000002
+Bad output:R13 is 0x0 should be 0xfffffffd
+Bad output:R14 is 0x0 should be 0x80000000
+
+Register  Input      Actual Out    Model Out
+R0                 2          0          2
+R1        2147483651          0 2147483651
+R2        2147483645       8575       8574
+R3        4294967295          0 4294967295
+R4        2147483648          0 2147483648
+R5        2147483644          0 2147483644
+R6        2147483646          0 2147483646
+R7                 3          0          3
+R8                 0          0           
+R9        2147483646          0 2147483646
+R10                0          0           
+R11                2          0          2
+R12       2147483650          0 2147483650
+R13       4294967293          0 4294967293
+R14       2147483648          0 2147483648
+Flag          Before        After        Model
+N                    0          0           
+Z                    0          0           
+C                    1          0          1
+V                    0          0           
+
+       ---------ASM----------
+RSC R2 ,R11 , #8576
+----------------------------------
+
+
+
+--------------dp3Imm:36----------------
+Bad output:R0 is 0x0 should be 0x80000004
+Bad output:R1 is 0x0 should be 0x3
+Bad output:R2 is 0x0 should be 0x80000002
+Bad output:R3 is 0x0 should be 0x7ffffffe
+Bad output:R4 is 0x0 should be 0xfffffffe
+Bad output:R5 is 0x0 should be 0x80000002
+Bad output:R7 is 0x0 should be 0xfffffffd
+Bad output:R8 is 0x0 should be 0xa700
+Bad output:R9 is 0x0 should be 0x1
+Bad output:R10 is 0x0 should be 0x80000003
+Bad output:R11 is 0x0 should be 0x7ffffffc
+Bad output:R12 is 0x0 should be 0x80000000
+Bad output:R13 is 0x0 should be 0xfffffffc
+Bad output:R14 is 0x0 should be 0x7fffffff
+
+Register  Input      Actual Out    Model Out
+R0        2147483652          0 2147483652
+R1                 3          0          3
+R2        2147483650          0 2147483650
+R3        2147483646          0 2147483646
+R4        4294967294          0 4294967294
+R5        2147483650          0 2147483650
+R6                 0          0           
+R7        4294967293          0 4294967293
+R8                 3          0      42752
+R9                 1          0          1
+R10       2147483651          0 2147483651
+R11       2147483644          0 2147483644
+R12       2147483648          0 2147483648
+R13       4294967292          0 4294967292
+R14       2147483647          0 2147483647
+Flag          Before        After        Model
+N                    1          0          1
+Z                    0          0           
+C                    0          0           
+V                    1          0          1
+
+       ---------ASM----------
+AND R8 ,R11,#42752
+----------------------------------
+

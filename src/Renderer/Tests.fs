@@ -25,7 +25,8 @@ type Flags = {
     FC: bool
     FV: bool
 }
-   
+
+
 type DPath = { 
     TRegs : uint32 list ; 
     TFlags : Flags 
@@ -40,19 +41,21 @@ type TestSetup = {
 
 type TestT = OkTests | ErrorTests | BetterThanModelTests
 
-let writeDirPath = __SOURCE_DIRECTORY__ + @"/../../test-results"
+[<Emit("__dirname")>]
+
+let appDirName:string  = jsNative
+let writeDirPath = appDirName + @"/test-results"
 
 let readFileViaNode (path:string) : string =
     (fs.readFileSync path).toString("utf8")
 
-
 let fnWithoutSuffix (f:string) = (f.Split [|'.'|]).[0]
 
 let readAllowedTests() =
-    fs.readdirSync (U2.Case1 (projectDir + "test-data"))
+    fs.readdirSync (U2.Case1 (appDirName + @"/test-data"))
     |> Seq.toList
     |> List.filter (String.contains "ALLOWED")   
-    |> List.map (fun s -> "test-data/" + s)
+    |> List.map (fun s -> appDirName + @"/test-data/" + s)
     |> List.collect ( fun path -> 
         readFileViaNode path
         |> String.split [|'\n'|]
@@ -64,16 +67,15 @@ let readAllowedTests() =
             | _ -> []
         ))
     
-
-
-
-
 let writeFileViaNode (path:string) (str:string) =
-    let errorHandler _err = // TODO: figure out how to handle errors which can occur
-        ()
-    if not (fs.existsSync (U2.Case1 writeDirPath)) then fs.mkdirSync writeDirPath
-    fs.writeFileSync( path, str) |> ignore
-
+    try
+        let errorHandler _err = // TODO: figure out how to handle errors which can occur
+            ()
+        if not (fs.existsSync (U2.Case1 writeDirPath)) then fs.mkdirSync writeDirPath
+        fs.writeFileSync( path, str) |> ignore
+        Ok ()
+    with 
+        | _ -> Error <| sprintf "File %s can't be written" path
 
 let loadStateFile (fName:string) =
     let lines = 
@@ -145,7 +147,6 @@ let handleTestRunError e (pInfo:RunInfo) (ts: TestSetup) =
         |> List.map (fun (r,u) -> u)
         |> List.take 15
     
-
     let flags =
         match dp.Fl with
         | {N = n ; C = c; V = v; Z = z} -> {FN=n;FC=c;FV=v;FZ=z}
@@ -182,7 +183,7 @@ let writeResultsToFile fn rt resL =
                  | ErrorTests -> "ERRORs" 
                  | _ -> "BETTERs"
 
-    let fName = projectDir + @"test-results/" + (nameOfCode rt + fn)
+    let fName = appDirName + @"/test-results/" + (nameOfCode rt + fn)
 
     let displayState (ts:TestSetup) (outDp: DataPath) =
 
@@ -220,7 +221,6 @@ let writeResultsToFile fn rt resL =
             dispFlags ts.Before outDp a + "\n"
         | _ -> "Error in model\n"
 
-
     let displayTest (tt: TestT, ts:TestSetup,ri:RunInfo,mess:string) =
         sprintf "\n--------------%s----------------\n" ts.Name +
         mess + "\n\r\n" +
@@ -231,7 +231,15 @@ let writeResultsToFile fn rt resL =
     //printfn "Writing result file\n%s." fName
     //printfn "Resl =%A" resL
     match resL with
-    | [] -> if fs.existsSync (U2.Case1 fName) then fs.unlinkSync (U2.Case1 fName)
+    | [] -> 
+        if fs.existsSync (U2.Case1 fName) then 
+            try
+                fs.unlinkSync (U2.Case1 fName)
+                Ok ()
+            with
+                | _ -> Error <| sprintf "Can't delete read-only file %s" fName
+        else
+            Ok ()
     | _ -> 
         resL
         |> List.map displayTest
@@ -242,7 +250,7 @@ let writeResultsToFile fn rt resL =
 let processTestResults (fn: string) (res: Map<TestT,(TestT*TestSetup*RunInfo*string) list>) allowed =
     let getNum rt = 
         let resL = Map.findWithDefault rt res []
-        writeResultsToFile fn rt resL
+        writeResultsToFile fn rt resL |> ignore
         resL.Length
     
     let badErrors = 
@@ -279,7 +287,7 @@ let RunEmulatorTest allowed  ts=
     if lim.Errors <> [] then 
         match ts.After with
         | Some _ -> ErrorTests, ts, ri, "Visual2 cannot parse test assembler"
-        | fNone -> OkTests, ts, ri, "Visual2 cannot parse assembler: however this test returns an error in the model"
+        | Core.None -> OkTests, ts, ri, "Visual2 cannot parse assembler: however this test returns an error in the model"
     else
         let dpBefore =
             {ri.dpInit with 
@@ -303,7 +311,7 @@ let RunEmulatorTest allowed  ts=
             ErrorTests, ts, ri', sprintf "Test code timed out after %d Visual2 instructions" maxSteps
 
 let runEmulatorTestFile allowed fn =
-    let testF = projectDir + @"test-data/" + fn
+    let testF = appDirName + @"/test-data/" + fn
     let results = loadStateFile testF
     let resultsBySuccess =
         results 
@@ -323,13 +331,16 @@ let runAllEmulatorTests () =
     let contents = electron.remote.getCurrentWebContents()
     if not (contents.isDevToolsOpened()) then contents.toggleDevTools()
     let files = 
-        fs.readdirSync (U2.Case1 (projectDir + "test-data"))
+        try
+            fs.readdirSync (U2.Case1 (appDirName + "/test-data"))
+        with
+            | _ -> ResizeArray()
         |> Seq.toList 
         |> (fun lis ->        
                 if List.contains "focus.txt" lis 
                 then ["focus.txt"]
                 else lis)
-        |> List.filter (fun fn -> not (String.startsWith "ALLOWED" fn))
+        |> List.filter (String.startsWith "ALLOWED" >> not)
 
     List.iter (runEmulatorTestFile allowed) files
     printfn "Finished. See './test-results' for result files"

@@ -1,0 +1,40 @@
+
+--------------ComputedBranches:21----------------
+Ok
+
+Register  Input      Actual Out    Model Out
+R0                 0          5           
+R1                 0         24           
+R2                 0        512           
+R3                 0         20           
+R4                 0          0           
+R5                 0          0           
+R6                 0          0           
+R7                 0          0           
+R8                 0          0           
+R9                 0          0           
+R10                0          0           
+R11                0          0           
+R12                0          0           
+R13       4278190080 4278190080           
+R14                0          0           
+Flag          Before        After        Model
+N                    0          0           
+Z                    0          0           
+C                    0          0           
+V                    0          0           
+
+       ---------ASM----------
+MOV R0, #0
+ADR R1, TARGET
+ADR R2, TARGETADDR
+STR PC, [R2]
+ADD R0, R0, #1
+ADD R0, R0, #1
+TARGET ADD R0, R0, #1
+ADD R0, R0, #1
+ADD R0, R0, #1
+LDR R3, [R2]
+TARGETADDR DCD TARGET
+----------------------------------
+

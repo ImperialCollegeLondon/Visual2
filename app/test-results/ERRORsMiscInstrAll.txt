@@ -1,0 +1,43 @@
+
+--------------MiscInstr:0----------------
+Bad output:R1 is 0x1 should be 0x12345678
+Bad output:R2 is 0x2 should be 0x6050403
+Bad output:R3 is 0x3 should be 0xf0e0d0c
+Bad output:R4 is 0x4 should be 0x13121110
+Bad output:R5 is 0x5 should be 0x0
+Bad output:R6 is 0x6 should be 0x6f
+
+Register  Input      Actual Out    Model Out
+R0        3223623823        512           
+R1        2027881369          1  305419896
+R2        2108107124          2  100992003
+R3         947392853          3  252579084
+R4        4219351565          4  319951120
+R5         171881609          5          0
+R6        3239219003          6        111
+R7        2190603322        515           
+R8        2632641610 2632641610           
+R9        3562503156 3562503156           
+R10       1799381354 1799381354           
+R11       4006341692 4006341692           
+R12         87087349   87087349           
+R13       3346791365 3346791365           
+R14        202605599  202605599           
+Flag          Before        After        Model
+N                    1          1           
+Z                    0          0           
+C                    0          0           
+V                    1          1           
+
+       ---------ASM----------
+ADR R0, DAT
+LDMIA R0, {R1-R6}
+LDR R7, =TESTEQU
+DAT DCD 0x12345678
+DAT1 DCB 3,4,5,6
+DAT2 DCB 12,13,14,15,16,17,18,19
+FILL 4
+DAT4 DCD 111
+TESTEQU EQU DAT+3
+----------------------------------
+

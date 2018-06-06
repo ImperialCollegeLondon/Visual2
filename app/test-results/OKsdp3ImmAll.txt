@@ -1,0 +1,164 @@
+
+--------------dp3Imm:209----------------
+Visual2 cannot parse assembler: however this test returns an error in the model
+
+Error in model
+
+       ---------ASM----------
+EORS R4 ,R12,#645922820
+----------------------------------
+
+
+
+--------------dp3Imm:215----------------
+Visual2 cannot parse assembler: however this test returns an error in the model
+
+Error in model
+
+       ---------ASM----------
+BICS R4,R8 , #1073741948
+----------------------------------
+
+
+
+--------------dp3Imm:233----------------
+Visual2 cannot parse assembler: however this test returns an error in the model
+
+Error in model
+
+       ---------ASM----------
+SUB R3 ,R14,#-570425331
+----------------------------------
+
+
+
+--------------dp3Imm:166----------------
+Visual2 cannot parse assembler: however this test returns an error in the model
+
+Error in model
+
+       ---------ASM----------
+ORR R11 ,R7 ,#-2496
+----------------------------------
+
+
+
+--------------dp3Imm:184----------------
+Visual2 cannot parse assembler: however this test returns an error in the model
+
+Error in model
+
+       ---------ASM----------
+SBCS R2,R4 , #-436207602
+----------------------------------
+
+
+
+--------------dp3Imm:190----------------
+Visual2 cannot parse assembler: however this test returns an error in the model
+
+Error in model
+
+       ---------ASM----------
+RSBS R8 ,R14 , #528482307
+----------------------------------
+
+
+
+--------------dp3Imm:202----------------
+Visual2 cannot parse assembler: however this test returns an error in the model
+
+Error in model
+
+       ---------ASM----------
+ANDS R3 ,R7 , #163577858
+----------------------------------
+
+
+
+--------------dp3Imm:129----------------
+Visual2 cannot parse assembler: however this test returns an error in the model
+
+Error in model
+
+       ---------ASM----------
+SBC R7 ,R2 ,#-1073741757
+----------------------------------
+
+
+
+--------------dp3Imm:147----------------
+Visual2 cannot parse assembler: however this test returns an error in the model
+
+Error in model
+
+       ---------ASM----------
+AND R6 ,R6 ,#1358954501
+----------------------------------
+
+
+
+--------------dp3Imm:98----------------
+Visual2 cannot parse assembler: however this test returns an error in the model
+
+Error in model
+
+       ---------ASM----------
+EORS R14,R5, #-1610612706
+----------------------------------
+
+
+
+--------------dp3Imm:110----------------
+Visual2 cannot parse assembler: however this test returns an error in the model
+
+Error in model
+
+       ---------ASM----------
+ADD R0 ,R4 ,#738197529
+----------------------------------
+
+
+
+--------------dp3Imm:49----------------
+Visual2 cannot parse assembler: however this test returns an error in the model
+
+Error in model
+
+       ---------ASM----------
+BIC R0,R14 , #-1409286139
+----------------------------------
+
+
+
+--------------dp3Imm:79----------------
+Visual2 cannot parse assembler: however this test returns an error in the model
+
+Error in model
+
+       ---------ASM----------
+RSBS R14 ,R7 , #-1476394995
+----------------------------------
+
+
+
+--------------dp3Imm:0----------------
+Visual2 cannot parse assembler: however this test returns an error in the model
+
+Error in model
+
+       ---------ASM----------
+ADD R11 ,R0 ,#231735299
+----------------------------------
+
+
+
+--------------dp3Imm:6----------------
+Visual2 cannot parse assembler: however this test returns an error in the model
+
+Error in model
+
+       ---------ASM----------
+ADC R9 ,R10 ,#48234497
+----------------------------------
+

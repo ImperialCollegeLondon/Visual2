@@ -57,6 +57,7 @@ let createMainWindow () =
 
     #if WATCH
     printfn "Adding extra DEBUG Code..."
+    
     fs.watch(path.join(Node.Globals.__dirname, "/"), fun _ _ ->
         window.webContents.reloadIgnoringCache()
     ) |> ignore
@@ -110,7 +111,7 @@ let createMainWindow () =
 
     window.on("ready-to-show", (fun () -> 
         window.show() 
-        window.focus() )
+        window.focus())
      ) |> ignore
 
     mainWindow <- Some window
