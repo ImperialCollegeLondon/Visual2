@@ -182,6 +182,8 @@ Useful shortcuts for specific common target OS:
 * `./run-packager-os2.bat`. For windows hosts and OS-X targets the packager must be run with admin privileges: this bat file will provide these.
 * `./run-packager-all.bat`. For windows hosts runs `yarn run packager` with admin priviledges needed to generate os-x binaries.
 
+**Note on OSX binaries**. These cannot be packaged as DMG (and therefore used) except on an OS-X host. On OS-X you need to run `yarn run make-osx-dmg` which will FIRST run package-osx and then generate the osx DMG file as `./dist/visual2-osx.dmg`. This functionality is new and has not yet been tested (will not be tested till somone gets stuff working under OS-X).
+
 
 
 ## Dependency Upgrade
