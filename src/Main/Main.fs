@@ -42,7 +42,7 @@ let createMainWindow () =
     options.frame <- Some true
     options.hasShadow <- Some true
     options.backgroundColor <- Some "#5F9EA0"
-    options.icon <- Some (U2.Case2 "resources/app/app/resources/visual.ico")
+    options.icon <- Some (U2.Case2  "app/visual.ico")
     let window = electron.BrowserWindow.Create(options)
     //window.webContents.openDevTools();
     // Load the index.html of the app.
