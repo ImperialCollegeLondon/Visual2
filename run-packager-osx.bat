@@ -45,4 +45,4 @@ if '%1'=='ELEV' (del "%vbsGetPrivileges%" 1>nul 2>nul  &  shift /1)
 ::::::::::::::::::::::::::::
 :: REM Run shell as admin (example) - put here code as you like
 ECHO %batchName% Arguments: %1 %2 %3 %4 %5 %6 %7 %8 %9
-yarn run package-osx
+yarn run make-osx-dmg
