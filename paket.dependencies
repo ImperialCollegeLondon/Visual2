@@ -1,8 +1,8 @@
 source https://nuget.org/api/v2
 storage:none
 
-clitool dotnet-fable prerelease
-nuget Fable.Core prerelease
+clitool dotnet-fable
+nuget Fable.Core
 nuget Fable.Import.Browser
 nuget Fable.Import.Node
 nuget Fable.Import.Electron

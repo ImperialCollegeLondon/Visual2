@@ -149,7 +149,7 @@ It works around the fact that _packaging tools_ do not understand the non-standa
 
 1. Install [yarn](https://yarnpkg.com/lang/en/docs/install/).
 
-2. Download & unzip the Visual2 project, or if contributing clone locally, or fork on github and then clone locally, the repo.
+2. Download & unzip the Visual2 repo, or if contributing clone it locally, or fork it on github and then clone it locally.
 
 3. Navigate to the project root directory (which contains this README) in a command-line interpreter. For Windows usage make sure if possible for convenience that you have a _tabbed_ command-line interpreter that can be started direct from file explorer within a specific directory (by right-clicking on the explorer directory view). That makes things a lot more pleasant. One free option is the excellent [hyper](https://github.com/zeit/hyper).
 
