@@ -144,13 +144,19 @@ let checkSettings (vs: VSettings) =
 
 
 
+let setJSONSettings() =
+    let setSetting (name : string) (value : string) =
+        printf "Saving JSON: %A" value
+        settings?set(name, value) |> ignore
+    setSetting "JSON" (Fable.Import.JS.JSON.stringify vSettings)
 
 
 let getJSONSettings() = 
-    let json = settings?get("JSON") :?> string
-    match isUndefined json with
+    let json = settings?get("JSON", "undefined") :?> string
+    match json = "undefined" with
     | true ->
             printfn "No JSON settings found on this PC"
+            setJSONSettings()
             vSettings
     | false -> 
         try
@@ -161,11 +167,6 @@ let getJSONSettings() =
             printfn "default settings"
             vSettings
 
-let setJSONSettings() =
-    let setSetting (name : string) (value : string) =
-        printf "Saving JSON: %A" value
-        settings?set(name, value) |> ignore
-    setSetting "JSON" (Fable.Import.JS.JSON.stringify vSettings)
     
   
 

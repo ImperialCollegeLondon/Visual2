@@ -147,7 +147,10 @@ It works around the fact that _packaging tools_ do not understand the non-standa
 
 ## Getting Started
 
-1. Install [yarn](https://yarnpkg.com/lang/en/docs/install/).
+1. Follow instructions to install [yarn](https://yarnpkg.com/lang/en/docs/install/) (which tell you to install Node as well).
+
+2. Download and install the latest (> 2.0) [Dotnet Core SDK](https://www.microsoft.com/net/learn/get-started).
+
 
 2. Download & unzip the Visual2 repo, or if contributing clone it locally, or fork it on github and then clone it locally.
 
@@ -157,13 +160,13 @@ It works around the fact that _packaging tools_ do not understand the non-standa
 
 5. Find a nice terminal program that will run multiple windows to make a productive development environment. I recommend [_Hyper_](https://github.com/zeit/hyper/releases), for example, runs multiple tabs and will split window between two tabs, great for running start and launch scripts concurrently in a single window. Beware that under Windows `hyper` uses `ctrl-shift-C`, `ctrl-shift-V` for copy and paste.
 
-6. Run `setup.bat` (on Windows). This downloads and updates the submodules, and installs their packages individually (necessary because of the submodule structure), then restores the global packages. In particular this code will install a copy of .Net Core on which the FABLE compiler can run.
+6. Run `setup.bat` (on Windows). This downloads and updates the submodules, and installs their packages individually (necessary because of the submodule structure), then restores the global packages. On other systems run the statements in this file (modified if needed for your system) individually. Goto step 9 if all you want to do is to generate uptodate binaries.
 
 7. In a terminal window (for example under `hyper`) compile `fsharp` code to `javascript` using `webpack` by executing `yarn run start`. This script compiles everything once and then watches source files recompiling whenever any change, so it normally runs continuously throughout development. You will need to view the `yarn run start` output throughout development since if compile fails the output makes this clear via red-colored text. Although Ionide will also provide error messages on code that does not compile it is possible to miss these whn making quick changes.
 
 8. Open `electron` application at a new terminal tab by running `yarn run launch`. This command will start the application and also _hot reload_ it whenever source files are recompiled, or CSS files changed. Therefore it normally runs continuously through development. The total time from saving an updated F# source file to reload is typically 5s. Make sure you have this development environment working effectively for you: an HD screen without scaling is helpful because it allows your editor, the Visual2 app, and the Hyper windows all to be visible simultaneously.
 
-9. Run `yarn run package` or (from windows, to enable correct OS-X binary generation) `./run-packager.bat` at any time to create a set of system-specific self-contained binaries in `./dist/os-name/*`. Each binary distribution consists of a portable directory with all dependencies, so use the appropriate one of these if you just want to run Visual2 and do not need to develop code. `yarn run package-host` will generate just the distributable for the host OS.
+9. Run `yarn run package` at any time to create a set of system-specific self-contained binaries in `./dist/os-name/*`. Each binary distribution consists of a portable directory with all dependencies, so use the appropriate one of these if you just want to run Visual2 and do not need to develop code. `yarn run package-host` will generate just the distributable for the host OS.
 
 10. To see console debug printout etc press F12 to toggle electron dev tools on and note that any F# printout and errors will be displayed under the console tab.
 
