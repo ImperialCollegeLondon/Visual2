@@ -124,7 +124,7 @@ electron.app.on("ready", unbox createMainWindow) |> ignore
 electron.app.on("window-all-closed", unbox(fun () ->
     // On OS X it is common for applications and their menu bar
     // to stay active until the user quits explicitly with Cmd + Q
-    if Node.Globals.``process``.platform <> Node.Base.NodeJS.Darwin then
+   // if Node.Globals.``process``.platform <> Node.Base.NodeJS.Darwin then
         electron.app.quit()
 )) |> ignore
 
