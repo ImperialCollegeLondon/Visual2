@@ -158,9 +158,9 @@ It works around the fact that _packaging tools_ do not understand the non-standa
 
 4. Fetch the required `npm` packages by executing `yarn install`. This project consistently uses `yarn` Node package manager instead of the older and less competent `npm`.
 
-5. Find a nice terminal program that will run multiple windows to make a productive development environment. I recommend [_Hyper_](https://github.com/zeit/hyper/releases), for example, runs multiple tabs and will split window between two tabs, great for running start and launch scripts concurrently in a single window. Beware that under Windows `hyper` uses `ctrl-shift-C`, `ctrl-shift-V` for copy and paste.
+5. Find a nice terminal program that will run multiple windows to make a productive development environment. I recommend [_Hyper_](https://github.com/zeit/hyper/releases), for example, runs multiple tabs and will split window between two tabs, great for running start and launch scripts concurrently in a single window. Beware that under Windows `Hyper` uses `ctrl-shift-C`, `ctrl-shift-V` for copy and paste.
 
-6. Run `setup.bat` (on Windows). This downloads and updates the submodules, and installs their packages individually (necessary because of the submodule structure), then restores the global packages. On other systems run the statements in this file (modified if needed for your system) individually. 
+6. Run `setup.bat` (on Windows) or `sh setup.sh` (on linux or macOS). This downloads and updates the submodules, and installs their packages individually (necessary because of the submodule structure), then restores the global packages. On other systems run the statements in this file (modified if needed for your system) individually. 
 
 7. Goto step 10 if all you want to do is to generate uptodate binaries.
 
@@ -176,18 +176,18 @@ It works around the fact that _packaging tools_ do not understand the non-standa
 
 ## Packaging VisUAL2 as binaries
 
-After you have compiled code (and checked it works) `yarn run package` will run electron packager and generate `./dist/os-name/*` files. See also `run-packager-all.bat` if using windows host to make os-x binary. See [the packaging issue](https://github.com/ImperialCollegeLondon/Visual2/issues/7) for more details of how this has been customised to work. Note that if this breaks you can still run individual targets as below.
+After you have compiled code (and checked it works) `yarn run package` will run electron packager and generate `./dist/os-name/*` files. See also `run-packager-all.bat` if using windows host to make macOS binary. See [the packaging issue](https://github.com/ImperialCollegeLondon/Visual2/issues/7) for more details of how this has been customised to work. Note that if this breaks you can still run individual targets as below.
 
 `yarn run package-host` will generate just the distro for the host OS and platform.
 
 Useful shortcuts for specific common target OS:
-* `yarn run package-osx` (OS-X - but see below if running from windows host)
+* `yarn run package-osx` (macOS - but see below if running from windows host)
 * `yarn run package-win` (windows)
 * `yarn run package-linux` (linux)
-* `./run-packager-os2.bat`. For windows hosts and OS-X targets the packager must be run with admin privileges: this bat file will provide these.
-* `./run-packager-all.bat`. For windows hosts runs `yarn run packager` with admin priviledges needed to generate os-x binaries.
+* `./run-packager-os2.bat`. For windows hosts and macOS targets the packager must be run with admin privileges: this bat file will provide these.
+* `./run-packager-all.bat`. For windows hosts runs `yarn run packager` with admin priviledges needed to generate macOS binaries.
 
-**Note on OSX binaries**. These cannot be packaged as DMG (and therefore used) except on an OS-X host. On OS-X you need to run `yarn run make-osx-dmg` which will FIRST run package-osx and then generate the osx DMG file as `./dist/visual2-osx.dmg`. This functionality is new and has not yet been tested (will not be tested till somone gets stuff working under OS-X).
+**Note on macOS binaries**. These cannot be packaged as DMG (and therefore used) except on a macOS host. On macOS you need to run `yarn run make-osx-dmg` which will FIRST run package-osx and then generate the macOS DMG file as `./dist/visual2-osx.dmg`. 
 
 
 
@@ -210,13 +210,13 @@ There are five distinct sources for this:
 * `*.fsproj`. These are the dotnet core project files for F# which should be changed to add F# dependencies or source files. They are simple and well documented in any of the F# Getting Started guides. Also, they can be changed in a GUI by both VS code / Ionide, and Visual Studio. The Ionide GUI change may not work as of May 2018 (try it).
 * `./package.json`. This is instructions to Yarn and FABLE (v1.x) to compile the F# source to JS with Node JS dependencies. Well documented by [fable-compiler](https://github.com/fable-compiler/Fable).
 * `./webpack.config` Instructions to `webpack` to bundle the JS files generated by FABLE. Well documented by [webpack](https://webpack.js.org/), but note the need to copy files caused by the non-standard Monaco loader.
-* `setup.bat`. Code to bootstrap and get initial binary dependencies for F# projects using paket. Documented by paket and dotnet.
+* `setup.bat` or `setup.sh`. Code to bootstrap and get initial binary dependencies for F# projects dotnet.
 
 Other top-level files (never changed manually):
 
 * `yarn.lock` auto-generated by yarn contains the package versions currently used of all node packages. These can get upgraded by `yarn upgrade`. Upgrading to latest versions is normally but not always trouble-free.
 * `paket.lock`, `paket.dependencies`. Files used by Paket to track nuget (.Net) packages. This project has only _development-time_ .Net dependencies and these do not need to be upgraded.
-* `Nuget.Config`. Used by NuGet. You _can_ view the project under Visual Studio and change packages in a GUi via NuGet but this is not recommended.
+* `Nuget.Config`. Used by NuGet. You _can_ view the project under Visual Studio and change packages in a GUI via NuGet but this is not recommended.
 * `ARM.Monaco.Editor.sln`. this solution file allows all three F# projects to be integrated by Visual Studio or Ionode. It is useful for editing code, but compilation is done via FABLE which uses information from `*.fsproj` files and ignores the `*.sln` file.
 
 ## Licensing
