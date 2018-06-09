@@ -11,7 +11,7 @@
     "package-linux": "yarn run build && electron-packager . visual2 --platform=linux --arch=x64 --out=dist --prune --asar --ignore=/dist --ignore=/src --overwrite",
     "package-win": "yarn run build && electron-packager . visual2 --platform=win32 --arch=x64 --out=dist --prune --asar --ignore=/dist --ignore=/src --overwrite --icon app/visual.ico",
     "launch": "electron .",
-    "make-osx-dmg": "yarn run package-osx && electron-installer-dmg dist/visual2-darwin-x64 dist/visual2-osx"
+    "make-osx-dmg": "yarn run package-osx && electron-installer-dmg --overwrite dist/visual2-darwin-x64 dist/visual2-osx --icon app/visual.ico"
   },
   "dependencies": {
     "babel-plugin-transform-runtime": "^6.23.0",
