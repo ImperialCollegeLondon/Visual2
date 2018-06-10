@@ -203,7 +203,7 @@
     border-color: grey;
 }
 
-.editor-font-size {
+#editor-font-size {
     width: 5em;
 }
 .settings-label {
