@@ -18,9 +18,9 @@ open ParseTop
 //**************************************************************************************
 //                     TOP LEVEL EXECUTION FUNCTIONS
 //**************************************************************************************
-let historyMaxGap = 100L
+let historyMaxGap = 500L
 
-let mutable minDataStart:uint32 = 0x1100u
+let mutable minDataStart:uint32 = 0x200u
 
 
 type ErrResolveBase = {lineNumber : uint32 ; error : ParseError}
