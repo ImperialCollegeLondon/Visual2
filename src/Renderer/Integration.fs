@@ -108,9 +108,12 @@ let highlightCurrentIns classname pInfo tId  =
     | None -> ()
     | Some pc ->
         match Map.tryFind (WA pc) pInfo.IMem with
-        | Some (ci, lineNo) -> highlightLine tId lineNo classname
+        | Some (ci, lineNo) -> 
+            highlightLine tId lineNo classname
+            Editors.revealLineInWindow tId lineNo
         | Option.None
         | Some _ -> failwithf "What? Current PC value (%x) is not an instruction: this should be impossible!" pc
+    
 
 let handleRunTimeError e (pInfo:RunInfo)  =
     let getCodeLineMess pInfo pos =

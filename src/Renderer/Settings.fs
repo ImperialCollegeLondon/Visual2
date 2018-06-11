@@ -149,14 +149,14 @@ let settingsMenu () =
         ]
         DIV [] [
             ELEMENT "h4" [] [] |> INNERHTML "Simulator"
-            makeFormGroup "Max steps <br> (0 for no max) " 
+            makeFormGroup "Max Steps <br> (0 for no max) " 
                 (makeInputVal "number" simulatorMaxSteps (0, 100,10000000) vSettings.SimulatorMaxSteps)
         ]
         
         DIV ["after"] []
         DIV [] [
             ELEMENT "button" ["btn";"btn-default"] []
-            |> INNERHTML "Save"
+            |> INNERHTML "Save and Close Settings"
             |> CLICKLISTENER (fun _ ->                                
                         getFormSettings()
                         setTabSaved ( getSettingsTabId () )

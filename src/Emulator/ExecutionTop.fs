@@ -18,7 +18,9 @@ open ParseTop
 //**************************************************************************************
 //                     TOP LEVEL EXECUTION FUNCTIONS
 //**************************************************************************************
-let historyMaxGap = 1000L
+let historyMaxGap = 100L
+
+let mutable minDataStart:uint32 = 0x1100u
 
 
 type ErrResolveBase = {lineNumber : uint32 ; error : ParseError}
@@ -209,6 +211,7 @@ let loadProgram (lines: string list) (lim: LoadImage)   =
         match n/blkSize , int n % int blkSize with
         | hb, 0 -> blkSize * hb
         | hb, _ -> blkSize * (hb+1u)
+        |> max minDataStart
     let setDStart lim = {lim with LoadP = {lim.LoadP with DStart = roundUpHBound lim.LoadP.PosI}}
     let initLim = initLoadImage (setDStart lim).LoadP.DStart lim.SymInf.SymTab
     List.fold loadLine initLim (lines |> List.indexed |> List.map (fun (i,s) -> s,i+1))
@@ -217,7 +220,7 @@ let loadProgram (lines: string list) (lim: LoadImage)   =
 
 let indentProgram lim lines =
     let spaces n = if n >= 0 then String.init n (fun _ -> " ") else " "
-    let opCols = 7
+    let opCols = 8
     let leftAlign (n:int) (s:string) =
         s + spaces (n - s.Length)
     let n = lim.Indent

@@ -102,8 +102,8 @@ module Memory
 
 
     /// A partially active pattern that returns an error if a register argument is not valid.
-    let (|RegCheck|_|) txt =
-        match Map.tryFind txt regNames with
+    let (|RegCheck|_|) (txt:string) =
+        match Map.tryFind (txt.ToUpper()) regNames with
         | Some reg ->
             reg |> Ok |> Some
         | _ -> Some <| makeRegError txt
@@ -111,7 +111,7 @@ module Memory
     ///
     let (|REGMATCH|_|) (txt:string) =
         match txt with
-        | ParseRegex2 @"\s*([rR][0-9]+|PC|SP|LR)(.*$)" (txt,TRIM rst) -> 
+        | ParseRegex2 @"\s*([rR][0-9]+|PC|SP|LR|pc|sp|lr)(.*$)" (txt,TRIM rst) -> 
             match Map.tryFind (txt.ToUpper()) regNames with
             | Some rn -> (Some (rn, rst))
             | None -> None
@@ -241,22 +241,23 @@ module Memory
         let parseMult (root: string) suffix pCond : Parse<Instr> =
 
             /// For matching the list of regs
-            let (|RegListMatch|_|) str =
-                match str with 
-                | ParseRegex "([rR][0-9]+)}" address -> address |> Some
-                | ParseRegex "\[([rR][0-9]+)" address -> address |> Some
+            let (|RegListMatch|_|) (str:string) =
+                match str.ToUpper() with 
+                | ParseRegex "([rR][0-9]+|PC|LR|SP)}" address -> address |> Some
+                | ParseRegex "\[([rR][0-9]+|PC|LR|SP)" address -> address |> Some
                 | _ -> None
 
             /// Regex match the numbers in a hyphen list {r1 - r7}
             /// in order to construct full reg list.
             /// return the two numbers as low, high
-            let (|RegListExpand|_|) str =
-                match str with
-                | ParseRegex2 "[rR]([0-9]+)-[rR]([0-9]+)" (low, high) -> (low, high) |> Some
+            let (|RegListExpand|_|) (str:string) =
+                match str.ToUpper() with
+                | ParseRegex2 "(R[0-9]+|PC|LR|SP)-(R[0-9]+|PC|LR|SP)" (low, high) when regNames.ContainsKey low && regNames.ContainsKey high ->
+                    (regNums.[regNames.[low]], regNums.[regNames.[high]]) |> Some
                 | _ -> None
 
             /// Matches the registers
-            let (|RegListMatch|_|) str =
+            let (|RegListMatch|_|) (str:string) =
                 /// nice function to make register names from the 
                 /// high and low values
                 /// {r2-r7} -> 2, 7 -> R2,R3,R4,R5,R6,R7
@@ -270,10 +271,10 @@ module Memory
                 let optionMakeList n = 
                     [n] |> Some
 
-                match str with
-                | ParseRegex "(([rR][0-9]+)-([rR][0-9]+))" listReg -> optionNumToRegList listReg
-                | ParseRegex "([rR][0-9]+)!" bangReg -> bangReg |> optionMakeList
-                | ParseRegex "([rR][0-9]+)" reg -> reg |> optionMakeList
+                match str.ToUpper() with
+                | ParseRegex "(([rR][0-9]+|PC|LR|SP)-([rR][0-9]+|PC|LR|SP))" listReg -> optionNumToRegList listReg
+                | ParseRegex "([rR][0-9]+|PC|LR|SP)!" bangReg -> bangReg |> optionMakeList
+                | ParseRegex "([rR][0-9]+|PC|LR|SP)" reg -> reg |> optionMakeList
                 | _ -> None
 
             /// split the operands at a {

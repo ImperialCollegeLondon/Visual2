@@ -21,10 +21,11 @@ module Expressions
     /// Also removes any whitespace from around the label
     let (|LabelExpr|_|) txt =
         match txt with 
-        | RegexPrefix "[a-zA-Z][a-zA-Z0-9]+" (var, rst) -> 
+        | RegexPrefix "[a-zA-Z][a-zA-Z0-9_]+" (var, rst) -> 
             // Remove whitespace from the label
             (removeWs var, rst) |> Some
         | _ -> None
+
 
     
     type SymbolTable = Map<string,uint32>
@@ -85,6 +86,7 @@ module Expressions
                     let litNum =
                         num
                         |> String.replace "_" ""
+                        |> String.toLower
                         |> uint32
                         |> Literal
                     (litNum, rst) |> Some

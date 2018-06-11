@@ -127,3 +127,6 @@ let makeErrorInEditor tId lineNumber (markdownLst:string list) =
             "inlineClassName" ==> "editor-line-error"
             "hoverMessage" ==> makeMarkDown markdownLst
         ])
+
+let revealLineInWindow tId (lineNumber: int) =
+    Refs.editors.[tId]?revealLine lineNumber |> ignore

@@ -262,6 +262,7 @@ let updateSymTable () =
     let symTabRows =
         symbolMap
         |> Map.toList
+        |> List.sortBy (fun (sym,addr)-> addr)
         |> List.map makeRow
 
     // Clear the old symbol table

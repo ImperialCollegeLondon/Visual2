@@ -1,10 +1,10 @@
 :root {
-    --dashboard-width-init:300px; /* normal viewer width */
+    --dashboard-width-init:350px; /* normal viewer width */
     --dashboard-width-binrep:500px; /* wider viewer width needed for binary */
 
     /* dashboard-width depends on viewer content and is set from F# when view 
        representation is changed */
-    --dashboard-width: 300px; /* actual viewer width */
+    --dashboard-width: 350px; /* actual viewer width */
 
     /* header-height depends on how many lines controls use. It is reset
        dynamically from F# on window resize that might change this */
@@ -204,7 +204,7 @@
 }
 
 #editor-font-size {
-    width: 5em;
+    width: 7em;
 }
 .settings-label {
     margin-bottom: 0px;
