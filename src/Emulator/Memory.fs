@@ -63,11 +63,18 @@ module Memory
         | LDREQUAL of RName * uint32
 
 
-    let memSpec = {
+    let memSpecSingle = {
+        InstrC = MEM
+        Roots = ["LDR";"STR"]
+        Suffixes = [""; "B"]
+    }
+
+    let memSpecMultiple = {
         InstrC = MEM
         Roots = ["LDR";"STR";"STM";"LDM"]
-        Suffixes = [""; "B";"IA";"IB";"DA";"DB";"FD";"ED";"FA";"EA"]
+        Suffixes = ["IA";"IB";"DA";"DB";"FD";"ED";"FA";"EA"]
     }
+
 
     let memTypeSingleMap = 
         Map.ofList [
@@ -83,7 +90,10 @@ module Memory
     
     
     /// map of all possible opcodes recognised
-    let opCodes = opCodeExpand memSpec
+    let opCodes =
+        let toArr = opCodeExpand >> Map.toArray
+        Array.collect toArr [| memSpecSingle ; memSpecMultiple |]
+        |> Map.ofArray
 
 
     
