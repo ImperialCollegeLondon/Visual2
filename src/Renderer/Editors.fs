@@ -129,4 +129,4 @@ let makeErrorInEditor tId lineNumber (markdownLst:string list) =
         ])
 
 let revealLineInWindow tId (lineNumber: int) =
-    Refs.editors.[tId]?revealLine lineNumber |> ignore
+    Refs.editors.[tId]?revealLineInCenterIfOutsideViewport(lineNumber) |> ignore

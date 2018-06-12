@@ -13,15 +13,12 @@ open Errors
 open Expressions
 open ParseTop
 
-
-
 //**************************************************************************************
 //                     TOP LEVEL EXECUTION FUNCTIONS
 //**************************************************************************************
 let historyMaxGap = 500L
 
 let mutable minDataStart:uint32 = 0x200u
-
 
 type ErrResolveBase = {lineNumber : uint32 ; error : ParseError}
 
@@ -31,11 +28,21 @@ type LoadPos = {
     DStart: uint32
     }
 
+type SymbolType =
+    | CalculatedSymbol
+    | DataSymbol
+    | CodeSymbol
+
+
+
+type AnnotatedSymbolTable = Map<string, uint32*SymbolType>
+
 type SymbolInfo = {
     SymTab: SymbolTable ; 
+    SymTypeTab: Map<string,SymbolType>;
     Refs: (string * int) list ; 
-    Defs: (string * int) list; 
-    Unresolved: (string * int) list
+    Defs: (string * SymbolType * int) list; 
+    Unresolved: (string * SymbolType * int) list
     }
 
 type LoadImage = {
@@ -46,6 +53,7 @@ type LoadImage = {
     SymInf: SymbolInfo
     Indent: int
     Source: string list
+    EditorText: string list
     }
 
 type Step = {
@@ -58,12 +66,13 @@ type ProgState = | PSExit | PSRunning | PSError of ExecuteError
 type RunInfo = {
     dpInit: DataPath
     IMem: CodeMemory<CondInstr * int>
-    st: SymbolTable
+    st: AnnotatedSymbolTable
     StepsDone: int64
     dpCurrent: DataPath
     State: ProgState
     LastPC: uint32 option
     Source: string list
+    EditorText: string list
     History: Step list
     }
 
@@ -88,12 +97,14 @@ let initLoadImage dStart symTab =
         SymInf =
             {
                 SymTab = symTab
+                SymTypeTab = Map.empty
                 Refs = []
                 Defs = []
                 Unresolved = []
             }
         Indent = 7
         Source = [""]
+        EditorText = []
     }
 
 let makeLocI (pa: Parse<Instr>) = 
@@ -140,19 +151,26 @@ let addWordDataListToMem (dStart:uint32) (mm: DataMemory) (dl:Data list) =
     
 
 let loadLine (lim:LoadImage) ((line,lineNum) : string * int) =
-    let addSymbol sym symList = (sym,lineNum) :: symList
+    let addSymbol sym typ symList = (sym, typ, lineNum) :: symList
     let pa = parseLine lim.SymInf.SymTab (lim.LoadP.PosI,lim.LoadP.PosD) line
+    let labType = 
+        match pa.PInstr with
+        | Ok EMPTY -> CodeSymbol
+        | Ok (IMISC (EQU _)) -> CalculatedSymbol
+        | Ok (IMISC (DCD _)) | Ok (IMISC (DCB _)) | Ok (IMISC (FILL _)) -> DataSymbol
+        | _ -> CodeSymbol
     let si' =
         let si = lim.SymInf
         match pa.PLabel with
-        | Some (lab,Ok addr) -> 
+        | Some (lab, Ok addr) -> 
             { si with 
-                Defs = addSymbol lab si.Defs
+                Defs = addSymbol lab labType si.Defs
                 SymTab = Map.add lab addr si.SymTab
+                SymTypeTab = Map.add lab labType si.SymTypeTab
             }
         | None -> si
         | Some (lab, Error _) -> 
-            { si with Unresolved = addSymbol lab si.Unresolved }
+            { si with Unresolved = addSymbol lab labType si.Unresolved }
 
         |>  (fun si ->
             match pa.PInstr with
@@ -195,6 +213,7 @@ let loadLine (lim:LoadImage) ((line,lineNum) : string * int) =
             | Some (lab,_) -> max lim.Indent (lab.Length+1) 
             | _ -> lim.Indent
         Source = [""]
+        EditorText = []
     }
 
 let addTermination (lim:LoadImage) =
@@ -265,7 +284,7 @@ let reLoadProgram (lines: string list) =
         |> next
         |> addCodeMarkers
     let src = indentProgram final lines
-    {final with Source=src}, src
+    {final with Source=src ; EditorText = lines}, src
 
 
 let executeADR (ai:ADRInstr) (dp:DataPath) =

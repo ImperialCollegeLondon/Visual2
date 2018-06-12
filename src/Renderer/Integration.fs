@@ -149,16 +149,20 @@ let handleRunTimeError e (pInfo:RunInfo)  =
         setMode (RunMode.RunErrorMode pInfo)
     showInfo()
 
-let imageOfTId tId =
-    let asm = 
-        Files.getCode tId 
-        |> (fun (x : string) -> x.Split [|'\n'|]) 
-        |> Array.toList
-    reLoadProgram asm
+let textOfTId tId =
+    Files.getCode tId 
+    |> (fun (x : string) -> x.Split [|'\n'|]) 
+    |> Array.toList
+
+let imageOfTId = textOfTId >> reLoadProgram
+
 
 let currentFileTabIsChanged (pInfo:RunInfo) =
-    let _,indentedCode = imageOfTId currentFileTabId
-    indentedCode <> pInfo.Source
+    let txt = textOfTId currentFileTabId
+    if txt = pInfo.EditorText then false
+    else
+        let _,indentedCode = reLoadProgram txt
+        indentedCode <> pInfo.Source
 
 
 let tryParseCode tId =
@@ -178,9 +182,15 @@ let tryParseCode tId =
         Core.Option.None
 
 let getRunInfoFromState (lim:LoadImage) =
+    let getSymTyp sym = 
+        match Map.tryFind sym lim.SymInf.SymTypeTab with
+        | Some typ -> typ
+        | None -> failwithf "What? No type info for symbol %s" sym
+
     let getData map mm : Map<WAddr,Data> =
         let dLocs = map |> Map.toList
         List.fold (fun mem -> fun (a, x) -> Map.add (WA a) (Dat x) mem) mm dLocs
+
     let dp = {
                 Fl = getFlags()
                 Regs = getRegs()
@@ -190,11 +200,14 @@ let getRunInfoFromState (lim:LoadImage) =
         dpInit=dp; 
         dpCurrent = dp
         State = PSRunning
-        st=lim.SymInf.SymTab; 
+        st = 
+            lim.SymInf.SymTab
+            |> Map.map (fun sym addr -> addr, getSymTyp sym) 
         IMem = lim.Code; 
         LastPC = None
         StepsDone=0L
         Source = lim.Source
+        EditorText = lim.EditorText
         History = []
     }
 

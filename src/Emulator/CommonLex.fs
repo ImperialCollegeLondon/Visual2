@@ -50,7 +50,7 @@ module CommonLex
             /// value representing instruction. NB type varies with instruction class
             PInstr: Result<'INS,Errors.ParseError>
             /// name and value of `label defined on this line, if one is.
-            PLabel: (string * Resolvable ) option 
+            PLabel: (string * Resolvable) option 
             /// number of bytes in memory taken up by this instruction
             ISize: uint32 
             /// number of data bytes in memory taken up by this instruction

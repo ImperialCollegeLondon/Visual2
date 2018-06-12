@@ -13,7 +13,10 @@ open Fable.Core.JsInterop
 open Fable.Import.Browser
 open Refs
 open Fable
+open ExecutionTop
 
+let maxSymbolWidth = 30
+let maxDataSymbolLength = 16
 
 [<Emit "'0x' + ($0 >>> 0).toString(16)">]
 let hexFormatter _ : string = jsNative
@@ -42,7 +45,16 @@ let formatterWithWidth width rep =
     | Refs.Dec -> (int32 >> sprintf "%d")
     | Refs.UDec -> uDecFormatter
 
+
 let formatter = formatterWithWidth 32
+
+let nameSquash maxW name =
+    let nameLen = String.length name
+    if  nameLen <= maxW then name
+    else
+        let fp = (float maxW)*0.65 |> int
+        let lp = maxW - (fp + 3)
+        name.[0..fp-1] + "..." + name.[nameLen - lp .. nameLen - 1]
 
 let setRegister (id: CommonData.RName) (value: uint32) =
     let el = Refs.register id.RegNum
@@ -170,24 +182,15 @@ let updateMemory () =
     let invSymbolMap = 
         symbolMap
         |> Map.toList
-        |> List.distinctBy (fun (sym,addr) ->addr)
-        |> List.map (fun (sym,addr) -> (addr,sym))
+        |> List.filter (fun (_, (_,typ)) -> typ = ExecutionTop.DataSymbol)
+        |> List.distinctBy (fun (_,(addr,_)) -> addr)
+        |> List.map (fun (sym,(addr,_)) -> (addr,sym))
         |> Map.ofList
 
     let lookupSym addr = 
             match Map.tryFind addr invSymbolMap with
             | option.None -> ""
             | Some sym -> sym
-    
-    let maxTableWidth = 
-        memoryMap
-        |> Map.map (fun addr dat -> 
-                    (lookupSym addr |> String.length) + 
-                    (formatter currentRep dat).Length +
-                    (sprintf "0x%X" addr).Length
-           )
-        |> Map.fold (fun x k v -> max x v) 0
-        |> (fun w -> w*chWidth + memPanelShim)
        
     let makeRow (addr : uint32, (chRep:string, value : uint32)) =
 
@@ -195,7 +198,7 @@ let updateMemory () =
 
         let rowDat = 
             [
-                lookupSym addr
+                lookupSym addr |> nameSquash maxDataSymbolLength
                 sprintf "0x%X" addr
                 (if byteView then 
                     formatterWithWidth 8 currentRep value + 
@@ -245,30 +248,58 @@ let updateMemory () =
 
 /// Update symbol table View using currentRep and symbolMap
 let updateSymTable () =
+    let mapsAreDifferent (m1:Map<'a,'b>) (m2: Map<'a,'b>) =
+        let norm m = m1 |> Map.toArray |> Array.sort
+        m1.Count <> m2.Count || norm m1 <> norm m2 || currentRep <> displayedCurrentRep
+        
+    if mapsAreDifferent symbolMap displayedSymbolMap
+    then
+        displayedSymbolMap <- symbolMap
+        displayedCurrentRep <- currentRep
+        let makeRow ((sym : string), (value,typ) : uint32*ExecutionTop.SymbolType) =
+            let tr = makeEl "tr" "tr-head-sym"
+            addToDOM tr [
+                makeElement "td" "selectable-text" sym
+                makeElement "td" "selectable-text" (formatter currentRep value)
+                ]
 
-    let makeRow ((sym : string), value : uint32) =
-        let tr = makeEl "tr" "tr-head-sym"
-        addToDOM tr [
-            makeElement "td" "selectable-text" sym
-            makeElement "td" "selectable-text" (formatter currentRep value)
-            ]
+        let makeGroupHdr typ = 
+            let symName =
+                match typ with 
+                | DataSymbol -> "Data Symbol"
+                | CodeSymbol  -> "Code Symbol"
+                | CalculatedSymbol -> "EQU Symbol"
 
-    let tr = 
-        createDOM "tr" [
-            makeElement "th" "th-mem" "Symbol"
-            makeElement "th" "th-mem" "Value"
-            ]
+            createDOM "tr" [
+                makeElement "th" "th-mem" symName
+                makeElement "th" "th-mem" "Value"
+                ]
 
-    let symTabRows =
-        symbolMap
-        |> Map.toList
-        |> List.sortBy (fun (sym,addr)-> addr)
-        |> List.map makeRow
+        let symTabRows =
+            let makeGroupRows (grpTyp, grpSyms) =
+                grpSyms
+                |> Array.map (fun (sym,addr)-> sym,addr)
+                |> Array.sortBy snd
+                |> Array.map (fun (sym, addr) -> nameSquash maxSymbolWidth sym, addr)
+                |> Array.map makeRow
+                |> Array.append [| makeGroupHdr grpTyp |]
+            
+            let groupOrder = function 
+                | (CodeSymbol,_)  -> 1 
+                | (DataSymbol,_) -> 2 
+                | (CalculatedSymbol,_) -> 3
 
-    // Clear the old symbol table
-    symTable.innerHTML <- ""
-    // Add the new one
-    addToDOM symTable ([tr] @ symTabRows) |> ignore
+            symbolMap
+            |> Map.toArray
+            |> Array.groupBy (fun (_sym, (_addr,typ)) -> typ)
+            |> Array.sortBy groupOrder
+            |> Array.collect makeGroupRows
+            |> Array.toList
+
+        // Clear the old symbol table
+        symTable.innerHTML <- ""
+        // Add the new one
+        addToDOM symTable (symTabRows) |> ignore
 
 /// Set View to view
 let setView view =

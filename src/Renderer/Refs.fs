@@ -310,6 +310,8 @@ let mutable editors : Map<int, obj> = Map.ofList []
 let mutable settingsTab : int option = Microsoft.FSharp.Core.option.None
 /// The current number representation being used
 let mutable currentRep = Hex
+/// indicates what the current DOM symbols display representation is
+let mutable displayedCurrentRep = Hex
 /// The current View in the right-hand pane
 let mutable currentView = Registers
 /// Whether the Memory View is byte of word based
@@ -323,7 +325,10 @@ let mutable regMap : Map<CommonData.RName,uint32> = initialRegMap
 /// Contents of CPU flags
 let mutable flags: CommonData.Flags = initialFlags
 /// Values of all Defined Symols
-let mutable symbolMap : Map<string, uint32> = Map.empty
+let mutable symbolMap : Map<string, uint32*ExecutionTop.SymbolType> = Map.empty
+/// version of symbolMap currently displayed
+let mutable displayedSymbolMap : Map<string, uint32*ExecutionTop.SymbolType> = Map.empty
+
 /// Current state of simulator
 let mutable runMode: ExecutionTop.RunMode = ExecutionTop.ResetMode
 
