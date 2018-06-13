@@ -128,6 +128,7 @@ let openFile () =
     |> ignore
 
 
+
 let writeToFile str path =
     let errorHandler _err = // TODO: figure out how to handle errors which can occur
         ()

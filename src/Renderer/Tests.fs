@@ -19,6 +19,16 @@ let runPipe mess s = printfn "%s: %A" mess s; s
 
 let projectDir = __SOURCE_DIRECTORY__ + @"/../../"
 
+let sampleDir = projectDir + @"app/samples/"
+
+let loadDemo () =
+    Tabs.createFileTab()
+    let tId = Refs.currentFileTabId
+    fs.readFile( sampleDir + "karatsuba.s", (fun _ data -> // TODO: find out what this error does
+            Files.loadFileIntoTab  tId data
+        ))
+
+
 type Flags = {
     FN: bool
     FZ: bool

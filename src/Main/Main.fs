@@ -54,11 +54,11 @@ let createMainWindow () =
     //window.show()
     printfn "load complete"
 
-
+      
     #if WATCH
     printfn "Adding extra DEBUG Code..."
     
-    fs.watch(path.join(Node.Globals.__dirname, "/"), fun _ _ ->
+    fs.watch(path.join(Node.Globals.__dirname, "/main.js"), fun _ _ ->
         window.webContents.reloadIgnoringCache()
     ) |> ignore
 
