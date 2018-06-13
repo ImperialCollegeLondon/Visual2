@@ -10,7 +10,7 @@ open Fable.Import.Browser
 open Fable.Core
 open EEExtensions
 
-let editorOptions () = 
+let editorOptions (readOnly:bool) = 
     let vs = Refs.vSettings
     createObj [
 
@@ -27,13 +27,14 @@ let editorOptions () =
                         "language" ==> "arm";
                         "roundedSelection" ==> false;
                         "scrollBeyondLastLine" ==> false;
+                        "readOnly" ==> readOnly;
                         "automaticLayout" ==> true;
                         "minimap" ==> createObj [ "enabled" ==> false ]
               ]
 
 
-let updateEditor tId =
-    let eo = editorOptions()
+let updateEditor tId readOnly =
+    let eo = editorOptions readOnly
     printfn "Options: %A" eo
     Refs.editors.[tId]?updateOptions(eo) |> ignore
 
@@ -41,9 +42,10 @@ let setTheme theme =
     window?monaco?editor?setTheme(theme)
 
 
-let updateAllEditors () =
+let updateAllEditors readOnly =
     Refs.editors
-    |> Map.iter (fun tId _ -> updateEditor tId)
+    |> Map.iter (fun tId _ -> if tId = Refs.currentFileTabId then  readOnly else false
+                              |> updateEditor tId)
     let theme = Refs.vSettings.EditorTheme
     Refs.setFilePaneBackground (
         match theme with 
@@ -55,18 +57,19 @@ let updateAllEditors () =
 // Disable the editor and tab selection during execution
 let disableEditors () = 
     Refs.fileTabMenu.classList.add("disabled-click")
-    (Refs.fileView Refs.currentFileTabId).classList.add("disabled-click")
-    Refs.fileViewPane.onclick <- (fun _ ->
-        Browser.window.alert("Cannot use editor pane during execution")
+    Refs.fileTabMenu.onclick <- (fun _ ->
+        Browser.window.alert("Cannot change tabs during execution")
     )
+    updateEditor Refs.currentFileTabId true
     Refs.darkenOverlay.classList.remove("invisible")
+    Refs.darkenOverlay.classList.add([|"disabled-click"|])
 
 // Enable the editor once execution has completed
 let enableEditors () =
     Refs.fileTabMenu.classList.remove("disabled-click")
-    (Refs.fileView Refs.currentFileTabId).classList.remove("disabled-click")
-    Refs.fileViewPane.onclick <- ignore
-    Refs.darkenOverlay.classList.add("invisible")
+    Refs.fileTabMenu.onclick <- ignore
+    updateEditor Refs.currentFileTabId false
+    Refs.darkenOverlay.classList.add([|"invisible"|])
 
 let mutable decorations : obj list = []
 let mutable lineDecorations : obj list = []

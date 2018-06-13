@@ -102,7 +102,7 @@ let init () =
     // Create an empty tab to start with
     Tabs.createFileTab ()
     vSettings <- checkSettings (getJSONSettings())
-    Editors.updateAllEditors()
+    Editors.updateAllEditors false
 
 let handleMonacoReady (_: Event) = init ()
 

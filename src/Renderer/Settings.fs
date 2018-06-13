@@ -161,7 +161,7 @@ let settingsMenu () =
                         getFormSettings()
                         setTabSaved ( getSettingsTabId () )
                         Tabs.deleteCurrentTab()
-                        Editors.updateAllEditors() )
+                        Editors.updateAllEditors false)
         ]
     ]    
 
@@ -193,4 +193,4 @@ let alterFontSize (n:int) =
         {Refs.vSettings with 
             EditorFontSize = (int64 newSize).ToString()
         }
-    updateAllEditors()
+    updateAllEditors false

@@ -221,7 +221,7 @@ let createNamedFileTab fName fPath=
         let id = createTab fName
 
         let addEditor (fv ) =
-            let editor = window?monaco?editor?create(fv, Editors.editorOptions())   
+            let editor = window?monaco?editor?create(fv, Editors.editorOptions false)   
                     // Whenever the content of this editor changes
             editor?onDidChangeModelContent(fun _ ->
                 setTabUnsaved id // Set the unsaved icon in the tab
