@@ -5,7 +5,7 @@
     Description: Code to handle persistent settings stored on PC as a file under user data
 *)
 
-
+/// implement electron-style persistent settings via electron-settings module
 module Settings
 
 open Fable.Import.Browser

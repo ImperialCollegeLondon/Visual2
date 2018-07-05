@@ -6,6 +6,7 @@
 *)
 
 
+/// Assembler code expressions (symbols, operators, and constants)
 module Expressions
     open System.Text.RegularExpressions
     open Errors

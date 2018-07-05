@@ -5,7 +5,7 @@
     Description: Top-level code to execute instructions and programs
 *)
 
-
+/// execute ARM programs. Also calls parser, and implements code indentation
 module ExecutionTop
 open EEExtensions
 open Errors
@@ -25,6 +25,7 @@ open ParseTop
 //                     TOP LEVEL EXECUTION FUNCTIONS
 //**************************************************************************************
 let historyMaxGap = 500L
+let maxProgramCacheSize = 100
 
 let mutable minDataStart:uint32 = 0x200u
 
@@ -268,31 +269,38 @@ let indentProgram lim lines =
     List.map indentLine lines
 
 
+let mutable programCache: Map<string list,LoadImage> = Map.empty
+
 let reLoadProgram (lines: string list) =
-    let addCodeMarkers (lim: LoadImage) =
-        let addCodeMark map (WA a, _) = 
-               match Map.tryFind (WA a) map with
-                | None -> Map.add (WA a) CodeSpace map
-                | _ -> failwithf "Code and Data conflict in %x" a
-        List.fold addCodeMark (lim.Mem) (lim.Code |> Map.toList)
-        |> (fun markedMem -> {lim with Mem = markedMem})
-    let lim1 = initLoadImage dataSectionAlignment ([] |> Map.ofList)
-    let next = loadProgram lines
-    let unres lim = lim.SymInf.Unresolved |> List.length
-    let errs lim = lim.Errors |> List.map snd
-    let rec pass lim1 lim2 =
-        match unres lim1, unres lim2 with
-        | n1,n2 when (n2=0 && (lim1.LoadP.PosI <= lim2.LoadP.DStart)) || n1 = n2
-            -> lim2
-        | n1,n2 when n1 = n2 && List.isEmpty lim2.Errors -> failwithf "What? %d unresolved refs in load image with no errors" n1
-        | _ -> pass lim2 (next lim2)
-    let final = 
-        pass lim1 (next lim1) 
-        |> next 
-        |> next
-        |> addCodeMarkers
-    let src = indentProgram final lines
-    {final with Source=src ; EditorText = lines}, src
+    if programCache.ContainsKey lines then programCache.[lines], lines
+    else
+        if programCache.Count > maxProgramCacheSize then programCache <- Map.empty
+        let addCodeMarkers (lim: LoadImage) =
+            let addCodeMark map (WA a, _) = 
+                   match Map.tryFind (WA a) map with
+                    | None -> Map.add (WA a) CodeSpace map
+                    | _ -> failwithf "Code and Data conflict in %x" a
+            List.fold addCodeMark (lim.Mem) (lim.Code |> Map.toList)
+            |> (fun markedMem -> {lim with Mem = markedMem})
+        let lim1 = initLoadImage dataSectionAlignment ([] |> Map.ofList)
+        let next = loadProgram lines
+        let unres lim = lim.SymInf.Unresolved |> List.length
+        let errs lim = lim.Errors |> List.map snd
+        let rec pass lim1 lim2 =
+            match unres lim1, unres lim2 with
+            | n1,n2 when (n2=0 && (lim1.LoadP.PosI <= lim2.LoadP.DStart)) || n1 = n2
+                -> lim2
+            | n1,n2 when n1 = n2 && List.isEmpty lim2.Errors -> failwithf "What? %d unresolved refs in load image with no errors" n1
+            | _ -> pass lim2 (next lim2)
+        let final = 
+            pass lim1 (next lim1) 
+            |> next 
+            |> next
+            |> addCodeMarkers
+        let src = indentProgram final lines
+        let lim = {final with Source=src ; EditorText = lines}
+        programCache <- programCache.Add (lines, lim)
+        lim, lines
 
 
 let executeADR (ai:ADRInstr) (dp:DataPath) =

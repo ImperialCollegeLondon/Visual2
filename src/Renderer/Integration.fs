@@ -5,7 +5,7 @@
     Description: Code to integrate the emulator with the renderer
 *)
 
-
+/// integrate emulator code with renderer
 module Integration
 
 open Tabs
@@ -167,10 +167,7 @@ let imageOfTId = textOfTId >> reLoadProgram
 
 let currentFileTabIsChanged (pInfo:RunInfo) =
     let txt = textOfTId currentFileTabId
-    if txt = pInfo.EditorText then false
-    else
-        let _,indentedCode = reLoadProgram txt
-        indentedCode <> pInfo.Source
+    txt <> pInfo.EditorText
 
 
 let tryParseCode tId =
@@ -263,6 +260,7 @@ let rec asmStepDisplay steps ri =
                         asmStepDisplay steps ri'), 0, []) |> ignore
             | _ -> displayState ri' true
 
+    
 let prepareModeForExecution() =
     match runMode with
     | FinishedMode ri
@@ -271,7 +269,7 @@ let prepareModeForExecution() =
         if currentFileTabIsChanged ri then
             Browser.window.alert "Resetting emulator for new execution" |> ignore
             setMode ResetMode
-    | _ -> () 
+    | _ -> ()
 
 /// Parses and runs the assembler program in the current tab
 /// Aborts after steps instructions, unless steps is 0
@@ -294,6 +292,8 @@ let runEditorTab steps =
     | RunErrorMode _ 
     | FinishedMode _ -> ()
 
+
+
 let runCode () = 
     match runMode with
     | FinishedMode _ 
@@ -315,8 +315,8 @@ let stepCodeBackBy numSteps =
     match runMode with
     | ActiveMode (Paused,ri)
     | RunErrorMode ri
-    | FinishedMode ri ->
-        if currentFileTabIsChanged ri then
+    | FinishedMode ri -> 
+        if  currentFileTabIsChanged ri then
             Browser.window.alert "can't step backwards because execution state is no longer valid"
         else
             //printf "Stepping back with done=%d  PC=%A" ri.StepsDone ri.dpCurrent

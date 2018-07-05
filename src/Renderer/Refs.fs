@@ -5,6 +5,7 @@
     Description: F# references to elements in the DOM + some user settings handling
 *)
 
+/// F# References to static parts of renderer DOM
 module Refs
 open CommonData
 

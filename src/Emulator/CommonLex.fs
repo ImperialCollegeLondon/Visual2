@@ -6,6 +6,7 @@
     Description: Perform common part of parsing and define parse types
 *)
 
+/// functions and types for initial assembly parse
 module CommonLex
 
     open CommonData

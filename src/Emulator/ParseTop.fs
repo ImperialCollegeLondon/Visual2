@@ -4,6 +4,8 @@
     Module: Emulator.ParseTop
     Description: Top-level code to parse instructions
 *)
+
+/// Top-level code implementing assembler parsing
 module ParseTop
     open CommonLex
     open CommonData

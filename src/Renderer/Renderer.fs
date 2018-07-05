@@ -5,6 +5,7 @@
     Description: Top-level Electron Renderer Process
 *)
 
+/// Top-level renderer process function: calls everything else
 module Renderer
 
 open Fable.Core

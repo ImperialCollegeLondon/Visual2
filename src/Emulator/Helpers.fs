@@ -8,6 +8,7 @@
 // NB instruction modules were originally written independently and this shows. 
 // more refactoring with good common code put here would improve quality
 
+/// Emulator Helper functions
 module Helpers
     open CommonData    
     open System.Text.RegularExpressions

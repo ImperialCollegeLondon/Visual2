@@ -1,5 +1,5 @@
 /*
-High Level Programming @Imperial College London # Spring 2018
+Visual2 @ Imperial College London
 Project: A user - friendly ARM emulator in F# and Web Technologies(Github Electron & Fable Compliler)
 Module: JS/Monaco-init
 Description: Javascript code to run Monaco editor and define code highlighting regexes

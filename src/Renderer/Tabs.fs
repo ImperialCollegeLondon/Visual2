@@ -5,6 +5,7 @@
     Description: handle editor tabs: each can contain a distinct assembly file
 *)
 
+/// implement Monaco editor file tabs
 module Tabs
 
 open Fable.Core.JsInterop

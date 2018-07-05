@@ -5,7 +5,7 @@
     Description: Low-level data structures used throughout the emulator
 *)
 
-
+/// Common data types and code for emulator
 module CommonData
     //////////////////////////////////////////////////////////////////////////////////////
     //                   Common types and code used by all modules

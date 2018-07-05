@@ -5,6 +5,7 @@
     Description: Display registers, memory or symbol table in Views Panel
 *)
 
+/// implement views panel
 module Views
 
 open Fable.Core

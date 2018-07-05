@@ -5,6 +5,7 @@
     Description: Implement ARM branch instructions
 *)
 
+/// emulate ARM branch instructions
 module Branch
     open CommonData
     open CommonLex

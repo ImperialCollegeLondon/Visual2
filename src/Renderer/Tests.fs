@@ -5,6 +5,7 @@
     Description: run automated tests using data geenrated by VisualRandomTestGen
 *)
 
+/// Run automatic emulator testing
 module Tests
 
 open System

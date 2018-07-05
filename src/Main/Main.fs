@@ -1,12 +1,15 @@
 (* 
-    High Level Programming @ Imperial College London # Spring 2018
+    Visual2 @ Imperial College London
     Project: A user-friendly ARM emulator in F# and Web Technologies ( Github Electron & Fable Compliler )
     Module: Main.Main
     Description: Electron Main Process
 *)
 
-
+/// This single module is compiled to JS to make the electron main process that runs node directly on teh host PC and starts up the app.
+/// This process is also used for any native resource access (files etc) via electron IPC calls
 module Main
+
+
 
 open Fable.Core
 open Fable.Core.JsInterop

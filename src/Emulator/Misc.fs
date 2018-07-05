@@ -5,6 +5,7 @@
     Description: Implement ARM miscellaneous instructions
 *)
 
+/// emulate DCD, DCB, FILL, EQU, ADR instructions
 module Misc
     open CommonData
     open CommonLex

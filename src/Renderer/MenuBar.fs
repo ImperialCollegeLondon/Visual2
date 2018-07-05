@@ -5,6 +5,7 @@
     Description: Code for the app menus
 *)
 
+/// implement menu functions
 module MenuBar
 
 open Fable.Core

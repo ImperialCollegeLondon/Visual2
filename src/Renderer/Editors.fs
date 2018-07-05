@@ -5,6 +5,7 @@
     Description: Interface with Monaco editor buffers
 *)
 
+/// Interface with monaco editor buffers
 module Editors
 
 open Fable.Core.JsInterop

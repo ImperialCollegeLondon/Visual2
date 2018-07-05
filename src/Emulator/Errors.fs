@@ -8,6 +8,7 @@
 
 // WARNING - this code is out of date and needs TLC when errors are properly defined
 
+/// Error handling for parse and simulator
 module Errors
 
     open CommonData

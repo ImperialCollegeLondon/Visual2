@@ -5,7 +5,7 @@
     Description: Implement ARM DP instructions
 *)
 
-
+/// implement ARM data processing instructions
 module DP
 
 open EEExtensions
