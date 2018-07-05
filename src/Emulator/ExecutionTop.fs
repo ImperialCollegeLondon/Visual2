@@ -22,6 +22,27 @@ open Expressions
 open ParseTop
 
 //**************************************************************************************
+//                            HELPER FUNCTIONS
+//**************************************************************************************
+
+let cacheLastN N objFunc =
+    let mutable cache = []
+    fun inDat ->
+        match List.tryFind (fun (inD, _) -> inD = inDat) cache with
+        | Some (_, res) -> res
+        | _ -> 
+            let res =  objFunc inDat 
+            if cache.Length > N then
+                cache <- List.take N ((inDat,res) :: cache)
+                else cache <- (inDat,res) :: cache
+            res
+                 
+                
+
+
+
+
+//**************************************************************************************
 //                     TOP LEVEL EXECUTION FUNCTIONS
 //**************************************************************************************
 let historyMaxGap = 500L
@@ -272,12 +293,10 @@ let indentProgram lim lines =
 let mutable programCache: Map<string list,LoadImage> = Map.empty
 
 let reLoadProgram (lines: string list) =
-    if programCache.ContainsKey lines then programCache.[lines], lines
-    else
-        if programCache.Count > maxProgramCacheSize then programCache <- Map.empty
+    let reLoadProgram' (lines: string list) =
         let addCodeMarkers (lim: LoadImage) =
             let addCodeMark map (WA a, _) = 
-                   match Map.tryFind (WA a) map with
+                    match Map.tryFind (WA a) map with
                     | None -> Map.add (WA a) CodeSpace map
                     | _ -> failwithf "Code and Data conflict in %x" a
             List.fold addCodeMark (lim.Mem) (lim.Code |> Map.toList)
@@ -299,8 +318,8 @@ let reLoadProgram (lines: string list) =
             |> addCodeMarkers
         let src = indentProgram final lines
         let lim = {final with Source=src ; EditorText = lines}
-        programCache <- programCache.Add (lines, lim)
         lim, lines
+    cacheLastN 10 reLoadProgram' lines
 
 
 let executeADR (ai:ADRInstr) (dp:DataPath) =
