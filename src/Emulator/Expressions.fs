@@ -1,3 +1,11 @@
+(* 
+    Visual2 @ Imperial College London
+    Project: A user-friendly ARM emulator in F# and Web Technologies ( Github Electron & Fable Compliler )
+    Module: Emulator.Expressions
+    Description: Parse expressions with constants, symbols, and arithmetic
+*)
+
+
 module Expressions
     open System.Text.RegularExpressions
     open Errors

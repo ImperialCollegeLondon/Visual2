@@ -1,10 +1,10 @@
 (* 
     High Level Programming @ Imperial College London # Spring 2018
     Project: A user-friendly ARM emulator in F# and Web Technologies ( Github Electron & Fable Compliler )
-    Contributors: Angelos Filos
-    Module: Main
-    Description: Electron Main Process.
+    Module: Main.Main
+    Description: Electron Main Process
 *)
+
 
 module Main
 

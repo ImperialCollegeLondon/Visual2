@@ -1,3 +1,11 @@
+(* 
+    Visual2 @ Imperial College London
+    Project: A user-friendly ARM emulator in F# and Web Technologies ( Github Electron & Fable Compliler )
+    Module: Emulator.CommonData
+    Description: Low-level data structures used throughout the emulator
+*)
+
+
 module CommonData
     //////////////////////////////////////////////////////////////////////////////////////
     //                   Common types and code used by all modules

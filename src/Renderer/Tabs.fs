@@ -1,4 +1,10 @@
-// Code that is specific to individual tabs, e.g. individual editor settings, tab switching etc.
+(* 
+    Visual2 @ Imperial College London
+    Project: A user-friendly ARM emulator in F# and Web Technologies ( Github Electron & Fable Compliler )
+    Module: Renderer.Tabs
+    Description: handle editor tabs: each can contain a distinct assembly file
+*)
+
 module Tabs
 
 open Fable.Core.JsInterop

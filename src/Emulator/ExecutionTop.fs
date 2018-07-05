@@ -1,3 +1,11 @@
+(* 
+    Visual2 @ Imperial College London
+    Project: A user-friendly ARM emulator in F# and Web Technologies ( Github Electron & Fable Compliler )
+    Module: Emulator.ExecutionTop
+    Description: Top-level code to execute instructions and programs
+*)
+
+
 module ExecutionTop
 open EEExtensions
 open Errors

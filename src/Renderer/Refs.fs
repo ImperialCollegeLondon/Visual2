@@ -1,11 +1,9 @@
-// *******************************************************************************
-// *******************************************************************************
-//
-//                 References to DOM and MUTABLE STATE used in Renderer
-//        DOM is mutable and some (not all) DOM elements contain mutable state
-//
-// *******************************************************************************
-// *******************************************************************************
+(* 
+    Visual2 @ Imperial College London
+    Project: A user-friendly ARM emulator in F# and Web Technologies ( Github Electron & Fable Compliler )
+    Module: Renderer.Refs
+    Description: F# references to elements in the DOM + some user settings handling
+*)
 
 module Refs
 open CommonData

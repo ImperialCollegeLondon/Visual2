@@ -1,9 +1,8 @@
 (* 
-    High Level Programming @ Imperial College London # Spring 2018
+    Visual2 @ Imperial College London
     Project: A user-friendly ARM emulator in F# and Web Technologies ( Github Electron & Fable Compliler )
-    Contributors: Angelos Filos
-    Module: Renderer.Update
-    Description: Event helper functions for `HTML` elements in `index.html`.
+    Module: Renderer.Views
+    Description: Display registers, memory or symbol table in Views Panel
 *)
 
 module Views

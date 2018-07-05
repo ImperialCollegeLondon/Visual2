@@ -1,3 +1,13 @@
+(* 
+    Visual2 @ Imperial College London
+    Project: A user-friendly ARM emulator in F# and Web Technologies ( Github Electron & Fable Compliler )
+    Module: Emulator.Helpers
+    Description: Functions used in various emulator instruction handling modules
+*)
+
+// NB instruction modules were originally written independently and this shows. 
+// more refactoring with good common code put here would improve quality
+
 module Helpers
     open CommonData    
     open System.Text.RegularExpressions

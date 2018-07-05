@@ -1,3 +1,13 @@
+(* 
+    Visual2 @ Imperial College London
+    Project: A user-friendly ARM emulator in F# and Web Technologies ( Github Electron & Fable Compliler )
+    Module: Emulator.Errors
+    Description: Handle Errors
+*)
+
+
+// WARNING - this code is out of date and needs TLC when errors are properly defined
+
 module Errors
 
     open CommonData

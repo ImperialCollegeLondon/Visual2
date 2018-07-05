@@ -1,3 +1,11 @@
+(* 
+    Visual2 @ Imperial College London
+    Project: A user-friendly ARM emulator in F# and Web Technologies ( Github Electron & Fable Compliler )
+    Module: Renderer.Settings
+    Description: Code to handle persistent settings stored on PC as a file under user data
+*)
+
+
 module Settings
 
 open Fable.Import.Browser

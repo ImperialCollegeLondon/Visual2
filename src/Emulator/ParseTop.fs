@@ -1,7 +1,9 @@
-
-////////////////////////////////////////////////////////////////////////////////////
-//      Code defined at top level after the instruction processing modules
-////////////////////////////////////////////////////////////////////////////////////
+(* 
+    Visual2 @ Imperial College London
+    Project: A user-friendly ARM emulator in F# and Web Technologies ( Github Electron & Fable Compliler )
+    Module: Emulator.ParseTop
+    Description: Top-level code to parse instructions
+*)
 module ParseTop
     open CommonLex
     open CommonData

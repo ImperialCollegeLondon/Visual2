@@ -1,6 +1,9 @@
-//////////////////////////////////////////////////////////////////////////////////////////
-//                   Branch Instruction Implementation Module
-//////////////////////////////////////////////////////////////////////////////////////////
+(* 
+    Visual2 @ Imperial College London
+    Project: A user-friendly ARM emulator in F# and Web Technologies ( Github Electron & Fable Compliler )
+    Module: Emulator.Branch
+    Description: Implement ARM branch instructions
+*)
 
 module Branch
     open CommonData

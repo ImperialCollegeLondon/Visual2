@@ -1,6 +1,9 @@
-//////////////////////////////////////////////////////////////////////////////////////////
-//                   Sample (skeleton) instruction implementation modules
-//////////////////////////////////////////////////////////////////////////////////////////
+(* 
+    Visual2 @ Imperial College London
+    Project: A user-friendly ARM emulator in F# and Web Technologies ( Github Electron & Fable Compliler )
+    Module: Emulator.Misc
+    Description: Implement ARM miscellaneous instructions
+*)
 
 module Misc
     open CommonData

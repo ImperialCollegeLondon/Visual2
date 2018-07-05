@@ -1,3 +1,11 @@
+(* 
+    Visual2 @ Imperial College London
+    Project: A user-friendly ARM emulator in F# and Web Technologies ( Github Electron & Fable Compliler )
+    Module: Renderer.Integration
+    Description: Code to integrate the emulator with the renderer
+*)
+
+
 module Integration
 
 open Tabs

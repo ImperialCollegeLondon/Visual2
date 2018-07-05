@@ -1,3 +1,11 @@
+(* 
+    Visual2 @ Imperial College London
+    Project: A user-friendly ARM emulator in F# and Web Technologies ( Github Electron & Fable Compliler )
+    Module: Emulator.DP
+    Description: Implement ARM DP instructions
+*)
+
+
 module DP
 
 open EEExtensions

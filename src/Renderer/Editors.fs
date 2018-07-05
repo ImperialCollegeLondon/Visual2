@@ -1,6 +1,9 @@
-//*******************************************************************************
-//                        Interaction with Editors   
-//*******************************************************************************
+(* 
+    Visual2 @ Imperial College London
+    Project: A user-friendly ARM emulator in F# and Web Technologies ( Github Electron & Fable Compliler )
+    Module: Renderer.Editors
+    Description: Interface with Monaco editor buffers
+*)
 
 module Editors
 

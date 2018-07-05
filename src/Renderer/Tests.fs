@@ -1,4 +1,11 @@
-﻿module Tests
+﻿(* 
+    Visual2 @ Imperial College London
+    Project: A user-friendly ARM emulator in F# and Web Technologies ( Github Electron & Fable Compliler )
+    Module: Renderer.Tests
+    Description: run automated tests using data geenrated by VisualRandomTestGen
+*)
+
+module Tests
 
 open System
 open ExecutionTop

@@ -1,9 +1,8 @@
 (* 
     High Level Programming @ Imperial College London # Spring 2018
     Project: A user-friendly ARM emulator in F# and Web Technologies ( Github Electron & Fable Compliler )
-    Contributors: Angelos Filos, Thomas Clarke
-    Module: Main
-    Description: Electron Renderer Process - Top-level F# Script to execute after `index.html` is loaded.
+    Module: Renderer.Renderer
+    Description: Top-level Electron Renderer Process
 *)
 
 module Renderer
