@@ -174,88 +174,87 @@ let addToDOM (parent: Node) (childList: Node list) =
 
 /// Update Memory view based on byteview, memoryMap, symbolMap
 /// Creates the html to format the memory table in contiguous blocks
-let updateMemory () =
-    let chWidth = 13
-    let memPanelShim = 50
-    let onlyIfByte x = if byteView then [x] else []
+let updateMemoryIfChanged =
+    let updateMemory' (currentRep, byteView, symbolMap, mem) =
+        let chWidth = 13
+        let memPanelShim = 50
+        let onlyIfByte x = if byteView then [x] else []
 
-    let invSymbolMap = 
-        symbolMap
-        |> Map.toList
-        |> List.filter (fun (_, (_,typ)) -> typ = ExecutionTop.DataSymbol)
-        |> List.distinctBy (fun (_,(addr,_)) -> addr)
-        |> List.map (fun (sym,(addr,_)) -> (addr,sym))
-        |> Map.ofList
+        let invSymbolMap = 
+            symbolMap
+            |> Map.toList
+            |> List.filter (fun (_, (_,typ)) -> typ = ExecutionTop.DataSymbol)
+            |> List.distinctBy (fun (_,(addr,_)) -> addr)
+            |> List.map (fun (sym,(addr,_)) -> (addr,sym))
+            |> Map.ofList
 
-    let lookupSym addr = 
-            match Map.tryFind addr invSymbolMap with
-            | option.None -> ""
-            | Some sym -> sym
+        let lookupSym addr = 
+                match Map.tryFind addr invSymbolMap with
+                | option.None -> ""
+                | Some sym -> sym
        
-    let makeRow (addr : uint32, (chRep:string, value : uint32)) =
+        let makeRow (addr : uint32, (chRep:string, value : uint32)) =
 
-        let tr = makeEl "tr" "tr-head-mem"
+            let tr = makeEl "tr" "tr-head-mem"
 
-        let rowDat = 
-            [
-                lookupSym addr |> nameSquash maxDataSymbolLength
-                sprintf "0x%X" addr
-                (if byteView then 
-                    formatterWithWidth 8 currentRep value + 
-                    (chRep |> function | "" -> "" | chr -> sprintf " %s" chr)
-                else formatter currentRep value)   
-            ]
+            let rowDat = 
+                [
+                    lookupSym addr |> nameSquash maxDataSymbolLength
+                    sprintf "0x%X" addr
+                    (if byteView then 
+                        formatterWithWidth 8 currentRep value + 
+                        (chRep |> function | "" -> "" | chr -> sprintf " %s" chr)
+                    else formatter currentRep value)   
+                ]
 
-        let makeNode txt = makeElement "td" "selectable-text" txt :> Node
+            let makeNode txt = makeElement "td" "selectable-text" txt :> Node
 
-        addToDOM tr (List.map makeNode rowDat)
+            addToDOM tr (List.map makeNode rowDat)
 
-    let makeContig (lst : (uint32 * uint32) list) = 
+        let makeContig (lst : (uint32 * uint32) list) = 
 
-        let table = makeEl "table" "table-striped"
+            let table = makeEl "table" "table-striped"
 
-        let makeNode txt = makeElement "th" "th-mem" txt :> Node
+            let makeNode txt = makeElement "th" "th-mem" txt :> Node
 
-        let tr = createDOM "tr" <| List.map makeNode ([ "Symbol" ; "Address"; "Value"])
+            let tr = createDOM "tr" <| List.map makeNode ([ "Symbol" ; "Address"; "Value"])
 
-        let byteSwitcher = 
-            match byteView with
-            | true -> lstToBytes
-            | false -> List.map (fun (addr,dat) -> (addr,("",dat)))
+            let byteSwitcher = 
+                match byteView with
+                | true -> lstToBytes
+                | false -> List.map (fun (addr,dat) -> (addr,("",dat)))
 
-        // Add each row to the table from lst
-        let rows = 
-            lst
-            |> byteSwitcher
-            |> List.map makeRow
+            // Add each row to the table from lst
+            let rows = 
+                lst
+                |> byteSwitcher
+                |> List.map makeRow
 
-        addToDOM table <| [tr] @ rows 
-        |> ignore
+            addToDOM table <| [tr] @ rows 
+            |> ignore
 
-        let li = makeEl "li" "list-group-item"
-        li.style.padding <- "0px"
+            let li = makeEl "li" "list-group-item"
+            li.style.padding <- "0px"
 
-        addToDOM li  [table]
+            addToDOM li  [table]
     
-    // Clear the old memory list
-    memList.innerHTML <- ""
+        memList.innerHTML <- ""
 
-    // Add the new memory list
-    memoryMap
-    |> contiguousMemory
-    |> List.map (makeContig >> (fun html -> memList.appendChild(html)))
-    |> ignore
+        // Add the new memory list
+
+        mem
+        |> contiguousMemory
+        |> List.map makeContig
+        |> List.iter (fun html -> memList.appendChild(html) |> ignore)
+    updateMemory' 
+    |> cacheLastWithActionIfChanged
+
+let updateMemory () =
+    updateMemoryIfChanged (currentRep, byteView, symbolMap, memoryMap)
 
 /// Update symbol table View using currentRep and symbolMap
-let updateSymTable () =
-    let mapsAreDifferent (m1:Map<'a,'b>) (m2: Map<'a,'b>) =
-        let norm m = m1 |> Map.toArray |> Array.sort
-        m1.Count <> m2.Count || norm m1 <> norm m2 || currentRep <> displayedCurrentRep
-        
-    if mapsAreDifferent symbolMap displayedSymbolMap
-    then
-        displayedSymbolMap <- symbolMap
-        displayedCurrentRep <- currentRep
+let updateSymTableIfChanged =
+    let updateSymTable (symbolMap,currentRep) =
         let makeRow ((sym : string), (value,typ) : uint32*ExecutionTop.SymbolType) =
             let tr = makeEl "tr" "tr-head-sym"
             addToDOM tr [
@@ -300,6 +299,11 @@ let updateSymTable () =
         symTable.innerHTML <- ""
         // Add the new one
         addToDOM symTable (symTabRows) |> ignore
+    updateSymTable
+    |> cacheLastWithActionIfChanged
+
+let updateSymTable () =
+    updateSymTableIfChanged (symbolMap,currentRep)
 
 /// Set View to view
 let setView view =

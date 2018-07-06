@@ -77,6 +77,22 @@ let viewToIdTab =
 //                         Utility functions used in this module
 // ************************************************************************************
 
+/// compare input with last input: if different, or no last input, execute function
+let cacheLastWithActionIfChanged actionFunc =
+    let mutable cache: 'a option = None
+    fun inDat ->
+        match cache with
+        | Some i when i = inDat -> ()
+        | Some _ 
+        | None -> 
+            cache <- Some inDat
+            actionFunc inDat
+
+    
+    
+    
+
+
 /// Determine whether JS value is undefined
 [<Emit("$0 === undefined")>]
 let isUndefined (_: 'a) : bool = jsNative
