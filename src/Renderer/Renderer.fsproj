@@ -6,6 +6,7 @@
   <ItemGroup>
     <Compile Include="Refs.fs" />
     <Compile Include="Editors.fs" />
+    <Compile Include="ErrorDocs.fs" />
     <Compile Include="Tabs.fs" />
     <Compile Include="Settings.fs" />
     <Compile Include="Views.fs" />

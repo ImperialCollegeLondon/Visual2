@@ -1,7 +1,7 @@
 
 (* 
-    Visual2 @ Imperial College London
-    Project: A user-friendly ARM emulator in F# and Web Technologies ( Github Electron & Fable Compliler )
+    VisUAL2 @ Imperial College London
+    Project: A user-friendly ARM emulator in F# and Web Technologies ( Github Electron & Fable Compiler )
     Module: Emulator.CommonLex
     Description: Perform common part of parsing and define parse types
 *)

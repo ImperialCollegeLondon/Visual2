@@ -1,6 +1,6 @@
 (* 
     High Level Programming @ Imperial College London # Spring 2018
-    Project: A user-friendly ARM emulator in F# and Web Technologies ( Github Electron & Fable Compliler )
+    Project: A user-friendly ARM emulator in F# and Web Technologies ( Github Electron & Fable Compiler )
     Module: Renderer.Renderer
     Description: Top-level Electron Renderer Process
 *)

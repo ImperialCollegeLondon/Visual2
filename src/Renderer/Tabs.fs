@@ -1,6 +1,6 @@
 (* 
-    Visual2 @ Imperial College London
-    Project: A user-friendly ARM emulator in F# and Web Technologies ( Github Electron & Fable Compliler )
+    VisUAL2 @ Imperial College London
+    Project: A user-friendly ARM emulator in F# and Web Technologies ( Github Electron & Fable Compiler )
     Module: Renderer.Tabs
     Description: handle editor tabs: each can contain a distinct assembly file
 *)
