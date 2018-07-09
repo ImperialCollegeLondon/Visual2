@@ -176,24 +176,25 @@ module Helpers
         
     /// <summary> Convert a partial active pattern function into a function that operates on a Result<AstSoFar*string, E'> monad.
     /// Pipelining the output functions makes AP failure at any stage throw a monadic error.</summary>
-    /// <param name=ap> active pattern style function that operates on a (astSoFar, txt) input to parse something </param>
+    /// <param name=ap> active pattern style function that operates on a txt input to parse something </param>
     /// <param name=needed> string describing the text or construct needed for successful parse </param>
-    /// <param name=adapt> converts astSoFar, and the output of ap, to the ast passed out </param>
+    /// <param name=adapt> converts astSoFar, and the output of ap, to the astSoFar passed out </param>
     let resultify ap needed adapt resTxt =
         let (|AP|_|) txt = ap txt
         match resTxt with
-        | Ok (r, AP x) -> Ok (adapt r x)
+        | Ok (ast, AP (ast',txt)) -> Ok (adapt ast ast', txt)
         | Ok (_,txt) -> makeParseError needed txt
         | Error e -> Error e
-        |> Some
+     
     
     
         
 
     /// version of APs that always match and return a Result monad
-    let ResExpr adapt rTxt = resultify Expressions.(|Expr|_|) "Numeric expression" adapt rTxt
-    let ResREGMATCH adapt rTxt = resultify  (|REGMATCH|_|) "Register name" adapt rTxt
-    let ResREMOVEPREFIX prefix rTxt = resultify ((|REMOVEPREFIX|_|) prefix) ("'" + prefix + "'") (fun r txt -> r,txt) rTxt
+    let ResExpr adapt rTxt = resultify Expressions.(|Expr|_|) "a numeric expression" adapt rTxt
+    let ResREGMATCH adapt rTxt = resultify  (|REGMATCH|_|) "a register name" adapt rTxt
+    let ResREMOVEPREFIX prefix rTxt = resultify ((|REMOVEPREFIX|_|) prefix >> Option.map (fun txt -> (),txt)) ("'" + prefix + "'") (fun r _ -> r) rTxt
+    let ResCheckDone x = Result.bind  (function | r,"" -> Ok r | _,txt -> makeParseError "no characters" txt) x
    
 
 //********************************************************************************

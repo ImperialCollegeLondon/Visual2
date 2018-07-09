@@ -123,17 +123,20 @@ module Memory
 
 
 
-        let parseLoad32 pCond : Parse<Instr> =
-            ls.Operands
-            |> ResREGMATCH (fun rn' (_rn,exp) -> rn',exp)
-            |> ResREMOVEPREFIX ","
-            |> ResREMOVEPREFIX "=" 
-            |> ResExpr (fun exp' (rn, _exp) -> rn, exp')
-            |> fun ((rn,exp), txt
-                eval ls.SymTab exp 
-                |> Result.map (fun r -> rd,r)
-            | _ -> makePE ``Invalid literal`` ls.Operands "Invalid operands for LDR Rn, ="
-            |> Result.map (fun (rd, lv) -> LDREQUAL ( rd, lv))
+        let parseLoad32 pCond   =
+            let parse =
+                Ok ( (), ls.Operands)
+                |> ResREGMATCH (fun _ rn -> rn)
+                |> ResREMOVEPREFIX ","
+                |> ResREMOVEPREFIX "=" 
+                |> ResExpr (fun rn exp -> rn, exp)
+                |> ResCheckDone 
+
+            parse
+            |> Result.bind ( fun (rd, exp) ->
+                eval ls.SymTab exp             
+                |> Result.map (fun lv -> LDREQUAL ( rd, lv)))
+            
             |> (fun ins -> copyParse ls ins pCond)
 
             
@@ -182,7 +185,7 @@ module Memory
                     match memImmBounds,txt with
                     | (bMax,bMin), IMM (n,txt) when int n <= bMax && int n >= bMin -> (Ok n, txt)  |> Some
                     | (bMax,bMin), IMM (n,txt) -> 
-                        (makePE ``Invalid offset`` txt (sprintf "%s immediate offset must be in range %d..%d" (uRoot+uSuffix) bMax bMin), txt) |> Some
+                        ``Invalid syntax`` (sprintf "immediate offset in range %d..%d" bMax bMin) txt |> Some
                     | _ -> None
                 let (|SHIFTIMM|_|) = function
                     | IMM (n,txt) when int n > 0 && int n < 32 -> (Ok n,txt) |> Some
