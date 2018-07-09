@@ -116,14 +116,15 @@ let viewMenu =
 let helpMenu =
         let runPage page () = electron.shell.openExternal page |> ignore ; ()
         makeMenu "Help" [
-            makeItem "Website" Core.Option.None (runPage "https://intranet.ee.ic.ac.uk/t.clarke/hlp/")
-            makeItem "ARM documentation" Core.Option.None (runPage "http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.ddi0234b/i1010871.html")
+            makeItem "UAL Instruction Guide" Core.Option.None (runPage "https://github.com/tomcl/visual2.github.io/blob/master/guide.md")
+            makeItem "VisUAL2 web pages" Core.Option.None (runPage "https://github.com/tomcl/visual2.github.io")
+            makeItem "Official ARM documentation" Core.Option.None (runPage "http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.ddi0234b/i1010871.html")
             makeItem "Run Emulator Tests" Core.Option.None Tests.runAllEmulatorTests
-            makeItem "Load Demo Code" Core.Option.None Tests.loadDemo
+            makeItem "Load Sample Code" Core.Option.None Tests.loadDemo
             makeItem "About" Core.option.None ( fun () -> 
                 electron.remote.dialog.showMessageBox (
                       let opts = createEmpty<ShowMessageBoxOptions>
-                      opts.title <- "Visual2 ARM Simulator (prerelease)" |> Some
+                      opts.title <- sprintf "Visual2 ARM Simulator v%s" Refs.appVersion |> Some
                       opts.message <- "(c) 2018, Imperial College" |> Some
                       opts.detail <- 
                             "Acknowledgements: Salman Arif (VisUAL), HLP 2018 class" +

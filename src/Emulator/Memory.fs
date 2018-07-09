@@ -114,35 +114,22 @@ module Memory
                 suff = suffix;
             }
  
-    let makeRegError txt =
-            (txt, notValidRegEM)
-            ||> makePE ``Invalid register``
 
 
-    /// A partially active pattern that returns an error if a register argument is not valid.
-    let (|RegCheck|_|) (txt:string) =
-        match Map.tryFind (txt.ToUpper()) regNames with
-        | Some reg ->
-            reg |> Ok |> Some
-        | _ -> Some <| makeRegError txt
-
-    ///
-    let (|REGMATCH|_|) (txt:string) =
-        match txt with
-        | ParseRegex2 @"\s*([rR][0-9]+|PC|SP|LR|pc|sp|lr)(.*$)" (txt,TRIM rst) -> 
-            match Map.tryFind (txt.ToUpper()) regNames with
-            | Some rn -> (Some (rn, rst))
-            | None -> None
-        | _ -> None          
 
     /// Where everything happens
     let parse (ls: LineData) : Parse<Instr> option =
         let (WA la) = ls.LoadAddr
 
 
+
         let parseLoad32 pCond : Parse<Instr> =
-            match ls.Operands with
-            | REGMATCH(rd, ( REMOVEPREFIX "," (REMOVEPREFIX "=" (Expr (exp,""))))) -> 
+            ls.Operands
+            |> ResREGMATCH (fun rn' (_rn,exp) -> rn',exp)
+            |> ResREMOVEPREFIX ","
+            |> ResREMOVEPREFIX "=" 
+            |> ResExpr (fun exp' (rn, _exp) -> rn, exp')
+            |> fun ((rn,exp), txt
                 eval ls.SymTab exp 
                 |> Result.map (fun r -> rd,r)
             | _ -> makePE ``Invalid literal`` ls.Operands "Invalid operands for LDR Rn, ="

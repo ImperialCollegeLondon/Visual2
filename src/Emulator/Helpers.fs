@@ -159,14 +159,42 @@ module Helpers
             None
 
     /// A partially active pattern that returns an error if a register argument is not valid.
-    let (|RegCheck|_|) txt =
-        match Map.tryFind txt regNames with
+    let (|RegCheck|_|) (txt:string) =
+        match Map.tryFind ((trim txt).ToUpper()) regNames with
         | Some reg ->
             reg |> Ok |> Some
-        | _ ->
-            (txt, notValidRegEM)
-            ||> makePE ``Invalid register``
-            |> Some
+        | _ -> makeParseError "register name" txt |> Some
+
+    /// A partilly active pattern to extract a register name, returning it paired with the rest of the string, if possible
+    let (|REGMATCH|_|) (txt:string) =
+        match txt with
+        | ParseRegex2 @"\s*([rR][0-9]+|[Pp][Cc]|[Ss][Pp]|[Ll][Rr]|[Pp][Cc]|[Ss][Pp]|[Ll][Rr])(.*$)" (txt,TRIM rst) -> 
+            match Map.tryFind (txt.ToUpper()) regNames with
+            | Some rn -> (Some (rn, rst))
+            | None -> None
+        | _ -> None  
+        
+    /// <summary> Convert a partial active pattern function into a function that operates on a Result<AstSoFar*string, E'> monad.
+    /// Pipelining the output functions makes AP failure at any stage throw a monadic error.</summary>
+    /// <param name=ap> active pattern style function that operates on a (astSoFar, txt) input to parse something </param>
+    /// <param name=needed> string describing the text or construct needed for successful parse </param>
+    /// <param name=adapt> converts astSoFar, and the output of ap, to the ast passed out </param>
+    let resultify ap needed adapt resTxt =
+        let (|AP|_|) txt = ap txt
+        match resTxt with
+        | Ok (r, AP x) -> Ok (adapt r x)
+        | Ok (_,txt) -> makeParseError needed txt
+        | Error e -> Error e
+        |> Some
+    
+    
+        
+
+    /// version of APs that always match and return a Result monad
+    let ResExpr adapt rTxt = resultify Expressions.(|Expr|_|) "Numeric expression" adapt rTxt
+    let ResREGMATCH adapt rTxt = resultify  (|REGMATCH|_|) "Register name" adapt rTxt
+    let ResREMOVEPREFIX prefix rTxt = resultify ((|REMOVEPREFIX|_|) prefix) ("'" + prefix + "'") (fun r txt -> r,txt) rTxt
+   
 
 //********************************************************************************
 //
@@ -363,8 +391,6 @@ module Helpers
         | [], [] -> cpuData |> Ok
         | _ -> failwith "Lists given to setMultMem function were of different sizes."
     
-    /// Multiple setMemDatas 
-    // let setMultMemData contentsLst = setMultMem (List.map DataLoc contentsLst)
 
         
     let fillRegs (vals : uint32 list) =
@@ -382,9 +408,3 @@ module Helpers
             Regs = emptyRegs;
             MM = Map.ofList []
         }
-(*    let isMisc instr =
-        match instr.PInstr with
-        | Ok (CommonTop.IMISC _) ->
-            true
-        | _ ->
-            false*)
