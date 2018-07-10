@@ -13,7 +13,8 @@ open CommonData
 open Errors
 open Expressions
 open CommonLex
-open System.Xml.Linq
+open Helpers
+
 
 let failDiag() = 
     failwithf "OK so far at %s:%s done!" __SOURCE_FILE__ __LINE__
@@ -31,7 +32,7 @@ let trimUint32 u = ((int64 u) &&& ((1L <<< 32) - 1L)) |> uint32
 
 // ///////////// runtime types ///////////////////////////////////
 
-let makeDPE s = makePE ``Invalid syntax`` "" s
+let makeDPE wanted s = makeParseError wanted s
 
 /// instruction type
 type Instr =  (DataPath -> Result<DataPath, ExecuteError>)
@@ -204,15 +205,7 @@ let simBitwiseLogic op a b flags op2carry =
     Ok (ures, {flags with N = setFlagN ures ; Z = setFlagZ ures ; C = op2carry})
 
 
-// ///////////// parsing functions ///////////////////////////////
 
-let parseNumberExpression (symTable) (str : string) =
-    resolveOp symTable str
-
-let parseRegister (str : string) =
-    match Map.tryFind (str.ToUpper().Trim()) regNames with
-    | Some r -> Ok r
-    | None -> makeDPE <| sprintf "Invalid register name '%s'" str
 
 
 
@@ -272,14 +265,15 @@ let parseOp2 (subMode: InstrNegativeLiteralMode) (symTable : SymbolTable) (args 
         let isZeroNegated = List.exists (function (0L,_,sub) -> sub = NegatedLit | _ -> false) posLits
 
         match posLits  with
-        | [] -> makeDPE <| sprintf "Invalid ARM immediate value %d. Immediates are formed as 32-bit numbers: N ROR (2M), 0 <= N <= 256, 0 <= M <= 15" num
+        | [] -> makeDPE "Valid ARM immediate value. Immediates are formed as 32-bit numbers: N ROR (2M), 0 <= N <= 256, 0 <= M <= 15" 
+                    (sprintf "invalid literal=%d" num)
         | (K,rot,sub) :: _ ->  Result.Ok (NumberLiteral(K,rot,sub))
 
     /// apply shift expression to register
     let parseShiftExpression (str : string) reg =
         let getShiftType str = match Map.tryFind str (Map.ofList ["LSL", LSL; "LSR", LSR; "ASR", ASR; "ROR",ROR]) with
                                 | Some s -> Ok s
-                                | None -> makeDPE <| sprintf "Invalid shift type %s" str
+                                | None -> makeDPE "Valid shift code LSL,LSR,ASR,ROR" str
         let makeImmShift shiftType n = RegisterWithShift (reg, shiftType, n)
         let makeRegShift shiftType r = RegisterWithRegisterShift (reg, shiftType, r)
 
@@ -291,13 +285,15 @@ let parseOp2 (subMode: InstrNegativeLiteralMode) (symTable : SymbolTable) (args 
                 imm.Substring(1) 
                 |> parseNumberExpression symTable 
                 |> Result.map (makeImmShift shiftType)
-            | Ok shiftType, reg -> 
+            | Ok shiftType, reg when isRegister reg-> 
                 parseRegister reg 
                 |> Result.bind (
-                    function | R15 -> makeDPE "Operand 2 cannot be PC or R15 if shift is being used" 
+                    function | R15 -> makeFormatError "Error: operand 2 cannot be PC or R15 if shift is being used" reg
                                 | rName -> Ok rName)
                 |> Result.map (makeRegShift shiftType)
-            | _ -> makeDPE <| sprintf "Invalid flexible op2 shift type %s" str
+            | Ok shiftType, imm when isValidNumericExpression symTable imm ->
+                makeFormatError "Literal constants in instruction operands require '#' prefix" imm
+            | _ -> makeDPE "Valid flexible op2 shift type" str
 
     match args with
     | [imm] when imm.StartsWith("#") -> 
@@ -305,14 +301,16 @@ let parseOp2 (subMode: InstrNegativeLiteralMode) (symTable : SymbolTable) (args 
         |> parseNumberExpression symTable 
         |> Result.map (fun (n:uint32) -> int64 n)
         |> Result.bind makeImmediate
-    | [reg] -> 
+    | [reg] when isRegister reg -> 
         parseRegister reg 
         |> Result.map (fun r -> RegisterWithShift (r, LSL, 0u))
-    | [regStr ; shiftExpr] -> 
+    | [regStr ; shiftExpr] when isRegister regStr -> 
         parseRegister regStr 
         |> Result.bind (parseShiftExpression shiftExpr)
-    | [] -> makeDPE "Missing flexible op2"
-    | _ -> makeDPE "Too many operands. Valid operand 2 syntaxes consist of: immediate, register, register with shift expression"
+    | [] -> makeFormatError "Error in flexible op2" "operands ended too early"
+    | [imm] when isValidNumericExpression symTable imm ->
+        makeFormatError "Literal constants in instruction operands require '#' prefix" imm
+    | ops -> makeDPE "Valid op2 consists of: immediate, register, register with shift expression" (String.concat "," ops)
 
 
 /// make an instruction that has the form "XXX op1, flexop2"
@@ -327,14 +325,14 @@ let makeTwoOpInstr subMode fn symTable operands =
         | Error e, _ -> Error e
         | _, Error e -> Error e
 
-    | _ -> makeDPE <|  "Not enough operands: expecting register, flexible operand"
+    | _ -> makeDPE   "register, flexible op2"  (String.concat "," operands)
 
 /// make an instruction that has the form "XXX dst, op1, flexop2"
 let makeThreeOpInstr subMode fn symTable operands =
     match operands with
     | first :: restOfOps ->
         parseRegister first |> Result.bind (fun reg -> makeTwoOpInstr subMode (fn reg) symTable restOfOps)
-    | _ -> makeDPE <| "Not enough operands: expecting register, register, flexible operand"
+    | _ -> makeDPE  "register, register, flexible operand" ("Not enough operands:'"+ String.concat "," operands + "'")
 
 
 
@@ -358,7 +356,7 @@ let makeAdrInstr symTable operands updateFlags =
         | Ok op1'', Ok op2'' -> Ok (execAdr updateFlags op1'' op2'')
         | Error e, _ -> Error e
         | _, Error e -> Error e
-    | _ -> makeDPE <| "Not enough operands: expecting register, expression"  
+    | _ -> makeDPE "register, expression"  ("Not enough operands: '" + String.concat "," operands + "'")
 
 /// return a ready-to-execute arithmetic function from the given operands
 let makeArithmeticInstr subMode opType symTable operands updateFlags =
@@ -376,13 +374,17 @@ let makeShiftInstr shiftType symTable operands updateFlags =
                 let makeRegShift r = RegisterWithRegisterShift (src', shiftType, r)
                 match shiftBy with
                 | cons when cons.StartsWith("#") -> cons.Substring(1) |> parseNumberExpression symTable |> Result.map makeLitShift
-                | reg -> parseRegister reg |> Result.map makeRegShift
+                | reg when isRegister reg -> parseRegister reg |> Result.map makeRegShift
+                | reg when isValidNumericExpression symTable reg ->
+                      makeFormatError "Numbers in instruction operands require '#' prefix (#22, #-1)" reg
+                | sftTxt -> makeFormatError "Error in shift specification - should be #N or Rx" sftTxt
+ 
 
             Result.map (fun op2' -> execMove false updateFlags dst' op2') op2
         | Error e, _ -> Error e
         | _, Error e -> Error e
 
-    | _ -> makeDPE <| "Incorrect number of operands: expecting destination, source, shift value"
+    | _ -> makeDPE "destination, source, shift value" (String.concat "," operands)
 
 /// return a ready-to-execute RRX function from the given operands
 let makeRRXInstr symTable operands updateFlags =
@@ -393,7 +395,7 @@ let makeRRXInstr symTable operands updateFlags =
         | Error e, _ -> Error e
         | _, Error e -> Error e
 
-    | _ -> makeDPE "Incorrect number of operands: expecting destination, source"
+    | _ -> makeDPE "destination, source" (String.concat "," operands)
 
 // ///////////// top-level parsing ///////////////////////////////
 
@@ -462,7 +464,7 @@ let parse (ls: LineData) : Parse<Instr> option =
         // This could be improved
         let pI = 
             {
-                PInstr= makeDPE "No instruction parsed in DP"; 
+                PInstr= Error ``Unimplemented parse`` 
                 PLabel = ls.Label |> Option.map (fun lab -> lab, Ok la) ; 
                 ISize = 4u; 
                 DSize = 0u; 
@@ -481,9 +483,6 @@ let parse (ls: LineData) : Parse<Instr> option =
         | Ok f -> 
             // return parse result with executable line of code
             {pI with PInstr = Executable f}
-        | UndefLabel "Undefined label: " uLab ->
-            // return parse result with unexecutable line of code due to undefined label         
-            {pI with PInstr = makePE ``Undefined symbol`` "" (sprintf "Symbol is %s" uLab)}
         | Error e ->
             // return parse error
             {pI with PInstr = Error e}

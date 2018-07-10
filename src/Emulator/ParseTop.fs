@@ -112,7 +112,7 @@ module ParseTop
                 | ["";""] -> defParse None (EMPTY |> Ok)
                 | opc :: _ ->
                     let eMess = sprintf "'%s' is an unimplemented opcode in: '%s'" opc asmLine
-                    defParse None (makePE ``Unimplemented instruction`` opc eMess)
+                    defParse None (``Unimplemented instruction`` eMess |> Error)
                 | _ -> failwithf "What: should not be possible!"
         asmLine
         |> removeComment

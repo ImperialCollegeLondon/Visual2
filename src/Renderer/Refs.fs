@@ -221,6 +221,32 @@ let setDashboardWidth (width)=
 /// Element in Register view representing register rNum
 let register rNum = getHtml <| sprintf "R%i" rNum
 
+/// Run an external URL url in a separate window.
+/// Second parameter triggers action (for use in menus)
+let runPage url () =
+    printf "Running page %s" url
+    let rem = electron.remote
+    let options = createEmpty<Electron.BrowserWindowOptions>
+    // Complete list of window options
+    // https://electronjs.org/docs/api/browser-window#new-browserwindowoptions
+    options.width <- Some 1200.
+    options.height <- Some 800.
+    //options.show <- Some false
+    let prefs = createEmpty<Electron.WebPreferences>
+    prefs.devTools <- Some false 
+    prefs.nodeIntegration <- Some false
+    options.webPreferences <- Some prefs
+    
+    options.frame <- Some true
+    options.hasShadow <- Some true
+    options.backgroundColor <- None
+    options.icon <- Some (U2.Case2  "app/visual.ico")
+    let window = rem.BrowserWindow.Create(options)
+    window.setMenuBarVisibility false
+    window.loadURL url
+    window.show()
+
+
 // *************************************************************************************
 //                               References to DOM elements
 // *************************************************************************************

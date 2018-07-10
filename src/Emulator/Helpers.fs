@@ -14,7 +14,7 @@ module Helpers
     open System.Text.RegularExpressions
     open CommonLex
     open Errors
-    open System.Xml.Linq
+    open Expressions
 
     let pipeShow mess x = printfn "%s:%A" mess x; x
 
@@ -195,7 +195,26 @@ module Helpers
     let ResREGMATCH adapt rTxt = resultify  (|REGMATCH|_|) "a register name" adapt rTxt
     let ResREMOVEPREFIX prefix rTxt = resultify ((|REMOVEPREFIX|_|) prefix >> Option.map (fun txt -> (),txt)) ("'" + prefix + "'") (fun r _ -> r) rTxt
     let ResCheckDone x = Result.bind  (function | r,"" -> Ok r | _,txt -> makeParseError "no characters" txt) x
-   
+
+    /////////////// parsing functions ///////////////////////////////
+
+    let parseNumberExpression (symTable) (str : string) =
+        parseEvalNumericExpression symTable str
+
+    let isValidNumericExpression symTable str = 
+        match parseEvalNumericExpression symTable str with
+        | Ok _ -> true
+        | _ -> false
+
+    let parseRegister (str : string) =
+        match Map.tryFind (str.ToUpper().Trim()) regNames with
+        | Some r -> Ok r
+        | None -> makeParseError "valid register name" str
+
+    let isRegister (str: string) =
+        match Map.tryFind (str.ToUpper().Trim()) regNames with
+        | Some r -> true
+        | None -> false   
 
 //********************************************************************************
 //

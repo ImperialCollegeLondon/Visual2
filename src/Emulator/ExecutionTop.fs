@@ -204,7 +204,7 @@ let loadLine (lim:LoadImage) ((line,lineNum) : string * int) =
 
         |>  (fun si ->
             match pa.PInstr with
-            | Error ( ``Undefined symbol``,_,syms) ->
+            | Error ( ``Undefined symbol`` syms) ->
                 { si with
                     Refs =
                         (syms.Split([|','|])

@@ -164,9 +164,10 @@ module Expressions
         | Ok u -> printfn "OK %d" u; r
         | Error (code, eTxt,eMess) -> printfn "Error:<%s><%s>" eTxt eMess; r
 
-    let resolveOp syms op =
+    let parseEvalNumericExpression syms op =
         match removeWs op with
         | Expr (ast,_) -> eval syms ast
+        | _ when String.contains "#" op -> makeParseError "Numeric expression (without #)" op
         | _ -> makeParseError "Numeric expression" op
     
 

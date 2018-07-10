@@ -177,19 +177,20 @@ module Memory
                     | _ -> None
                 let (|COMMA|_|) = (|REMOVEPREFIX|_|) ","
                 let (|R|_|) = (|REGMATCH|_|)
-                let (|MIMM|_|) txt =
+                let (|MIMM|_|) immTxt =
                     let memImmBounds =
                         match mSize with
                         | MWord -> 4088 + 8, -4096 + 8
                         | MByte -> 1023 + 8, -1024 + 8
-                    match memImmBounds,txt with
+                    match memImmBounds,immTxt with
                     | (bMax,bMin), IMM (n,txt) when int n <= bMax && int n >= bMin -> (Ok n, txt)  |> Some
                     | (bMax,bMin), IMM (n,txt) -> 
-                        ``Invalid syntax`` (sprintf "immediate offset in range %d..%d" bMax bMin) txt |> Some
+                        (makeParseError (sprintf "immediate offset in range %d..%d" bMax bMin) ("offset="+ n.ToString()), immTxt) |> Some
+                    | _, LITERALNUMB(_) -> (makeFormatError "Numeric offset in LDR/STR must have # prefix (#1000)" immTxt, immTxt) |> Some
                     | _ -> None
                 let (|SHIFTIMM|_|) = function
                     | IMM (n,txt) when int n > 0 && int n < 32 -> (Ok n,txt) |> Some
-                    | IMM (_,txt) -> (makePE ``Invalid literal`` txt "Scaled register shift must be within raneg 1..31", txt) |> Some
+                    | IMM (n,txt) -> (makeParseError "Scaled register shift must be within range 1..31" ("shift="+n.ToString()), txt) |> Some
                     | _ -> None
                 let makeScaled (rx:RName) (shift:ScaledShiftCode) sftAmt =
                     fun (dp: DataPath)  ->
@@ -206,18 +207,14 @@ module Memory
                     (Result.map makeOffsetFunc offset, s) |> Some
                 | COMMA ( R (rx, (TRIM s))) when not (s.StartsWith ",") -> Some (Ok (fun (dp:DataPath) -> int dp.Regs.[rx]),s)
                 | COMMA (R (rx, ( COMMA( SHIFT (shift,(SHIFTIMM (sftAmt,txt))))))) -> Some (Result.map (makeScaled rx shift) sftAmt,txt)
-                | _ -> Some (makePE ``Invalid second operand`` txt "Can't parse memory offset", txt)
+                | _ -> Some (makeParseError "valid memory offset: ''; 'Ry'; '#N'; 'LSR #N'; 'LSR Rs'" ("invalid:'"+txt+"'"), txt)
                 // include base register value as second parameter of returned function
                 |> mapOptHeadResult (fun fo -> fun dp rbv -> fo dp + rbv)
 
                 
 
 
-            let makeError txt =
-                (txt, notValidOffsetEM)
-                ||> makePE ``Invalid offset``
-                
-
+           
             match ls.Operands with
             | REGMATCH(rd, ( REMOVEPREFIX "," txt)) -> 
                 //printfn "LDRSTR matching %s" txt
@@ -227,7 +224,7 @@ module Memory
                     let mode =
                         match w, indexType with 
                         | false, PreIndex -> Ok NoIndex
-                        | true, PostIndex -> makePE ``Invalid second operand`` txt "Post-increment addressing does not have a '!'"
+                        | true, PostIndex -> makeParseError "Valid addressing mode" (" '!' is not valid in post-increment addressing:'" + txt + "'")
                         | _, it -> Ok it 
                     match mode,spf with
                     | Error e, _ -> Error e
@@ -241,8 +238,8 @@ module Memory
                             MemMode =  mode'                   
                             MemSize = match uSuffix with "B" -> MByte | _ -> MWord
                         }
-                | _ -> makeError txt
-            | _ -> printfn "No Rd found"; makeError ls.Operands
+                | _ -> makeParseError "LDR/STR Effective address" txt
+            | _ -> makeParseError "LDR/STR register name" ls.Operands
             |> fun ins -> copyParse ls (Result.map memTypeSingleMap.[uRoot] ins) pCond
 
         /// parse for LDM, STM
@@ -298,9 +295,7 @@ module Memory
                 | "FA" -> Some FA |> Ok
                 | "EA" -> Some EA |> Ok
                 | ""   -> Some IA |> Ok
-                | _ -> 
-                    (suffix, notValidSuffixEM)
-                    ||> makePE ``Invalid suffix``
+                | x -> makeParseError "Valid LDM/STM suffix IA,IB,DA,DB,FD,ED,FA,EA" x
 
             let ops = 
                 match true, false, ls.Operands with
@@ -329,8 +324,7 @@ module Memory
                     |> Result.map (consMemMult wb rOp1 )
                     |> mapErrorApplyResult (checkMultSuffix suffix)    
                 | _ ->
-                    (ls.Operands, notValidFormatEM)
-                    ||> makePE ``Invalid instruction``
+                    makeParseError "valid LDM/STM operands" ls.Operands
 
             copyParse ls (Result.map memTypeMultMap.[root] ops) pCond
 

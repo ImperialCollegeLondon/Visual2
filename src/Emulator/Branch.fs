@@ -33,14 +33,14 @@ module Branch
     let parse (ls: LineData) : Parse<Instr> option =
         let parse' (_iClass, (root,suffix,cond)) =
             let (WA la) = ls.LoadAddr // address this instruction is loaded into memory
-            let target = resolveOp ls.SymTab ls.Operands
+            let target = parseEvalNumericExpression ls.SymTab ls.Operands
             match root, target with
             | "B", Ok t -> B t |> Ok
             | "BL", Ok t -> BL t |> Ok
             | "B",Error t 
             | "BL", Error t -> Error t
             | "END",_ when ls.Operands="" -> Ok END
-            | "END",_ -> makePE ``Invalid instruction`` ls.Operands "END does not take an operand"
+            | "END",_ -> makeParseError "END (no operands)" ls.Operands
             | _ -> failwithf "What? Unexpected root in Branch.parse'%s'" root
             |> fun ins -> copyParse ls ins cond
         let OPC = ls.OpCode.ToUpper ()

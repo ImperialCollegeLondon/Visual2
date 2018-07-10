@@ -54,6 +54,8 @@ module Errors
 
     type ErrCode =
         | ``Invalid syntax`` of wanted: string * found : string
+        | ``Invalid format`` of error: string * found : string
+        | ``Invalid instruction`` of reason: string
         | ``Label required`` of reason: string
         | ``Unimplemented parse``
         | ``Undefined symbol`` of symbolText: string
@@ -72,8 +74,10 @@ module Errors
 
     //let makePE code txt message = (code,txt,message) |> Error
 
-    let makeParseError wanted found = ``Invalid syntax``(wanted=wanted,found=found) |> Error
+    let makeParseError wanted found = ``Invalid syntax`` (wanted=wanted,found=found) |> Error
+    let makeFormatError wanted found = ``Invalid format`` (error=wanted,found=found) |> Error
    
+    let makeInstructionError str = ``Invalid instruction`` str |> Error
 
     /// A function to combine results or forward errors.
     let combineError (res1:Result<'T1,'E>) (res2:Result<'T2,'E>) : Result<'T1 * 'T2, 'E> =

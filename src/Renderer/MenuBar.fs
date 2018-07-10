@@ -17,6 +17,9 @@ open Refs
 open Settings
 open Tabs
 
+let visualDocsPage name = sprintf @"https://tomcl.github.io/visual2.github.io/%s.html#content" name
+
+
 let showQuitMessage (callBack:int ->unit) =
     let rem = electron.remote
     let mess = "You have unsaved changes. Would you like to save them first?"
@@ -114,10 +117,10 @@ let viewMenu =
         ]
 
 let helpMenu =
-        let runPage page () = electron.shell.openExternal page |> ignore ; ()
+        let runPage page = Refs.runPage page
         makeMenu "Help" [
-            makeItem "UAL Instruction Guide" Core.Option.None (runPage "https://github.com/tomcl/visual2.github.io/blob/master/guide.md")
-            makeItem "VisUAL2 web pages" Core.Option.None (runPage "https://github.com/tomcl/visual2.github.io")
+            makeItem "UAL Instruction Guide" Core.Option.None (runPage <| visualDocsPage "guide")
+            makeItem "VisUAL2 web pages" Core.Option.None (runPage <| visualDocsPage "README")
             makeItem "Official ARM documentation" Core.Option.None (runPage "http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.ddi0234b/i1010871.html")
             makeItem "Run Emulator Tests" Core.Option.None Tests.runAllEmulatorTests
             makeItem "Load Sample Code" Core.Option.None Tests.loadDemo
