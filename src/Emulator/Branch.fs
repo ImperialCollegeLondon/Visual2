@@ -40,7 +40,7 @@ module Branch
             | "B",Error t 
             | "BL", Error t -> Error t
             | "END",_ when ls.Operands="" -> Ok END
-            | "END",_ -> makeParseError "END (no operands)" ls.Operands
+            | "END",_ -> makeParseError "END (no operands)" ls.Operands "list#pseudo-instructions-and-directives"
             | _ -> failwithf "What? Unexpected root in Branch.parse'%s'" root
             |> fun ins -> copyParse ls ins cond
         let OPC = ls.OpCode.ToUpper ()

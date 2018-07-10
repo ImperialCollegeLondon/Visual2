@@ -17,7 +17,7 @@ open Refs
 open Settings
 open Tabs
 
-let visualDocsPage name = sprintf @"https://tomcl.github.io/visual2.github.io/%s.html#content" name
+
 
 
 let showQuitMessage (callBack:int ->unit) =

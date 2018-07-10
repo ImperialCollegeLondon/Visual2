@@ -53,8 +53,8 @@ module Errors
 
 
     type ErrCode =
-        | ``Invalid syntax`` of wanted: string * found : string
-        | ``Invalid format`` of error: string * found : string
+        | ``Invalid syntax`` of wanted: string * found : string * page: string
+        | ``Invalid format`` of error: string * found : string * page : string
         | ``Invalid instruction`` of reason: string
         | ``Label required`` of reason: string
         | ``Unimplemented parse``
@@ -74,8 +74,8 @@ module Errors
 
     //let makePE code txt message = (code,txt,message) |> Error
 
-    let makeParseError wanted found = ``Invalid syntax`` (wanted=wanted,found=found) |> Error
-    let makeFormatError wanted found = ``Invalid format`` (error=wanted,found=found) |> Error
+    let makeParseError wanted found page = ``Invalid syntax`` (wanted=wanted,found=found, page=page) |> Error
+    let makeFormatError wanted found page = ``Invalid format`` (error=wanted,found=found,page=page) |> Error
    
     let makeInstructionError str = ``Invalid instruction`` str |> Error
 

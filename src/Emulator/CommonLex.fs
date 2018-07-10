@@ -61,6 +61,8 @@ module CommonLex
             DSize: uint32 
             /// execution condition for instruction
             PCond: Condition
+            /// opcode
+            POpCode: string
         }
     
     /// data given to instruction-specific parse function
@@ -85,6 +87,7 @@ module CommonLex
             ISize = 4u
             DSize = 0u
             PCond = cond
+            POpCode = ld.OpCode
         }
 
     let copyDefault (ld:LineData) cond =

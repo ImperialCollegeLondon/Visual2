@@ -163,7 +163,7 @@ module Helpers
         match Map.tryFind ((trim txt).ToUpper()) regNames with
         | Some reg ->
             reg |> Ok |> Some
-        | _ -> makeParseError "register name" txt |> Some
+        | _ -> makeParseError "register name" txt "" |> Some
 
     /// A partilly active pattern to extract a register name, returning it paired with the rest of the string, if possible
     let (|REGMATCH|_|) (txt:string) =
@@ -183,7 +183,7 @@ module Helpers
         let (|AP|_|) txt = ap txt
         match resTxt with
         | Ok (ast, AP (ast',txt)) -> Ok (adapt ast ast', txt)
-        | Ok (_,txt) -> makeParseError needed txt
+        | Ok (_,txt) -> makeParseError needed txt ""
         | Error e -> Error e
      
     
@@ -194,7 +194,7 @@ module Helpers
     let ResExpr adapt rTxt = resultify Expressions.(|Expr|_|) "a numeric expression" adapt rTxt
     let ResREGMATCH adapt rTxt = resultify  (|REGMATCH|_|) "a register name" adapt rTxt
     let ResREMOVEPREFIX prefix rTxt = resultify ((|REMOVEPREFIX|_|) prefix >> Option.map (fun txt -> (),txt)) ("'" + prefix + "'") (fun r _ -> r) rTxt
-    let ResCheckDone x = Result.bind  (function | r,"" -> Ok r | _,txt -> makeParseError "no characters" txt) x
+    let ResCheckDone x = Result.bind  (function | r,"" -> Ok r | _,txt -> makeFormatError "Error: unexpected characters found at end of instruction" txt "") x
 
     /////////////// parsing functions ///////////////////////////////
 
@@ -209,7 +209,7 @@ module Helpers
     let parseRegister (str : string) =
         match Map.tryFind (str.ToUpper().Trim()) regNames with
         | Some r -> Ok r
-        | None -> makeParseError "valid register name" str
+        | None -> makeParseError "valid register name" str ""
 
     let isRegister (str: string) =
         match Map.tryFind (str.ToUpper().Trim()) regNames with

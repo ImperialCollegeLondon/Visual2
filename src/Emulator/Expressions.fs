@@ -167,8 +167,8 @@ module Expressions
     let parseEvalNumericExpression syms op =
         match removeWs op with
         | Expr (ast,_) -> eval syms ast
-        | _ when String.contains "#" op -> makeParseError "Numeric expression (without #)" op
-        | _ -> makeParseError "Numeric expression" op
+        | _ when String.contains "#" op -> makeParseError "Numeric expression (without #)" op ""
+        | _ -> makeParseError "Numeric expression" op ""
     
 
     type PartsOfASM = ALabel | AOpCode | AOperand of int

@@ -185,12 +185,12 @@ module Memory
                     match memImmBounds,immTxt with
                     | (bMax,bMin), IMM (n,txt) when int n <= bMax && int n >= bMin -> (Ok n, txt)  |> Some
                     | (bMax,bMin), IMM (n,txt) -> 
-                        (makeParseError (sprintf "immediate offset in range %d..%d" bMax bMin) ("offset="+ n.ToString()), immTxt) |> Some
-                    | _, LITERALNUMB(_) -> (makeFormatError "Numeric offset in LDR/STR must have # prefix (#1000)" immTxt, immTxt) |> Some
+                        (makeParseError (sprintf "immediate offset in range %d..%d" bMax bMin) ("offset="+ n.ToString()) "ea", immTxt) |> Some
+                    | _, LITERALNUMB(_) -> (makeFormatError "Numeric offset in LDR/STR must have # prefix (#1000)" immTxt "ea", immTxt) |> Some
                     | _ -> None
                 let (|SHIFTIMM|_|) = function
                     | IMM (n,txt) when int n > 0 && int n < 32 -> (Ok n,txt) |> Some
-                    | IMM (n,txt) -> (makeParseError "Scaled register shift must be within range 1..31" ("shift="+n.ToString()), txt) |> Some
+                    | IMM (n,txt) -> (makeParseError "Scaled register shift must be within range 1..31" ("shift="+n.ToString()) "ea", txt) |> Some
                     | _ -> None
                 let makeScaled (rx:RName) (shift:ScaledShiftCode) sftAmt =
                     fun (dp: DataPath)  ->
@@ -207,7 +207,8 @@ module Memory
                     (Result.map makeOffsetFunc offset, s) |> Some
                 | COMMA ( R (rx, (TRIM s))) when not (s.StartsWith ",") -> Some (Ok (fun (dp:DataPath) -> int dp.Regs.[rx]),s)
                 | COMMA (R (rx, ( COMMA( SHIFT (shift,(SHIFTIMM (sftAmt,txt))))))) -> Some (Result.map (makeScaled rx shift) sftAmt,txt)
-                | _ -> Some (makeParseError "valid memory offset: ''; 'Ry'; '#N'; 'LSR #N'; 'LSR Rs'" ("invalid:'"+txt+"'"), txt)
+                | _ -> Some (makeParseError "valid memory offset: ''; 'Ry'; '#N'; 'LSR #N'; 'LSR Rs'" 
+                                        ("invalid:'"+txt+"'") "list#single-memory-tranfer-instructions", txt)
                 // include base register value as second parameter of returned function
                 |> mapOptHeadResult (fun fo -> fun dp rbv -> fo dp + rbv)
 
@@ -224,7 +225,7 @@ module Memory
                     let mode =
                         match w, indexType with 
                         | false, PreIndex -> Ok NoIndex
-                        | true, PostIndex -> makeParseError "Valid addressing mode" (" '!' is not valid in post-increment addressing:'" + txt + "'")
+                        | true, PostIndex -> makeParseError "Valid addressing mode" (" '!' is not valid in post-increment addressing:'" + txt + "'") "ea"
                         | _, it -> Ok it 
                     match mode,spf with
                     | Error e, _ -> Error e
@@ -238,8 +239,8 @@ module Memory
                             MemMode =  mode'                   
                             MemSize = match uSuffix with "B" -> MByte | _ -> MWord
                         }
-                | _ -> makeParseError "LDR/STR Effective address" txt
-            | _ -> makeParseError "LDR/STR register name" ls.Operands
+                | _ -> makeParseError "LDR/STR Effective address" txt "list#single-register-memory-transfer-instructions"
+            | _ -> makeParseError "LDR/STR register name" ls.Operands "list#single-register-memory-transfer-instructions"
             |> fun ins -> copyParse ls (Result.map memTypeSingleMap.[uRoot] ins) pCond
 
         /// parse for LDM, STM
@@ -295,7 +296,7 @@ module Memory
                 | "FA" -> Some FA |> Ok
                 | "EA" -> Some EA |> Ok
                 | ""   -> Some IA |> Ok
-                | x -> makeParseError "Valid LDM/STM suffix IA,IB,DA,DB,FD,ED,FA,EA" x
+                | x -> makeParseError "Valid LDM/STM suffix IA,IB,DA,DB,FD,ED,FA,EA" x "list#multiple-register-memory-transfer-instructions"
 
             let ops = 
                 match true, false, ls.Operands with
@@ -324,7 +325,7 @@ module Memory
                     |> Result.map (consMemMult wb rOp1 )
                     |> mapErrorApplyResult (checkMultSuffix suffix)    
                 | _ ->
-                    makeParseError "valid LDM/STM operands" ls.Operands
+                    makeParseError "valid LDM/STM operands" ls.Operands "list#single-register-memory-transfer-instructions"
 
             copyParse ls (Result.map memTypeMultMap.[root] ops) pCond
 

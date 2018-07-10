@@ -32,7 +32,7 @@ let trimUint32 u = ((int64 u) &&& ((1L <<< 32) - 1L)) |> uint32
 
 // ///////////// runtime types ///////////////////////////////////
 
-let makeDPE wanted s = makeParseError wanted s
+let makeDPE wanted s = makeParseError wanted s ""
 
 /// instruction type
 type Instr =  (DataPath -> Result<DataPath, ExecuteError>)
@@ -288,11 +288,11 @@ let parseOp2 (subMode: InstrNegativeLiteralMode) (symTable : SymbolTable) (args 
             | Ok shiftType, reg when isRegister reg-> 
                 parseRegister reg 
                 |> Result.bind (
-                    function | R15 -> makeFormatError "Error: operand 2 cannot be PC or R15 if shift is being used" reg
+                    function | R15 -> makeFormatError "Error: operand 2 cannot be PC or R15 if shift is being used" reg ""
                                 | rName -> Ok rName)
                 |> Result.map (makeRegShift shiftType)
             | Ok shiftType, imm when isValidNumericExpression symTable imm ->
-                makeFormatError "Literal constants in instruction operands require '#' prefix" imm
+                makeFormatError "Literal constants in instruction operands require '#' prefix" imm ""
             | _ -> makeDPE "Valid flexible op2 shift type" str
 
     match args with
@@ -307,10 +307,10 @@ let parseOp2 (subMode: InstrNegativeLiteralMode) (symTable : SymbolTable) (args 
     | [regStr ; shiftExpr] when isRegister regStr -> 
         parseRegister regStr 
         |> Result.bind (parseShiftExpression shiftExpr)
-    | [] -> makeFormatError "Error in flexible op2" "operands ended too early"
+    | [] -> makeFormatError "Error in flexible op2" "operands ended too early" "flexop2"
     | [imm] when isValidNumericExpression symTable imm ->
-        makeFormatError "Literal constants in instruction operands require '#' prefix" imm
-    | ops -> makeDPE "Valid op2 consists of: immediate, register, register with shift expression" (String.concat "," ops)
+        makeFormatError "Literal constants in instruction operands require '#' prefix" imm "flexop2"
+    | ops -> makeFormatError "Valid op2 consists of: immediate, register, register with shift expression" (String.concat "," ops) "flexop2"
 
 
 /// make an instruction that has the form "XXX op1, flexop2"
@@ -376,8 +376,8 @@ let makeShiftInstr shiftType symTable operands updateFlags =
                 | cons when cons.StartsWith("#") -> cons.Substring(1) |> parseNumberExpression symTable |> Result.map makeLitShift
                 | reg when isRegister reg -> parseRegister reg |> Result.map makeRegShift
                 | reg when isValidNumericExpression symTable reg ->
-                      makeFormatError "Numbers in instruction operands require '#' prefix (#22, #-1)" reg
-                | sftTxt -> makeFormatError "Error in shift specification - should be #N or Rx" sftTxt
+                      makeFormatError "Numbers in instruction operands require '#' prefix (#22, #-1)" reg "flexop2"
+                | sftTxt -> makeFormatError "Error in shift specification - should be #N or Rx" sftTxt "flexop2"
  
 
             Result.map (fun op2' -> execMove false updateFlags dst' op2') op2
@@ -469,6 +469,7 @@ let parse (ls: LineData) : Parse<Instr> option =
                 ISize = 4u; 
                 DSize = 0u; 
                 PCond = pCond 
+                POpCode=ls.OpCode
             }
 
         // flags should be updated if S suffix is specified

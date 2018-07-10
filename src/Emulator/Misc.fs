@@ -61,7 +61,7 @@ module Misc
         let (|RESOLVEALL|_|) lst = match parseExprList ls.SymTab lst with | Ok ops -> Some ops | _ -> None
         let opCode = ls.OpCode
         let offsetError wb b1 b2 ofs = 
-            makeParseError (sprintf "Valid %s offset in range %d..%d" wb b1 b2) (sprintf "Offset of %d" ofs)
+            makeParseError (sprintf "Valid %s offset in range %d..%d" wb b1 b2) (sprintf "Offset of %d" ofs) ""
         let checkAddrOffset (ofs:int) =
             match ofs-8 with
             | x when x % 4 <> 0 && (x > 264 || x < -248) -> offsetError "byte" -248 264 (ofs-8)

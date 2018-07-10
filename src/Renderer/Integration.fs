@@ -28,35 +28,31 @@ let guideHTML = "https://tomcl.github.io/visual2.github.io/guide.html"
 /// Generate the hover error box
 /// the text generated is full GH markdown
 /// TODO: rationalise ename,eTxt,eMess and generate better messages
-let makeHover tId lineNo linkOpt lines =
+let makeHover tId lineNo (linkOpt, lines) =
     // TODO - add proper error messages with links to HTML documentation
-    let mLink = 
-        match linkOpt with
-        | None -> guideHTML 
-        | Some link -> link 
+    let mLink = Refs.visualDocsPage linkOpt
     makeErrorInEditor tId lineNo (lines @ [ sprintf "[more](%s)" mLink ])      
 
 let highlightErrorParse ((err:ParseError), lineNo) tId = 
     let ML = EEExtensions.String.split [|'\n'|] >> Array.toList
     match err with
-    | ``Invalid syntax`` (wanted, found) ->
-        (ML <| "Parse error\nLooking for: " + wanted) @ (ML <| "Found: " + found)
-    | ``Invalid format`` (error, found) ->
-        (ML <| "Format error\n" + error) @ (ML <| "Found: " + found)
+    | ``Invalid syntax`` (wanted, found, page) ->
+        page, (ML <| "Parse error\nLooking for: " + wanted) @ (ML <| "Found: " + found)
+    | ``Invalid format`` (error, found, page) ->
+        page, (ML <| "Format error\n" + error) @ (ML <| "Found: " + found)
     | ``Invalid instruction`` reason ->
-        ML "This instruction is not valid" @ ML reason
+        "", ML "This instruction is not valid" @ ML reason
     | ``Label required`` reason ->
-        ML "This line needs a label" @ ML reason
+        "", ML "This line needs a label" @ ML reason
     | ``Unimplemented parse`` ->
-        ML "Unimplemented parse: this is an unexpected error, please inform project maintainers"
+        "", ML "Unimplemented parse: this is an unexpected error, please inform project maintainers"
     | ``Undefined symbol`` syms ->
-        "This line contains an expression with assembler labels '" + syms + "' that have not been defined" |> ML
+        "", ML <| "This line contains an expression with assembler labels '" + syms + "' that have not been defined"
     | ``Invalid opCode`` (root, cond, suffix) ->
-        sprintf "This opcode: %A%A%A is not valid" root cond suffix |> ML
+        "", sprintf "This opcode: %A%A%A is not valid" root cond suffix |> ML
     | ``Unimplemented instruction`` opcode ->
-        sprintf "This instruction: %s has not ben implemented" opcode |> ML
-
-    |> makeHover tId lineNo None
+        "", sprintf "%s is not a valid UAL instruction" opcode |> ML
+    |> makeHover tId lineNo
     setMode ParseErrorMode
 
 let makeMemoryMap mm =
@@ -175,17 +171,17 @@ let currentFileTabIsChanged (pInfo:RunInfo) =
 
 
 let tryParseCode tId =
-    let lim, indentedAsm = imageOfTId tId
-
+    let lim, editorAsm = imageOfTId tId
     // See if any errors exist, if they do display them
     match lim with
     | {Errors=[]} as lim -> 
         //Browser.console.log(sprintf "%A" lim)
         let editor = editors.[tId]
-        let newCode = String.concat "\n" indentedAsm
+        let newCode = String.concat "\n" lim.Source
         if Files.getCode tId <> newCode then 
+            printfn "Setting editor with %A" newCode
             (editor?setValue newCode) |> ignore
-        (lim, indentedAsm) |> Some
+        (lim, lim.Source) |> Some
     | lim -> 
         List.map (fun x -> highlightErrorParse x tId) lim.Errors |> ignore
         Core.Option.None
