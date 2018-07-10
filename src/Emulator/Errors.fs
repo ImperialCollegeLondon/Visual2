@@ -51,21 +51,20 @@ module Errors
 
 
 
-    type ErrCode =
-        | ``Invalid syntax``
-        | ``Undefined parse``
-        | ``Invalid literal`` 
-        | ``Invalid second operand``
-        | ``Invalid offset``
-        | ``Invalid register``
-        | ``Invalid suffix``
-        | ``Invalid instruction``
-        | ``Invalid expression``
-        | ``Label required``
-        | ``Undefined symbol``
-        | ``Unimplemented instruction``
 
-    type ParseError = ErrCode * string * string
+    type ErrCode =
+        | ``Invalid syntax`` of wanted: string * found : string * page: string
+        | ``Invalid format`` of error: string * found : string * page : string
+        | ``Invalid instruction`` of reason: string
+        | ``Label required`` of reason: string
+        | ``Unimplemented parse``
+        | ``Undefined symbol`` of symbolText: string
+        | ``Invalid opCode`` of root: string option * condition: string option * suffix: string
+        | ``Unimplemented instruction`` of opCode: string
+
+    type ParseError = ErrCode
+
+    
     
     type ExecuteError =
         | NotInstrMem of uint32 // Address where there is no instruction
@@ -73,8 +72,12 @@ module Errors
         | ``Unknown symbol runtime error`` of string list
         | EXIT
 
-    let makePE code txt message = (code,txt,message) |> Error
+    //let makePE code txt message = (code,txt,message) |> Error
+
+    let makeParseError wanted found page = ``Invalid syntax`` (wanted=wanted,found=found, page=page) |> Error
+    let makeFormatError wanted found page = ``Invalid format`` (error=wanted,found=found,page=page) |> Error
    
+    let makeInstructionError str = ``Invalid instruction`` str |> Error
 
     /// A function to combine results or forward errors.
     let combineError (res1:Result<'T1,'E>) (res2:Result<'T2,'E>) : Result<'T1 * 'T2, 'E> =

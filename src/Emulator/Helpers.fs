@@ -14,7 +14,7 @@ module Helpers
     open System.Text.RegularExpressions
     open CommonLex
     open Errors
-    open System.Xml.Linq
+    open Expressions
 
     let pipeShow mess x = printfn "%s:%A" mess x; x
 
@@ -159,14 +159,62 @@ module Helpers
             None
 
     /// A partially active pattern that returns an error if a register argument is not valid.
-    let (|RegCheck|_|) txt =
-        match Map.tryFind txt regNames with
+    let (|RegCheck|_|) (txt:string) =
+        match Map.tryFind ((trim txt).ToUpper()) regNames with
         | Some reg ->
             reg |> Ok |> Some
-        | _ ->
-            (txt, notValidRegEM)
-            ||> makePE ``Invalid register``
-            |> Some
+        | _ -> makeParseError "register name" txt "" |> Some
+
+    /// A partilly active pattern to extract a register name, returning it paired with the rest of the string, if possible
+    let (|REGMATCH|_|) (txt:string) =
+        match txt with
+        | ParseRegex2 @"\s*([rR][0-9]+|[Pp][Cc]|[Ss][Pp]|[Ll][Rr]|[Pp][Cc]|[Ss][Pp]|[Ll][Rr])(.*$)" (txt,TRIM rst) -> 
+            match Map.tryFind (txt.ToUpper()) regNames with
+            | Some rn -> (Some (rn, rst))
+            | None -> None
+        | _ -> None  
+        
+    /// <summary> Convert a partial active pattern function into a function that operates on a Result<AstSoFar*string, E'> monad.
+    /// Pipelining the output functions makes AP failure at any stage throw a monadic error.</summary>
+    /// <param name=ap> active pattern style function that operates on a txt input to parse something </param>
+    /// <param name=needed> string describing the text or construct needed for successful parse </param>
+    /// <param name=adapt> converts astSoFar, and the output of ap, to the astSoFar passed out </param>
+    let resultify ap needed adapt resTxt =
+        let (|AP|_|) txt = ap txt
+        match resTxt with
+        | Ok (ast, AP (ast',txt)) -> Ok (adapt ast ast', txt)
+        | Ok (_,txt) -> makeParseError needed txt ""
+        | Error e -> Error e
+     
+    
+    
+        
+
+    /// version of APs that always match and return a Result monad
+    let ResExpr adapt rTxt = resultify Expressions.(|Expr|_|) "a numeric expression" adapt rTxt
+    let ResREGMATCH adapt rTxt = resultify  (|REGMATCH|_|) "a register name" adapt rTxt
+    let ResREMOVEPREFIX prefix rTxt = resultify ((|REMOVEPREFIX|_|) prefix >> Option.map (fun txt -> (),txt)) ("'" + prefix + "'") (fun r _ -> r) rTxt
+    let ResCheckDone x = Result.bind  (function | r,"" -> Ok r | _,txt -> makeFormatError "Error: unexpected characters found at end of instruction" txt "") x
+
+    /////////////// parsing functions ///////////////////////////////
+
+    let parseNumberExpression (symTable) (str : string) =
+        parseEvalNumericExpression symTable str
+
+    let isValidNumericExpression symTable str = 
+        match parseEvalNumericExpression symTable str with
+        | Ok _ -> true
+        | _ -> false
+
+    let parseRegister (str : string) =
+        match Map.tryFind (str.ToUpper().Trim()) regNames with
+        | Some r -> Ok r
+        | None -> makeParseError "valid register name" str ""
+
+    let isRegister (str: string) =
+        match Map.tryFind (str.ToUpper().Trim()) regNames with
+        | Some r -> true
+        | None -> false   
 
 //********************************************************************************
 //
@@ -363,8 +411,6 @@ module Helpers
         | [], [] -> cpuData |> Ok
         | _ -> failwith "Lists given to setMultMem function were of different sizes."
     
-    /// Multiple setMemDatas 
-    // let setMultMemData contentsLst = setMultMem (List.map DataLoc contentsLst)
 
         
     let fillRegs (vals : uint32 list) =
@@ -382,9 +428,3 @@ module Helpers
             Regs = emptyRegs;
             MM = Map.ofList []
         }
-(*    let isMisc instr =
-        match instr.PInstr with
-        | Ok (CommonTop.IMISC _) ->
-            true
-        | _ ->
-            false*)

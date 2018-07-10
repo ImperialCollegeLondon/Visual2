@@ -18,6 +18,12 @@ open Microsoft.FSharp.Collections
 open Node.Exports
 
 // **********************************************************************************
+//                                  App Version 
+// **********************************************************************************
+
+let appVersion = "0.12"
+
+// **********************************************************************************
 //                               Types used in this module
 // **********************************************************************************
 
@@ -124,7 +130,6 @@ let maxFontSize = 60L
 
 
 let checkSettings (vs: VSettings) = 
-    printfn "Checking: %A" vs
     let vso = vSettings
     let checkPath (p:string) = 
         match (fs.statSync (U2.Case1 p)).isDirectory() with
@@ -132,11 +137,10 @@ let checkSettings (vs: VSettings) =
         | false -> os.homedir()
     try
         let checkNum (n:string) (min:int64) (max:int64) (def:string) = 
-            printfn "checking number %A %A %A %A" n min max def
             match int64 n with
             | x when x > max -> def
             | x when x < min -> def
-            | x -> printfn "number is Ok %A" x; x.ToString()
+            | x -> x.ToString()
         {
         vs with 
             EditorTheme = 
@@ -175,7 +179,6 @@ let getJSONSettings() =
             vSettings
     | false -> 
         try
-            printfn "Using JSON settings from this PC %A" json
             (Fable.Import.JS.JSON.parse json) :?> VSettings
         with
         | e -> 
@@ -214,6 +217,39 @@ let setDashboardWidth (width)=
 
 /// Element in Register view representing register rNum
 let register rNum = getHtml <| sprintf "R%i" rNum
+
+let visualDocsPage name = 
+    match EEExtensions.String.split [|'#'|] name |> Array.toList with
+    | [""] -> @"https://tomcl.github.io/visual2.github.io/guide.html#content"
+    | [ page ] ->sprintf  "https://tomcl.github.io/visual2.github.io/%s.html#content" page
+    | [ page; tag ] -> sprintf @"https://tomcl.github.io/visual2.github.io/%s.html#%s" page tag
+    | _ -> failwithf "What? Split must return non-empty list!"
+
+/// Run an external URL url in a separate window.
+/// Second parameter triggers action (for use in menus)
+let runPage url () =
+    printf "Running page %s" url
+    let rem = electron.remote
+    let options = createEmpty<Electron.BrowserWindowOptions>
+    // Complete list of window options
+    // https://electronjs.org/docs/api/browser-window#new-browserwindowoptions
+    options.width <- Some 1200.
+    options.height <- Some 800.
+    //options.show <- Some false
+    let prefs = createEmpty<Electron.WebPreferences>
+    prefs.devTools <- Some false 
+    prefs.nodeIntegration <- Some false
+    options.webPreferences <- Some prefs
+    
+    options.frame <- Some true
+    options.hasShadow <- Some true
+    options.backgroundColor <- None
+    options.icon <- Some (U2.Case2  "app/visual.ico")
+    let window = rem.BrowserWindow.Create(options)
+    window.setMenuBarVisibility false
+    window.loadURL url
+    window.show()
+
 
 // *************************************************************************************
 //                               References to DOM elements

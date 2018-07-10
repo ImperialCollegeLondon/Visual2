@@ -4,6 +4,8 @@
 
 [**Acknowledgements**](https://github.com/ImperialCollegeLondon/Visual2/wiki/Acknowledgements)
 
+[Assembly Language Documentation Repo](https://tomcl.github.io/visual2.github.io/)
+
 Read the [**Wiki**](https://github.com/ImperialCollegeLondon/Visual2/wiki) before you contribute, or for background info.
 
 For a quick start go straight to [Getting Started](#getting-started).
@@ -19,7 +21,7 @@ The rest of the README gives a project and code overview.
 
 This project is loosely based on a starter template from https://github.com/filangel/arm-monaco.
 
-The target language is `F#`, which is transpiled to `Javascript` (`js`) thanks to [Fable](https://fable.io) v1.x. [Github Electron](https://electronjs.org/) is then used to convert the developed web-app to a cross-platform native application, providing access to platform-level commands (i.e. file-system, path, multiple processes), which are unavailable to (vanilla) browser web-apps.
+The target language is `F#`, which is transpiled to `Javascript` (`js`) thanks to [Fable](https://fable.io) v1.x. [Electron](https://electronjs.org/) is then used to convert the developed web-app to a cross-platform native application, providing access to platform-level commands (i.e. file-system, path, multiple processes), which are unavailable to (vanilla) browser web-apps.
 
 [Webpack](https://webpack.js.org/) is the module bundler, responsible for the Javascript concatenation and automated building process.
 

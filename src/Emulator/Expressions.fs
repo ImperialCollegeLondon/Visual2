@@ -51,17 +51,19 @@ module Expressions
 
     /// Evaluate exp against the symbol table syms
     /// Returns a list of all errors or the result
-    let rec eval syms exp =
+    let rec eval syms exp : Result<uint32, ErrCode> =
         let joinErrors a b =
             match a,b with
-            | (_ , _ , a'), (_ , _ , b') ->
-                Error(``Undefined symbol`` , "Undefined symbols:" , a' + "," + b')
+            | ``Undefined symbol`` a' , ``Undefined symbol`` b' ->
+                ``Undefined symbol`` ( a' + "," + b') |> Error
+            | ``Undefined symbol`` _ , a'
+            | a', _  ->  a' |> Error
         let doBinary op x y = 
             match (eval syms x), (eval syms y) with
             | Ok resX, Ok resY -> op resX resY |> Ok
             | Error a, Error b -> joinErrors a b
-            | Error a, _ -> Error a
-            | _, Error b -> Error b
+            | Error a, _ -> a |> Error
+            | _, Error b -> b |> Error
         match exp with
         | BinOp (op, x, y) -> doBinary op x y
         | Literal x -> x |> Ok
@@ -69,7 +71,7 @@ module Expressions
             match (Map.containsKey x syms) with
                 | true -> syms.[x] |> Ok
                 | false -> 
-                    makePE ``Undefined symbol`` "Undefined symbol: " x
+                    (``Undefined symbol``  x) |> Error
                   
 
 
@@ -162,11 +164,12 @@ module Expressions
         | Ok u -> printfn "OK %d" u; r
         | Error (code, eTxt,eMess) -> printfn "Error:<%s><%s>" eTxt eMess; r
 
-    let resolveOp syms op =
+    let parseEvalNumericExpression syms op =
         match removeWs op with
         | Expr (ast,_) -> eval syms ast
-        | _ -> (``Invalid expression``,op, "Invalid expression") |||> makePE
-        //|> printUintRes
+        | _ when String.contains "#" op -> makeParseError "Numeric expression (without #)" op ""
+        | _ -> makeParseError "Numeric expression" op ""
+    
 
     type PartsOfASM = ALabel | AOpCode | AOperand of int
 

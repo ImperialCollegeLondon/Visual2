@@ -28,7 +28,8 @@ module ParseTop
         PInstr = Ok EMPTY
         PLabel = lab
         ISize = 0u
-        DSize=0u
+        DSize = 0u
+        POpCode = ""
     }
 
     /// Split line on whitespace into an list
@@ -50,17 +51,18 @@ module ParseTop
                 PCond = pa.PCond
                 PInstr = Result.map cons pa.PInstr
                 PLabel = pa.PLabel
+                POpCode = pa.POpCode
                 ISize = pa.ISize
                 DSize = pa.DSize
             } |> Some
  
             
         match ld with
-        | Memory.IMatch pa -> copy IMEM pa 
-        | DP.IMatch pa -> copy IDP pa
-        | Misc.IMatch pa -> copy IMISC pa
-        | Branch.IMatch pa ->copy IBRANCH pa
-        | _ -> None
+        | Memory.IMatch pa -> printfn "mem"; copy IMEM pa 
+        | DP.IMatch pa -> printfn "dp"; copy IDP pa
+        | Misc.IMatch pa -> printfn "misc"; copy IMISC pa
+        | Branch.IMatch pa ->printfn "branch %s" ld.OpCode; copy IBRANCH pa
+        | _ -> printfn "Unrecognised %s" ld.OpCode; None
     
     
 
@@ -73,6 +75,7 @@ module ParseTop
             ISize = 0u
             DSize = 0u
             PCond = Cal
+            POpCode=""
         } 
 
 
@@ -80,6 +83,8 @@ module ParseTop
 
     let parseLine (symtab: SymbolTable) (loadI:uint32, loadD:uint32) (asmLine:string) =
         let isDataOp op = List.contains op ["DCD";"DCB";"FILL"]
+        let isLabel (str:string) =
+            str.Length > 0 && System.Char.IsLetter str.[0] && Seq.forall System.Char.IsLetterOrDigit str
         let loadA opcode = if isDataOp opcode then loadD else loadI
         /// put parameters into a LineData record and parse
         let (|TRYPARSE|_|) (words:string list) =
@@ -108,11 +113,10 @@ module ParseTop
             match [""] @ words @ [""] with
                 | "" :: TRYPARSE  pa -> pa
                 | TRYPARSE pa -> pa
-                | ["";label;""] ->  defParse (Some label) (EMPTY |> Ok)
+                | ["";label;""] when isLabel label ->  defParse (Some label) (EMPTY |> Ok)
                 | ["";""] -> defParse None (EMPTY |> Ok)
-                | opc :: _ ->
-                    let eMess = sprintf "'%s' is an unimplemented opcode in: '%s'" opc asmLine
-                    defParse None (makePE ``Unimplemented instruction`` opc eMess)
+                | "" :: opc :: _ ->
+                    defParse None (``Unimplemented instruction`` opc |> Error)
                 | _ -> failwithf "What: should not be possible!"
         asmLine
         |> removeComment

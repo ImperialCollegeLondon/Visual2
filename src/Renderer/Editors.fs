@@ -39,7 +39,6 @@ let editorOptions (readOnly:bool) =
 
 let updateEditor tId readOnly =
     let eo = editorOptions readOnly
-    printfn "Options: %A" eo
     Refs.editors.[tId]?updateOptions(eo) |> ignore
 
 let setTheme theme = 

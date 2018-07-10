@@ -48,7 +48,7 @@ module Misc
         |> Result.map List.rev
 
     let parseExprList symTab lst =
-        List.map (resolveOp symTab) lst
+        List.map (parseEvalNumericExpression symTab) lst
         |> mergeResults
 
    
@@ -57,23 +57,22 @@ module Misc
         let (WA la) = ls.LoadAddr // address this instruction is loaded into memory
         let opLst = commaSplit ls.Operands
         let resolvedOpLst = parseExprList ls.SymTab opLst
-        let (|PARSE|_|) op = resolveOp ls.SymTab op |> Some
+        let (|PARSE|_|) op = parseEvalNumericExpression ls.SymTab op |> Some
         let (|RESOLVEALL|_|) lst = match parseExprList ls.SymTab lst with | Ok ops -> Some ops | _ -> None
         let opCode = ls.OpCode
+        let offsetError wb b1 b2 ofs = 
+            makeParseError (sprintf "Valid %s offset in range %d..%d" wb b1 b2) (sprintf "Offset of %d" ofs) ""
         let checkAddrOffset (ofs:int) =
             match ofs-8 with
-            | x when x % 4 <> 0 && (x > 264 || x < -248) -> 
-                makePE ``Invalid offset`` ls.Operands (sprintf "ADR byte offset must be in range -248..264 and is %d" ofs)
-            | x when  (x > 1032 || x < -1016) -> 
-                makePE ``Invalid offset`` ls.Operands (sprintf "ADR byte offset must be in range -1016..1032 and is %d" ofs)
+            | x when x % 4 <> 0 && (x > 264 || x < -248) -> offsetError "byte" -248 264 (ofs-8)
+            | x when  (x > 1032 || x < -1016) -> offsetError "word" -1016 1032 (ofs-8)
             | x -> Ok ()
 
         let labelBinder f = 
             match ls.Label with
             | Some lab -> f lab
-            | None -> 
-                (ls.OpCode + " " + ls.Operands, " requires a label.")
-                ||> makePE ``Label required``
+            | None -> ``Label required``  ("'" + ls.Operands + "' requires a label.")
+           
         
         let makeDataInstr dataInstrCode = Result.map dataInstrCode resolvedOpLst
         
@@ -96,9 +95,9 @@ module Misc
                 makeDataDirective nBytes (FILL {NumBytes = nBytes; FillValue = fillVal} |> Ok)
             | Ok [ nBytes]
             | Ok [ nBytes; _] ->
-                makeDataDirective 0u (makePE ``Invalid instruction`` ls.Operands <| 
-                        sprintf "%d FILL bytes is invalid. Fill must have a number of bytes divisible by 4" nBytes)
-            | _ -> makeDataDirective 0u (makePE ``Invalid instruction`` ls.Operands "Fill must have 1 or 2 operands")
+                makeDataDirective 0u <| makeInstructionError (sprintf "%d FILL bytes is invalid. Fill must have a number of bytes divisible by 4" nBytes) 
+                        
+            | _ -> makeDataDirective 0u <| makeInstructionError ("Invalid operands '" + ls.Operands +  "'. Fill must have 1 or 2 operands")
        
         let makeEQU (op: Resolvable) =
             match op with
@@ -111,7 +110,7 @@ module Misc
         | "DCD", RESOLVEALL ops -> makeDataDirective (opNum*4u) (makeDataInstr DCD) 
         | "DCB", RESOLVEALL ops when ops.Length % 4 = 0 -> makeDataDirective opNum (makeDataInstr DCB) 
         | "DCB", _ -> 
-            makePE ``Invalid instruction`` ls.Operands "DCB must have a number of parameters divisible by 4"
+            makeInstructionError ("Invalid operands: '" + ls.Operands + "'. DCB must have a number of parameters divisible by 4")
             |> makeDataDirective 0u
         | "FILL", RESOLVEALL [op] -> makeFILL [op,0u]
         | "FILL", RESOLVEALL ops  -> makeFILL ops
@@ -119,10 +118,10 @@ module Misc
             match checkAddrOffset (int addr - int la) with
             | Ok _ ->  {pa with PInstr = ADR {AReg=rn ; AVal=addr} |> Ok }
             | Error e -> {pa with PInstr = Error e}
-        | "ADR", ops -> {pa with PInstr = makePE ``Invalid instruction`` ls.Operands "Invalid operands for ADR instruction"}
+        | "ADR", ops -> {pa with PInstr = makeInstructionError <| "Invalid operands" + ls.Operands + "Invalid operands for ADR instruction"}
         | "EQU", [PARSE op] -> makeEQU op
-        | "EQU", x -> {pa with PInstr = makePE ``Invalid expression`` ls.Operands (sprintf "'%A' is an invalid expression for EQU" x)}
-        | _, ops -> makePE ``Invalid instruction`` (ls.OpCode + " " + ls.Operands) "" |> makeDataDirective 0u
+        | "EQU", x -> {pa with PInstr = makeInstructionError (sprintf "'%A' is an invalid expression for EQU" x)}
+        | _, ops -> makeInstructionError ("Invalid instruction: '" + ls.OpCode + " " + ls.Operands + "'") |> makeDataDirective 0u
         | _ -> failwithf "What? unrecognised Misc opcode %s" opCode
       
 

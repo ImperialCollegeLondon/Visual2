@@ -61,6 +61,8 @@ module CommonLex
             DSize: uint32 
             /// execution condition for instruction
             PCond: Condition
+            /// opcode
+            POpCode: string
         }
     
     /// data given to instruction-specific parse function
@@ -85,10 +87,11 @@ module CommonLex
             ISize = 4u
             DSize = 0u
             PCond = cond
+            POpCode = ld.OpCode
         }
 
     let copyDefault (ld:LineData) cond =
-        copyParse ld (Errors.makePE ``Undefined parse`` "" "") cond
+        copyParse ld (``Unimplemented parse`` |> Error) cond
  
         
 
@@ -98,7 +101,7 @@ module CommonLex
     let condMap = [ "EQ",Ceq ; "NE",Cne ; "MI",Cmi ; "PL",Cpl ; "HI", Chi ; 
                     "HS",Chs ; "LO",Clo ; "LS",Cls ; "GE",Cge ; "GT", Cgt ; 
                     "LE", Cle ; "LT", Clt ; "VS",Cvs ;  "VC",Cvc ;"CC", Clo ; "CS", Chs
-                    "NV",Cnv ; "AL",Cal ; "",Cal; "",Cal] |> Map.ofList
+                    "NV",Cnv ; "AL",Cal ; "",Cal] |> Map.ofList
 
     /// list of all strings representing execution conditions
     /// includes ""
@@ -122,3 +125,12 @@ module CommonLex
                 |> List.map (fun c -> r+s+c, (spec.InstrC,(r,s, condMap.[c])))))
                 |> Map.ofList
 
+
+    let stripCondition (opc:string) =
+        let n = opc.Length
+        if n > 2 then
+            match List.tryFind ((=) opc.[n-2..n-1]) condStrings with
+            | None -> opc, None
+            | Some cond -> opc.[0..n-2], Some opc.[n-2..n-1]
+        else opc, None
+        
