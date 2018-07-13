@@ -17,8 +17,8 @@ open Fable.Core
 open Fable.Import
 open Node.Exports
 open CommonData
-
 open Helpers
+
 
 
 let fNone = Core.Option.None
@@ -59,10 +59,8 @@ type TestSetup = {
 
 type TestT = OkTests | ErrorTests | BetterThanModelTests
 
-[<Emit("__dirname")>]
 
-let appDirName:string  = jsNative
-let writeDirPath = appDirName + @"/test-results"
+let writeDirPath = Refs.appDirName + @"/test-results"
 
 let readFileViaNode (path:string) : string =
     (fs.readFileSync path).toString("utf8")
@@ -70,10 +68,10 @@ let readFileViaNode (path:string) : string =
 let fnWithoutSuffix (f:string) = (f.Split [|'.'|]).[0]
 
 let readAllowedTests() =
-    fs.readdirSync (U2.Case1 (appDirName + @"/test-data"))
+    fs.readdirSync (U2.Case1 (Refs.appDirName + @"/test-data"))
     |> Seq.toList
     |> List.filter (String.contains "ALLOWED")   
-    |> List.map (fun s -> appDirName + @"/test-data/" + s)
+    |> List.map (fun s -> Refs.appDirName + @"/test-data/" + s)
     |> List.collect ( fun path -> 
         readFileViaNode path
         |> String.split [|'\n'|]
@@ -201,7 +199,7 @@ let writeResultsToFile fn rt resL =
                  | ErrorTests -> "ERRORs" 
                  | _ -> "BETTERs"
 
-    let fName = appDirName + @"/test-results/" + (nameOfCode rt + fn)
+    let fName = Refs.appDirName + @"/test-results/" + (nameOfCode rt + fn)
 
     let displayState (ts:TestSetup) (outDp: DataPath) =
 
@@ -329,7 +327,7 @@ let RunEmulatorTest allowed  ts=
             ErrorTests, ts, ri', sprintf "Test code timed out after %d Visual2 instructions" maxSteps
 
 let runEmulatorTestFile allowed fn =
-    let testF = appDirName + @"/test-data/" + fn
+    let testF = Refs.appDirName + @"/test-data/" + fn
     let results = loadStateFile testF
     let resultsBySuccess =
         results 
@@ -350,7 +348,7 @@ let runAllEmulatorTests () =
     if not (contents.isDevToolsOpened()) then contents.toggleDevTools()
     let files = 
         try
-            fs.readdirSync (U2.Case1 (appDirName + "/test-data"))
+            fs.readdirSync (U2.Case1 (Refs.appDirName + "/test-data"))
         with
             | _ -> ResizeArray()
         |> Seq.toList 

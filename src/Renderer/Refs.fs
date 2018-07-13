@@ -83,6 +83,11 @@ let viewToIdTab =
 //                         Utility functions used in this module
 // ************************************************************************************
 
+[<Emit("__dirname")>]
+
+let appDirName:string  = jsNative
+
+
 /// compare input with last input: if different, or no last input, execute function
 let cacheLastWithActionIfChanged actionFunc =
     let mutable cache: 'a option = None
@@ -249,6 +254,12 @@ let runPage url () =
     window.setMenuBarVisibility false
     window.loadURL url
     window.show()
+
+
+let writeToFile str path =
+    let errorHandler _err = // TODO: figure out how to handle errors which can occur
+        ()
+    fs.writeFile(path, str, errorHandler)
 
 
 // *************************************************************************************

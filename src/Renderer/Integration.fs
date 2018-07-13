@@ -25,15 +25,18 @@ let maxStepsBeforeSlowDisplay: int64 = 100000L
 let slowDisplayThreshold: int64 = 20000L
 let guideHTML = "https://tomcl.github.io/visual2.github.io/guide.html"
 
+let printit() = printfn "Action completed!"
 /// Generate the hover error box
 /// the text generated is full GH markdown
 /// TODO: rationalise ename,eTxt,eMess and generate better messages
-let makeHover tId lineNo (linkOpt, lines) =
+let makeHover tId lineNo opc (linkOpt, lines) =
     // TODO - add proper error messages with links to HTML documentation
     let mLink = Refs.visualDocsPage linkOpt
-    makeErrorInEditor tId lineNo (lines @ [ sprintf "[more](%s)" mLink ])      
+    makeErrorInEditor tId lineNo (
+        lines @ 
+        [ sprintf "[more](%s)" mLink ])  None    
 
-let highlightErrorParse ((err:ParseError), lineNo) tId = 
+let highlightErrorParse ((err:ParseError), lineNo) tId opc = 
     let ML = EEExtensions.String.split [|'\n'|] >> Array.toList
     match err with
     | ``Invalid syntax`` (wanted, found, page) ->
@@ -52,7 +55,7 @@ let highlightErrorParse ((err:ParseError), lineNo) tId =
         "", sprintf "This opcode: %A%A%A is not valid" root cond suffix |> ML
     | ``Unimplemented instruction`` opcode ->
         "", sprintf "%s is not a valid UAL instruction" opcode |> ML
-    |> makeHover tId lineNo
+    |> makeHover tId lineNo opc
     setMode ParseErrorMode
 
 let makeMemoryMap mm =
@@ -117,7 +120,7 @@ let highlightCurrentIns classname pInfo tId  =
     | Some pc ->
         match Map.tryFind (WA pc) pInfo.IMem with
         | Some (ci, lineNo) -> 
-            highlightLine tId lineNo classname
+            highlightLine tId lineNo classname 
             Editors.revealLineInWindow tId lineNo
         | Option.None
         | Some _ -> failwithf "What? Current PC value (%x) is not an instruction: this should be impossible!" pc
@@ -183,7 +186,7 @@ let tryParseCode tId =
             (editor?setValue newCode) |> ignore
         (lim, lim.Source) |> Some
     | lim -> 
-        List.map (fun x -> highlightErrorParse x tId) lim.Errors |> ignore
+        List.map (fun (e, n, opc) -> highlightErrorParse (e,n) tId opc) lim.Errors |> ignore
         Core.Option.None
 
 let getRunInfoFromState (lim:LoadImage) =

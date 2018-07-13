@@ -128,13 +128,7 @@ let openFile () =
     |> ignore
 
 
-
-let writeToFile str path =
-    let errorHandler _err = // TODO: figure out how to handle errors which can occur
-        ()
-    fs.writeFile(path, str, errorHandler)
-
-let writeCurrentCodeToFile path = (writeToFile (getCode currentFileTabId) path)
+let writeCurrentCodeToFile path = (Refs.writeToFile (getCode currentFileTabId) path)
 
 let saveFileAs () =
     // Don't do anything if the user tries to save as the settings tab
