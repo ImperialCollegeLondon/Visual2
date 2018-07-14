@@ -289,6 +289,10 @@ let indentProgram lim lines =
         | [lab] -> spaces n + lab
     List.map indentLine lines
 
+let invariantOfLine =
+    String.splitRemoveEmptyEntries [|' ';'\t';'\f'|] >> String.concat " "
+
+    
 
 let mutable programCache: Map<string list,LoadImage> = Map.empty
 

@@ -35,6 +35,7 @@ let loadDemo () =
     fs.readFile( sampleDir + "karatsuba.s", (fun _ data -> // TODO: find out what this error does
             Files.loadFileIntoTab  tId data
         ))
+    Tabs.setTabSaved tId
 
 
 type Flags = {

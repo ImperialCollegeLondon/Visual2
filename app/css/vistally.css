@@ -263,6 +263,15 @@
     content: "?";
 }
 
+.editor-glyph-margin-arrow {
+    color: blue;
+    text-align: right;
+}
+
+.editor-glyph-margin-arrow:after {
+    content: "\2192"
+}
+
 #status-bar {
     width: 200px;
     align-self: center;

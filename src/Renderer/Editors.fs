@@ -26,6 +26,7 @@ let editorOptions (readOnly:bool) =
 
                         // Application defined settings
                         "value" ==> "";
+                        "renderIndentGuides" ==> false
                         "fontFamily" ==> "fira-code"
                         "fontWeight" ==> "bold"
                         "language" ==> "arm";
@@ -116,6 +117,19 @@ let highlightLine tId number className =
             "inlineClassName" ==> className
         ])
         None
+
+let highlightGlyph tId number glyphClassName = 
+    editorLineDecorate 
+        Refs.editors.[tId]
+        number
+        (createObj[
+            "isWholeLine" ==> true
+            "glyphMarginClassName" ==> glyphClassName
+        ])
+        None
+
+let highlightNextInstruction tId number =
+    highlightGlyph tId number "editor-glyph-margin-arrow"
 
 /// Decorate a line with an error indication and set up a hover message
 /// Distinct message lines must be elements of markdownLst
