@@ -19,6 +19,7 @@ open Editors
 
 open Fable.Core.JsInterop
 open Fable.Import
+open Fable.PowerPack.Keyboard
 
 let maxStepsBeforeCheckEvents: int64 = 5000L
 let maxStepsBeforeSlowDisplay: int64 = 100000L
@@ -29,33 +30,40 @@ let printit() = printfn "Action completed!"
 /// Generate the hover error box
 /// the text generated is full GH markdown
 /// TODO: rationalise ename,eTxt,eMess and generate better messages
-let makeHover tId lineNo opc (linkOpt, lines) =
+let makeHover tId lineNo opc (linkOpt, lines, gLines) =
     // TODO - add proper error messages with links to HTML documentation
     let mLink = Refs.visualDocsPage linkOpt
     makeErrorInEditor tId lineNo (
         lines @ 
-        [ sprintf "[more](%s)" mLink ])  None    
+        [ sprintf "[more](%s)" mLink ])  gLines   
 
 let highlightErrorParse ((err:ParseError), lineNo) tId opc = 
     let ML = EEExtensions.String.split [|'\n'|] >> Array.toList
-    match err with
-    | ``Invalid syntax`` (wanted, found, page) ->
-        page, (ML <| "Parse error\nLooking for: " + wanted) @ (ML <| "Found: " + found)
-    | ``Invalid format`` (error, found, page) ->
-        page, (ML <| "Format error\n" + error) @ (ML <| "Found: " + found)
-    | ``Invalid instruction`` reason ->
-        "", ML "This instruction is not valid" @ ML reason
-    | ``Label required`` reason ->
-        "", ML "This line needs a label" @ ML reason
-    | ``Unimplemented parse`` ->
-        "", ML "Unimplemented parse: this is an unexpected error, please inform project maintainers"
-    | ``Undefined symbol`` syms ->
-        "", ML <| "This line contains an expression with assembler labels '" + syms + "' that have not been defined"
-    | ``Invalid opCode`` (root, cond, suffix) ->
-        "", sprintf "This opcode: %A%A%A is not valid" root cond suffix |> ML
-    | ``Unimplemented instruction`` opcode ->
-        "", sprintf "%s is not a valid UAL instruction" opcode |> ML
-    |> makeHover tId lineNo opc
+    let codeLines = Files.getCode tId |> EEExtensions.String.split [|'\n'|]
+    let (gHover,range) =
+        if opc <> "" then
+            ErrorDocs.getOpcHover "" opc codeLines.[lineNo-1]
+        else ([||], (1,1))
+    let link, hover = 
+        match err with
+        | ``Invalid syntax`` (wanted, found, page) ->
+            page, (ML <| "Parse error\nLooking for: " + wanted) @ (ML <| "Found: " + found)
+        | ``Invalid format`` (error, found, page) ->
+            page, (ML <| "Format error\n" + error) @ (ML <| "Found: " + found)
+        | ``Invalid instruction`` reason ->
+            "", ML "This instruction is not valid" @ ML reason
+        | ``Label required`` reason ->
+            "", ML "This line needs a label" @ ML reason
+        | ``Unimplemented parse`` ->
+            "", ML "Unimplemented parse: this is an unexpected error, please inform project maintainers"
+        | ``Undefined symbol`` syms ->
+            "", ML <| "This line contains an expression with assembler labels '" + syms + "' that have not been defined"
+        | ``Invalid opCode`` (root, cond, suffix) ->
+            "", sprintf "This opcode: %A%A%A is not valid" root cond suffix |> ML
+        | ``Unimplemented instruction`` opcode ->
+            "", sprintf "%s is not a valid UAL instruction" opcode |> ML
+    let gLink = [ sprintf "[UAL Guide](%s)" (visualDocsPage "list") ]
+    makeHover tId lineNo opc (link, hover, (gHover |> Array.toList) @ gLink)
     setMode ParseErrorMode
 
 let makeMemoryMap mm =
@@ -182,11 +190,12 @@ let tryParseCode tId =
         let editor = editors.[tId]
         let newCode = String.concat "\n" lim.Source
         if Files.getCode tId <> newCode then 
-            printfn "Setting editor with %A" newCode
             (editor?setValue newCode) |> ignore
         (lim, lim.Source) |> Some
     | lim -> 
-        List.map (fun (e, n, opc) -> highlightErrorParse (e,n) tId opc) lim.Errors |> ignore
+        let processParseError (pe, lineNo, opCode) =
+            highlightErrorParse (pe,lineNo) tId opCode
+        List.map processParseError lim.Errors |> ignore
         Core.Option.None
 
 let getRunInfoFromState (lim:LoadImage) =

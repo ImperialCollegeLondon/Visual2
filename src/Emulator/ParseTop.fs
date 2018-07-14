@@ -75,7 +75,7 @@ module ParseTop
             ISize = 0u
             DSize = 0u
             PCond = Cal
-            POpCode=""
+            POpCode = ""
         } 
 
 
@@ -84,8 +84,7 @@ module ParseTop
     let parseLine (symtab: SymbolTable) (loadI:uint32, loadD:uint32) (asmLine:string) =
         let isDataOp op = List.contains op ["DCD";"DCB";"FILL"]
         let isLabel (str:string) =
-            str.Length > 0 && System.Char.IsLetter str.[0] && Seq.forall System.Char.IsLetterOrDigit str
-        let loadA opcode = if isDataOp opcode then loadD else loadI
+            str.Length > 0 && System.Char.IsLetter str.[0] && Seq.forall (fun ch -> System.Char.IsLetterOrDigit ch || ch = '_') str
         /// put parameters into a LineData record and parse
         let (|TRYPARSE|_|) (words:string list) =
             match words  with
@@ -101,7 +100,7 @@ module ParseTop
 
         /// remove comments from string
         let removeComment (txt:string) =
-            txt.Split(';')
+            txt.Split ';'
             |> function 
                 | [|x|] -> x 
                 | [||] -> "" 

@@ -42,20 +42,20 @@ let getRoot opc =
     opCodeData
     |> List.collect (fun (root,legend,opType) ->
         if String.startsWith root opc then 
-            [root,opType]
+            [root,legend, opType]
         else [])
     |> function
         | [ spec] -> spec
-        | _ -> "unimplemented", UNIMPLEMENTED
+        | _ -> "unimplemented", "",UNIMPLEMENTED
 
 
 
 
 let makeDPHover2 opc func = 
     sprintf """
-%s dest, op2;  %s
+**%s dest, op2;  %s**
 
-Examples:
+
 ```
 %s R0, R1
 %s R5, #101
@@ -66,9 +66,9 @@ Examples:
 
 let makeCMPHover opc func = 
     sprintf """
-%s op1, op2;  %s
+**%s op1, op2;  %s**
 
-Examples:
+
 ```
 %s R0, R1
 %s R5, #101
@@ -79,9 +79,8 @@ Examples:
 
 let makeLDRSTRHover opc func = 
     sprintf """
-%s Rd, EA;  %s
+**%s Rd, EA;  %s**
 
-Examples:
 ```
 %s R0, [R10]
 %s R5, [R9,#100]
@@ -94,9 +93,9 @@ Examples:
 
 let makeLDMSTMHover opc func = 
     sprintf """
-%s Rs[!], {register-list};  %s
+**%s Rs[!], {register-list};  %s**
 
-Examples:
+
 ```
 LDMFD R0!, {R1}
 STMFD R10!, {R2,R14}
@@ -111,8 +110,8 @@ let makeMISCHover opc func =
         | "FILL"  -> "op1"
         | _ -> failwithf "%s is not a MISC opcode" opc        
     sprintf """
-%s %s %s
-Examples:
+**%s %s %s**
+
 ```
 DCD op1, ..., opn
 DCB op1, ..., opn
@@ -122,8 +121,8 @@ FILL N
 
 let makeEQUHover opc func =
     sprintf """
-%s op1; %s
-Examples:
+**%s op1; %s**
+
 ```
 X1       EQU 44
 MULTDATA EQU DATA1 + 0x100
@@ -133,9 +132,8 @@ PTR      EQU (X1 - 12) * 4 + X2
 
 let makeDPHover3 opc func =
     sprintf """
-%s dest, op1, op2;  %s
+**%s dest, op1, op2;  %s**
 
-Examples:
 ```
 %s R0, R1, R2
 %s R5, R5, #101
@@ -144,35 +142,41 @@ Examples:
 ```
 """     opc func  opc opc opc opc
 
-let unimplementedHover =
-    """
-    This opcode is not recognised
-"""
+let unimplementedHover opc =
+    sprintf " '%s': This opcode is not recognised" opc
 
 
 let getOpcHover mess opc line =
-    let key,typ = getRoot opc
+    printfn "getting hover: opc='%s' line='%s'" opc line
+    if opc = "" then failwithf "can't get hover for '' opcode"
+    let _, legend,typ = getRoot opc
     let hoverText =
         match typ with
-        | DP3 -> mess + makeDPHover3 opc key
-        | DP2 -> mess + makeDPHover2 opc key
-        | CMP -> mess + makeCMPHover opc key
-        | MISC -> mess + makeMISCHover opc key
-        | LDRSTR -> mess + makeLDRSTRHover opc key
-        | LDMSTM -> mess + makeLDMSTMHover opc key
-        | EQU -> mess + makeEQUHover opc key 
-        | UNIMPLEMENTED -> unimplementedHover
-        |> String.split [|'\n'|]
+        | DP3 -> mess + makeDPHover3 opc legend
+        | DP2 -> mess + makeDPHover2 opc legend
+        | CMP -> mess + makeCMPHover opc legend
+        | MISC -> mess + makeMISCHover opc legend
+        | LDRSTR -> mess + makeLDRSTRHover opc legend
+        | LDMSTM -> mess + makeLDMSTMHover opc legend
+        | EQU -> mess + makeEQUHover opc legend 
+        | UNIMPLEMENTED -> unimplementedHover opc
+        |> (fun s -> [|s|])
     let stripComment line = 
-        match String.split [|';'|] line
-        | | ins :: _ -> ins
-        | failwithf "What? split should return at least one item!"
+        match String.split [|';'|] line |> Array.toList with
+        |  ins :: _ -> ins
+        | _ -> failwithf "What? split should return at least one item!"
     let oLen = opc.Length
+    let splitLine =
+        " " + (stripComment line) + " "
+        |> String.splitString [|opc|]
+        |> Array.toList 
+        |>  List.rev
     let oStart = 
-        match (" " + [|opc|] (stripComment line) + " ") String.splitString |> List.rev with
-            | _afterPart :: before -> (before.Length-1)*oLen + before.sumBy (fun s -> s.Length) + 1
+        match splitLine  with
+            | _afterPart :: before -> (before.Length-1)*oLen + List.sumBy String.length before + 1
             | x -> failwithf "What? Unexpected split '%A' can't happen. line = '%s', opc = '%s'." x line opc
-    hovertext, (oStart, oStart + oLen - 1)
+    if oStart + oLen - 1 >= line.Length then failwithf "Bad hover range %d, %d in %s" oStart oLen line
+    hoverText, (oStart, oStart + oLen - 1)
 
 
 

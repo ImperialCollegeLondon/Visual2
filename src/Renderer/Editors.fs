@@ -33,7 +33,8 @@ let editorOptions (readOnly:bool) =
                         "scrollBeyondLastLine" ==> false;
                         "readOnly" ==> readOnly;
                         "automaticLayout" ==> true;
-                        "minimap" ==> createObj [ "enabled" ==> false ]
+                        "minimap" ==> createObj [ "enabled" ==> false ];
+                        "glyphMargin" ==> true
               ]
 
 
@@ -121,7 +122,7 @@ let highlightLine tId number className =
 /// markdownLst: string list - list of markdown paragraphs
 /// tId: int - tab identifier
 /// lineNumber: int - line to decorate, starting at 1
-let makeErrorInEditor tId lineNumber (markdownLst:string list) (rangeOpt:(int*int) option) = 
+let makeErrorInEditor tId lineNumber (hoverLst:string list) (gHoverLst: string list) = 
     let makeMarkDown textLst =
         textLst
         |> List.toArray
@@ -130,13 +131,16 @@ let makeErrorInEditor tId lineNumber (markdownLst:string list) (rangeOpt:(int*in
     editorLineDecorate 
         Refs.editors.[tId]
         lineNumber 
-        (createObj[
-            "isWholeLine" ==> match rangeOpt with | None -> true | _ -> false
+        (createObj [
+            "isWholeLine" ==> true
             "isTrusted" ==> true
             "inlineClassName" ==> "editor-line-error"
-            "hoverMessage" ==> makeMarkDown markdownLst
+            "hoverMessage" ==> makeMarkDown hoverLst
+            "inlineClassName" ==> "editor-line-error"
+            "glyphMarginClassName" ==> "editor-glyph-margin-error"
+            "glyphMarginHoverMessage" ==> makeMarkDown gHoverLst
         ])
-        rangeOpt
+        None
 
 let revealLineInWindow tId (lineNumber: int) =
     Refs.editors.[tId]?revealLineInCenterIfOutsideViewport(lineNumber) |> ignore

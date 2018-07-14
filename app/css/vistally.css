@@ -253,6 +253,16 @@
     border-bottom: 2px dotted red;
 }
 
+.editor-glyph-margin-error {
+    color: red;
+    text-align:right;
+    font-weight:bolder;
+}
+
+.editor-glyph-margin-error:after {
+    content: "?";
+}
+
 #status-bar {
     width: 200px;
     align-self: center;
