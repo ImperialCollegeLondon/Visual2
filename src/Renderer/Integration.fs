@@ -123,6 +123,11 @@ let showInfo () =
 
 let highlightCurrentIns classname pInfo tId  =
     removeEditorDecorations tId
+    let pc = pInfo.dpCurrent.Regs.[R15]
+    match Map.tryFind (WA pc) pInfo.IMem with
+    | Some (_, lineNo) -> 
+        highlightNextInstruction tId lineNo
+    | _ -> ()
     match pInfo.LastPC with
     | None -> ()
     | Some pc ->
@@ -176,9 +181,13 @@ let textOfTId tId =
 let imageOfTId = textOfTId >> reLoadProgram
 
 
-let currentFileTabIsChanged (pInfo:RunInfo) =
+let currentFileTabProgramIsChanged (pInfo:RunInfo) =
     let txt = textOfTId currentFileTabId
-    txt <> pInfo.EditorText
+    let txt' = pInfo.EditorText
+    txt.Length = txt'.Length &&
+    List.zip txt txt'
+    |> List.exists (fun (a,b) -> invariantOfLine a <> invariantOfLine b)
+
 
 
 let tryParseCode tId =
@@ -278,7 +287,7 @@ let prepareModeForExecution() =
     | FinishedMode ri
     | RunErrorMode ri
     | ActiveMode (_,ri) ->
-        if currentFileTabIsChanged ri then
+        if currentFileTabProgramIsChanged ri then
             Browser.window.alert "Resetting emulator for new execution" |> ignore
             setMode ResetMode
     | _ -> ()
@@ -328,7 +337,7 @@ let stepCodeBackBy numSteps =
     | ActiveMode (Paused,ri)
     | RunErrorMode ri
     | FinishedMode ri -> 
-        if  currentFileTabIsChanged ri then
+        if  currentFileTabProgramIsChanged ri then
             Browser.window.alert "can't step backwards because execution state is no longer valid"
         else
             //printf "Stepping back with done=%d  PC=%A" ri.StepsDone ri.dpCurrent
