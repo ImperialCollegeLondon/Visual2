@@ -33,7 +33,8 @@ let editorOptions (readOnly:bool) =
                         "scrollBeyondLastLine" ==> false;
                         "readOnly" ==> readOnly;
                         "automaticLayout" ==> true;
-                        "minimap" ==> createObj [ "enabled" ==> false ]
+                        "minimap" ==> createObj [ "enabled" ==> false ];
+                        "glyphMargin" ==> true
               ]
 
 
@@ -94,12 +95,14 @@ let removeEditorDecorations tId =
     List.iter (fun x -> removeDecorations Refs.editors.[tId] x) decorations
     decorations <- []
 
-let editorLineDecorate editor number decoration =
+let editorLineDecorate editor number decoration (rangeOpt : ((int*int) option)) =
     let model = editor?getModel()
     let lineWidth = model?getLineMaxColumn(number)
+    let posStart = match rangeOpt with | None -> 1 | Some (n,_) -> n
+    let posEnd = match rangeOpt with | None -> lineWidth :?> int | Some (_,n) -> n
     let newDecs = lineDecoration editor
                     decorations
-                    (monacoRange number 1 number lineWidth)
+                    (monacoRange number posStart number posEnd)
                     decoration
     decorations <- List.append decorations [newDecs]
 
@@ -112,13 +115,14 @@ let highlightLine tId number className =
             "isWholeLine" ==> true
             "inlineClassName" ==> className
         ])
+        None
 
 /// Decorate a line with an error indication and set up a hover message
 /// Distinct message lines must be elements of markdownLst
 /// markdownLst: string list - list of markdown paragraphs
 /// tId: int - tab identifier
 /// lineNumber: int - line to decorate, starting at 1
-let makeErrorInEditor tId lineNumber (markdownLst:string list) = 
+let makeErrorInEditor tId lineNumber (hoverLst:string list) (gHoverLst: string list) = 
     let makeMarkDown textLst =
         textLst
         |> List.toArray
@@ -127,12 +131,16 @@ let makeErrorInEditor tId lineNumber (markdownLst:string list) =
     editorLineDecorate 
         Refs.editors.[tId]
         lineNumber 
-        (createObj[
+        (createObj [
             "isWholeLine" ==> true
             "isTrusted" ==> true
             "inlineClassName" ==> "editor-line-error"
-            "hoverMessage" ==> makeMarkDown markdownLst
+            "hoverMessage" ==> makeMarkDown hoverLst
+            "inlineClassName" ==> "editor-line-error"
+            "glyphMarginClassName" ==> "editor-glyph-margin-error"
+            "glyphMarginHoverMessage" ==> makeMarkDown gHoverLst
         ])
+        None
 
 let revealLineInWindow tId (lineNumber: int) =
     Refs.editors.[tId]?revealLineInCenterIfOutsideViewport(lineNumber) |> ignore

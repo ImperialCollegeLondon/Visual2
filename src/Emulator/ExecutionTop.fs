@@ -79,7 +79,7 @@ type LoadImage = {
     LoadP: LoadPos
     Mem: DataMemory
     Code: CodeMemory<CondInstr * int>
-    Errors: (ParseError * int) list
+    Errors: (ParseError * int * string) list
     SymInf: SymbolInfo
     Indent: int
     Source: string list
@@ -236,7 +236,7 @@ let loadLine (lim:LoadImage) ((line,lineNum) : string * int) =
         Code = c
         Errors = 
             match ins with 
-                | Error x -> (x,lineNum) :: lim.Errors 
+                | Error x -> (x,lineNum,pa.POpCode) :: lim.Errors 
                 | _ -> lim.Errors
         Indent = 
             match pa.PLabel with 
@@ -304,7 +304,7 @@ let reLoadProgram (lines: string list) =
         let lim1 = initLoadImage dataSectionAlignment ([] |> Map.ofList)
         let next = loadProgram lines
         let unres lim = lim.SymInf.Unresolved |> List.length
-        let errs lim = lim.Errors |> List.map snd
+        let errs lim = lim.Errors |> List.map (fun (e,n,opc) -> n)
         let rec pass lim1 lim2 =
             match unres lim1, unres lim2 with
             | n1,n2 when (n2=0 && (lim1.LoadP.PosI <= lim2.LoadP.DStart)) || n1 = n2
