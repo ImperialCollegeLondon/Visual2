@@ -151,8 +151,8 @@ It works around the fact that _packaging tools_ do not understand the non-standa
 
 1. Follow instructions to install [yarn](https://yarnpkg.com/lang/en/docs/install/) (which tell you to install Node as well).
 
-2. Download and install the latest (> 2.0) [Dotnet Core SDK](https://www.microsoft.com/net/learn/get-started).
-
+2. Download and install the latest (> 2.0) [Dotnet Core SDK](https://www.microsoft.com/net/learn/get-started).  
+For Mac users, download and install [Mono](http://www.mono-project.com/download/stable/) from official website (the version from brew is incomplete, may lead to MSB error on step 7).
 
 3. Download & unzip the Visual2 repo, or if contributing clone it locally, or fork it on github and then clone it locally.
 
@@ -162,7 +162,7 @@ It works around the fact that _packaging tools_ do not understand the non-standa
 
 6. Find a nice terminal program that will run multiple windows to make a productive development environment. I recommend [_Hyper_](https://github.com/zeit/hyper/releases), for example, runs multiple tabs and will split window between two tabs, great for running start and launch scripts concurrently in a single window. Beware that under Windows `Hyper` uses `ctrl-shift-C`, `ctrl-shift-V` for copy and paste.
 
-7. Run `setup.bat` (on Windows) or `sh setup.sh` (on linux or macOS). This downloads and updates the submodules, and installs their packages individually (necessary because of the submodule structure), then restores the global packages. On other systems run the statements in this file (modified if needed for your system) individually. 
+7. Run `setup.bat` (on Windows) or `sh setup.sh` (on linux or macOS). This downloads and updates the submodules, and installs their packages individually (necessary because of the submodule structure), then restores the global packages. On other systems run the statements in this file (modified if needed for your system) individually. If MSB error occur while running the script (on macOS) and were using Mono installed by brew previously, run `brew uninstall mono` and refer to step 2 for install Mono correctly).
 
 8. Goto step 11 if all you want to do is to generate uptodate binaries.
 
