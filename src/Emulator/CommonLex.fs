@@ -58,7 +58,7 @@ module CommonLex
             /// number of bytes in memory taken up by this instruction
             ISize: uint32 
             /// number of data bytes in memory taken up by this instruction
-            DSize: uint32 
+            DSize: uint32 option
             /// execution condition for instruction
             PCond: Condition
             /// opcode
@@ -85,7 +85,7 @@ module CommonLex
             PInstr = ins
             PLabel = ld.Label |> Option.map (fun lab -> (lab, la |> Ok)) 
             ISize = 4u
-            DSize = 0u
+            DSize = Some 0u
             PCond = cond
             POpCode = ld.OpCode
         }

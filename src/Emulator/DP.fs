@@ -467,7 +467,7 @@ let parse (ls: LineData) : Parse<Instr> option =
                 PInstr= Error ``Unimplemented parse`` 
                 PLabel = ls.Label |> Option.map (fun lab -> lab, Ok la) ; 
                 ISize = 4u; 
-                DSize = 0u; 
+                DSize = Some 0u; 
                 PCond = pCond 
                 POpCode=ls.OpCode
             }

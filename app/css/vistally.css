@@ -1,3 +1,4 @@
+
 :root {
     --dashboard-width-init:350px; /* normal viewer width */
     --dashboard-width-binrep:500px; /* wider viewer width needed for binary */
@@ -264,7 +265,7 @@
 }
 
 .editor-glyph-margin-arrow {
-    color: blue;
+    color: darkgrey;
     text-align: right;
 }
 

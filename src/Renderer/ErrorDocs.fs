@@ -26,14 +26,14 @@ let opCodeData = [
     "CMN","set NZCV on op1 + op2", CMP
     "TST","set NZ on op1 bitwise AND op2", CMP
     "TEQ","set NZ on op1 bitwise XOR op2", CMP
-    "LDR","load memory word or byte at address 'EA' into Rd.\nOptionally update Rb.", LDRSTR
-    "STR","load memory word or byte at address 'EA' into Rd.\nOptionally update Rb.", LDRSTR
+    "LDR","load memory word or byte at address 'EA' into Rd. Optionally update Rb.", LDRSTR
+    "STR","load memory word or byte at address 'EA' into Rd. Optionally update Rb.", LDRSTR
     "LDM","load multiple registers from memory", LDMSTM
     "STM","store multiple registers to memory", LDMSTM
-    "FILL", "allocate op1 zero filled data bytes.\nop1 must be divisible by 4", MISC
+    "FILL", "allocate op1 data bytes. Op1 must be divisible by 4. Fill words with 0 or op2", MISC
     "DCD","allocate data words as specified by op1,...opn",MISC
-    "DCB","allocate data bytes as specified by op1,...,opn.\nThe number of operand must be divisible by 4",MISC
-    "EQU","define label on this line to equal op1\n op1 may contain: labels,numbers, +,-,*,/", EQU
+    "DCB","allocate data bytes as specified by op1,...,opn. The number of operand must be divisible by 4",MISC
+    "EQU","define label on this line to equal op1. Op1 may contain: labels,numbers, +,-,*,/", EQU
     ]
 
     /// match opcode with opcode list returning root instruction (without suffixes or conditions)
@@ -106,8 +106,8 @@ LDMIB R10, {R2-R9,R11}
 let makeMISCHover opc func = 
     let initLine =
         match opc with
-        | "DCD" | "DCB" -> "op1, ..., opn"
-        | "FILL"  -> "op1"
+        | "DCD" | "DCB" -> "op1, ..., opn; "
+        | "FILL"  -> "op1 [, op2]; "
         | _ -> failwithf "%s is not a MISC opcode" opc        
     sprintf """
 **%s %s %s**
@@ -147,7 +147,7 @@ let unimplementedHover opc =
 
 
 let getOpcHover mess opc line =
-    printfn "getting hover: opc='%s' line='%s'" opc line
+    //printfn "getting hover: opc='%s' line='%s'" opc line
     if opc = "" then failwithf "can't get hover for '' opcode"
     let _, legend,typ = getRoot opc
     let hoverText =

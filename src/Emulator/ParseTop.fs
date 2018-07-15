@@ -28,7 +28,7 @@ module ParseTop
         PInstr = Ok EMPTY
         PLabel = lab
         ISize = 0u
-        DSize = 0u
+        DSize = Some 0u
         POpCode = ""
     }
 
@@ -58,11 +58,11 @@ module ParseTop
  
             
         match ld with
-        | Memory.IMatch pa -> printfn "mem"; copy IMEM pa 
-        | DP.IMatch pa -> printfn "dp"; copy IDP pa
-        | Misc.IMatch pa -> printfn "misc"; copy IMISC pa
-        | Branch.IMatch pa ->printfn "branch %s" ld.OpCode; copy IBRANCH pa
-        | _ -> printfn "Unrecognised %s" ld.OpCode; None
+        | Memory.IMatch pa -> copy IMEM pa 
+        | DP.IMatch pa -> copy IDP pa
+        | Misc.IMatch pa -> copy IMISC pa
+        | Branch.IMatch pa -> copy IBRANCH pa
+        | _ -> None
     
     
 
@@ -73,7 +73,7 @@ module ParseTop
             PInstr = ins
             PLabel= labOpt |> Option.map (fun lab -> lab, la)
             ISize = 0u
-            DSize = 0u
+            DSize = Some 0u
             PCond = Cal
             POpCode = ""
         } 

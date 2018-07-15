@@ -150,9 +150,22 @@ let makeErrorInEditor tId lineNumber (hoverLst:string list) (gHoverLst: string l
             "isTrusted" ==> true
             "inlineClassName" ==> "editor-line-error"
             "hoverMessage" ==> makeMarkDown hoverLst
-            "inlineClassName" ==> "editor-line-error"
+            //"glyphMarginClassName" ==> "editor-glyph-margin-error"
+            //"glyphMarginHoverMessage" ==> makeMarkDown gHoverLst
+        ])
+        None
+    editorLineDecorate 
+        Refs.editors.[tId]
+        lineNumber 
+        (createObj [
+            "isWholeLine" ==> true
+            "isTrusted" ==> true
+            //"inlineClassName" ==> "editor-line-error"
+            //"hoverMessage" ==> makeMarkDown hoverLst
+            //"inlineClassName" ==> "editor-line-error"
             "glyphMarginClassName" ==> "editor-glyph-margin-error"
             "glyphMarginHoverMessage" ==> makeMarkDown gHoverLst
+            "overviewRuler" ==> createObj [ "position" ==> 4 ]
         ])
         None
 
