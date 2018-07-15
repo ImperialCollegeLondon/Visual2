@@ -76,11 +76,11 @@ module Misc
         
         let makeDataInstr dataInstrCode = Result.map dataInstrCode resolvedOpLst
         
-        let makeDataDirective dSize dataInstr = 
+        let makeDataDirective dSizeOpt dataInstr = 
             { copyDefault ls Cal with
                 PInstr = dataInstr
                 ISize = 0u
-                DSize = dSize
+                DSize = dSizeOpt
             }
                  
 
@@ -90,30 +90,31 @@ module Misc
         let makeFILL ops =
             match resolvedOpLst with
             | Ok [nBytes] when nBytes % 4u = 0u -> 
-                makeDataDirective nBytes (FILL {NumBytes = nBytes; FillValue = 0u} |> Ok)
+                makeDataDirective (Some nBytes) (FILL {NumBytes = nBytes; FillValue = 0u} |> Ok)
             | Ok [nBytes; fillVal] when nBytes % 4u = 0u  ->  
-                makeDataDirective nBytes (FILL {NumBytes = nBytes; FillValue = fillVal} |> Ok)
+                makeDataDirective (Some nBytes) (FILL {NumBytes = nBytes; FillValue = fillVal} |> Ok)
             | Ok [ nBytes]
             | Ok [ nBytes; _] ->
-                makeDataDirective 0u <| makeInstructionError (sprintf "%d FILL bytes is invalid. Fill must have a number of bytes divisible by 4" nBytes) 
+                makeDataDirective (Some 0u) <| makeInstructionError (sprintf "%d FILL bytes is invalid. Fill must have a number of bytes divisible by 4" nBytes) 
                         
-            | _ -> makeDataDirective 0u <| makeInstructionError ("Invalid operands '" + ls.Operands +  "'. Fill must have 1 or 2 operands")
+            | _ -> makeDataDirective (Some 0u) <| makeInstructionError ("Invalid operands '" + ls.Operands +  "'. Fill must have 1 or 2 operands")
        
         let makeEQU (op: Resolvable) =
             match op with
-            | Ok addr -> makeDataDirective 0u (EQU addr |> Ok)
-            | Error e -> makeDataDirective 0u (Error e)
+            | Ok addr -> makeDataDirective (Some 0u) (EQU addr |> Ok)
+            | Error e -> makeDataDirective (Some 0u) (Error e)
             |> fun pa -> { pa with PLabel = Option.map (fun lab -> lab , op) ls.Label}
        
         let pa = copyDefault ls Cal
         match opCode, opLst with
-        | "DCD", RESOLVEALL ops -> makeDataDirective (opNum*4u) (makeDataInstr DCD) 
-        | "DCB", RESOLVEALL ops when ops.Length % 4 = 0 -> makeDataDirective opNum (makeDataInstr DCB) 
+        | "DCD", RESOLVEALL ops -> makeDataDirective (Some (opNum*4u)) (makeDataInstr DCD) 
+        | "DCB", RESOLVEALL ops when ops.Length % 4 = 0 -> makeDataDirective (Some opNum) (makeDataInstr DCB) 
         | "DCB", _ -> 
             makeInstructionError ("Invalid operands: '" + ls.Operands + "'. DCB must have a number of parameters divisible by 4")
-            |> makeDataDirective 0u
+            |> makeDataDirective (Some 0u)
         | "FILL", RESOLVEALL [op] -> makeFILL [op,0u]
         | "FILL", RESOLVEALL ops  -> makeFILL ops
+        | "FILL", _ -> makeDataDirective None <| makeInstructionError ("Invalid operands for FILL: unresolved symbols")
         | "ADR", RegMatch (Ok rn) :: RESOLVEALL [addr] ->
             match checkAddrOffset (int addr - int la) with
             | Ok _ ->  {pa with PInstr = ADR {AReg=rn ; AVal=addr} |> Ok }
@@ -121,7 +122,7 @@ module Misc
         | "ADR", ops -> {pa with PInstr = makeInstructionError <| "Invalid operands" + ls.Operands + "Invalid operands for ADR instruction"}
         | "EQU", [PARSE op] -> makeEQU op
         | "EQU", x -> {pa with PInstr = makeInstructionError (sprintf "'%A' is an invalid expression for EQU" x)}
-        | _, ops -> makeInstructionError ("Invalid instruction: '" + ls.OpCode + " " + ls.Operands + "'") |> makeDataDirective 0u
+        | _, ops -> makeInstructionError ("Invalid instruction: '" + ls.OpCode + " " + ls.Operands + "'") |> makeDataDirective (Some 0u)
         | _ -> failwithf "What? unrecognised Misc opcode %s" opCode
       
 

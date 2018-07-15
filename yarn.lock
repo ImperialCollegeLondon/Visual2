@@ -1092,7 +1092,7 @@ cross-zip-cli@^1.0.0:
     cross-zip "^2.1.3"
     minimist "^1.2.0"
 
-cross-zip@^2.1.3:
+cross-zip@^2.1.3, cross-zip@^2.1.5:
   version "2.1.5"
   resolved "https://registry.yarnpkg.com/cross-zip/-/cross-zip-2.1.5.tgz#c5d1a06a4b1a12a033064f946eb5ae6d4bdcf3e1"
   dependencies:

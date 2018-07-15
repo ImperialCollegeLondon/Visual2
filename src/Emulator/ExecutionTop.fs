@@ -54,7 +54,7 @@ type ErrResolveBase = {lineNumber : uint32 ; error : ParseError}
 
 type LoadPos = { 
     PosI: uint32; 
-    PosD: uint32 ; 
+    PosD: uint32 option ; 
     DStart: uint32
     }
 
@@ -120,7 +120,7 @@ let dataSectionAlignment = 0x200u
 
 let initLoadImage dStart symTab = 
     {
-        LoadP = {PosI=0u ; PosD= dStart; DStart = dStart}
+        LoadP = {PosI=0u ; PosD= Some dStart; DStart = dStart}
         Mem = [] |> Map.ofList
         Code = [] |> Map.ofList
         Errors = []
@@ -154,23 +154,23 @@ let makeLocD (pa: Parse<Instr>) : Data list =
             | r -> failwithf "What? can't make words from list with length %d not divisible by 4: %A" (List.length bl) bl
         makeW' bl []  |> List.map Dat  
         
-    match pa.PInstr with
-    | Ok (IMISC (DCD dl)) ->
+    match pa.PInstr, pa.DSize with
+    | Ok (IMISC (DCD dl)), Some ds ->
         //printfn "DCD dl=%A" dl
-        if List.length dl * 4 <> int pa.DSize then 
-            failwithf "What? DCD Data size %d does not match data list %A" pa.DSize dl
+        if List.length dl * 4 <> int ds then 
+            failwithf "What? DCD Data size %d does not match data list %A" ds dl
         dl |> List.map Dat
-    | Ok (IMISC (DCB dl)) -> 
+    | Ok (IMISC (DCB dl)), Some ds -> 
         //printfn "DCB dl=%A" dl
-        if List.length dl <> int pa.DSize then 
-            failwithf "What? DCB Data size %d does not match data list %A" pa.DSize dl
+        if List.length dl <> int ds then 
+            failwithf "What? DCB Data size %d does not match data list %A" ds dl
         dl |> makeW 
-    | Ok (IMISC (FILL {NumBytes=fNum ; FillValue=fVal})) ->
-        if fNum <> pa.DSize then
-            failwithf "What? Data size %d does not match FILL size %d" pa.DSize fNum
+    | Ok (IMISC (FILL {NumBytes=fNum ; FillValue=fVal})), Some ds ->
+        if fNum <> ds then
+            failwithf "What? Data size %d does not match FILL size %d" ds fNum
         List.init (int fNum/4) (fun _ -> 0u) |> List.map Dat
-    | Ok _ -> failwithf "What? Undefined data directive!"
-    | Error _ -> failwithf "What? Can't load data memory from error!"
+    | Ok _,_ -> failwithf "What? Undefined data directive!"
+    | Error _,_ -> failwithf "What? Can't load data memory from error!"
 
 let addWordDataListToMem (dStart:uint32) (mm: DataMemory) (dl:Data list) = 
     let folder mm (n,loc) = Map.add n loc mm
@@ -182,69 +182,80 @@ let addWordDataListToMem (dStart:uint32) (mm: DataMemory) (dl:Data list) =
 
 let loadLine (lim:LoadImage) ((line,lineNum) : string * int) =
     let addSymbol sym typ symList = (sym, typ, lineNum) :: symList
-    let pa = parseLine lim.SymInf.SymTab (lim.LoadP.PosI,lim.LoadP.PosD) line
-    let labType = 
-        match pa.PInstr with
-        | Ok EMPTY -> CodeSymbol
-        | Ok (IMISC (EQU _)) -> CalculatedSymbol
-        | Ok (IMISC (DCD _)) | Ok (IMISC (DCB _)) | Ok (IMISC (FILL _)) -> DataSymbol
-        | _ -> CodeSymbol
-    let si' =
-        let si = lim.SymInf
-        match pa.PLabel with
-        | Some (lab, Ok addr) -> 
-            { si with 
-                Defs = addSymbol lab labType si.Defs
-                SymTab = Map.add lab addr si.SymTab
-                SymTypeTab = Map.add lab labType si.SymTypeTab
-            }
-        | None -> si
-        | Some (lab, Error _) -> 
-            { si with Unresolved = addSymbol lab labType si.Unresolved }
-
-        |>  (fun si ->
+    match lim.LoadP.PosD with
+    | None -> 
+        printfn "Data area undefined"
+        { lim with SymInf = { lim.SymInf with Unresolved = ("_FILL_UNDEFINED", DataSymbol, 0) :: lim.SymInf.Unresolved }}// short-circuit parse
+    | Some posD -> 
+        let pa = parseLine lim.SymInf.SymTab (lim.LoadP.PosI,posD) line
+        let labType = 
             match pa.PInstr with
-            | Error ( ``Undefined symbol`` syms) ->
-                { si with
-                    Refs =
-                        (syms.Split([|','|])
-                        |> Array.toList 
-                        |> List.map (fun s -> (s , lineNum)))
-                        @ si.Refs
+            | Ok EMPTY -> CodeSymbol
+            | Ok (IMISC (EQU _)) -> CalculatedSymbol
+            | Ok (IMISC (DCD _)) | Ok (IMISC (DCB _)) | Ok (IMISC (FILL _)) -> DataSymbol
+            | _ -> CodeSymbol
+        let si' =
+            let si = lim.SymInf
+            match pa.PLabel with
+            | Some (lab, Ok addr) -> 
+                { si with 
+                    Defs = addSymbol lab labType si.Defs
+                    SymTab = Map.add lab addr si.SymTab
+                    SymTypeTab = Map.add lab labType si.SymTypeTab
                 }
-            | _ -> si)
+            | None -> si
+            | Some (lab, Error _) -> 
+                { si with Unresolved = addSymbol lab labType si.Unresolved }
 
-    let lp = lim.LoadP
-    let ins = pa.PInstr
-    let m,c =
-        match pa.ISize, pa.DSize with
-        | 0u,0u -> lim.Mem, lim.Code
-        | 0u, _ -> 
-            //printfn "makeLoc output: %A" (makeLocD pa)
-            addWordDataListToMem   lp.PosD lim.Mem (makeLocD pa), lim.Code
-        | 4u, 0u -> 
+            |>  (fun si ->
                 match pa.PInstr with
-                | Ok pai -> 
-                    lim.Mem, Map.add (WA lp.PosI) ((pa.PCond,pai) , lineNum) lim.Code
-                | _ -> lim.Mem, lim.Code
-        | i, d -> failwithf "What? Unexpected sizes (I=%d ; D=%d) in parse load" i d
+                | Error ( ``Undefined symbol`` syms) ->
+                    { si with
+                        Refs =
+                            (syms.Split([|','|])
+                            |> Array.toList 
+                            |> List.map (fun s -> (s , lineNum)))
+                            @ si.Refs
+                    }
+                | _ -> si)
 
-    {
-        SymInf = si'
-        LoadP = { lp with PosI=lp.PosI+pa.ISize ; PosD = lp.PosD+pa.DSize}
-        Mem = m
-        Code = c
-        Errors = 
-            match ins with 
-                | Error x -> (x,lineNum,pa.POpCode) :: lim.Errors 
-                | _ -> lim.Errors
-        Indent = 
-            match pa.PLabel with 
-            | Some (lab,_) -> max lim.Indent (lab.Length+1) 
-            | _ -> lim.Indent
-        Source = [""]
-        EditorText = []
-    }
+        let lp = lim.LoadP
+        let ins = pa.PInstr
+        let updatePos dPos dIncr =
+            match dPos,dIncr with
+            | None,_ -> None
+            | _, None -> None
+            | Some a, Some b -> Some(a + b)
+        let m,c =
+            match pa.ISize, pa.DSize with
+            | 0u, Some 0u -> lim.Mem, lim.Code
+            | 0u, Some _ -> 
+                //printfn "makeLoc output: %A" (makeLocD pa)
+                addWordDataListToMem   posD lim.Mem (makeLocD pa), lim.Code
+            | 0u, None -> lim.Mem, lim.Code
+            | 4u, Some 0u -> 
+                    match pa.PInstr with
+                    | Ok pai -> 
+                        lim.Mem, Map.add (WA lp.PosI) ((pa.PCond,pai) , lineNum) lim.Code
+                    | _ -> lim.Mem, lim.Code
+            | i, d -> failwithf "What? Unexpected sizes (I=%d ; D=%A) in parse load" i d
+
+        {
+            SymInf = si'
+            LoadP = { lp with PosI=lp.PosI+pa.ISize ; PosD = updatePos lp.PosD pa.DSize}
+            Mem = m
+            Code = c
+            Errors = 
+                match ins with 
+                    | Error x -> (x,lineNum,pa.POpCode) :: lim.Errors 
+                    | _ -> lim.Errors
+            Indent = 
+                match pa.PLabel with 
+                | Some (lab,_) -> max lim.Indent (lab.Length+1) 
+                | _ -> lim.Indent
+            Source = [""]
+            EditorText = []
+        }
 
 let addTermination (lim:LoadImage) =
     let insLst = Map.toList lim.Code |> List.sortByDescending fst
@@ -261,6 +272,7 @@ let loadProgram (lines: string list) (lim: LoadImage)   =
         | hb, 0 -> blkSize * hb
         | hb, _ -> blkSize * (hb+1u)
         |> max minDataStart
+    //printfn "POSI= %A" lim.LoadP
     let setDStart lim = {lim with LoadP = {lim.LoadP with DStart = roundUpHBound lim.LoadP.PosI}}
     let initLim = initLoadImage (setDStart lim).LoadP.DStart lim.SymInf.SymTab
     List.fold loadLine initLim (lines |> List.indexed |> List.map (fun (i,s) -> s,i+1))
@@ -299,25 +311,28 @@ let mutable programCache: Map<string list,LoadImage> = Map.empty
 let reLoadProgram (lines: string list) =
     let reLoadProgram' (lines: string list) =
         let addCodeMarkers (lim: LoadImage) =
-            let addCodeMark map (WA a, _) = 
+            match lim.LoadP.PosD with
+            | None -> lim
+            | _ -> 
+                let addCodeMark map (WA a, _) = 
                     match Map.tryFind (WA a) map with
                     | None -> Map.add (WA a) CodeSpace map
                     | _ -> failwithf "Code and Data conflict in %x" a
-            List.fold addCodeMark (lim.Mem) (lim.Code |> Map.toList)
-            |> (fun markedMem -> {lim with Mem = markedMem})
+                List.fold addCodeMark (lim.Mem) (lim.Code |> Map.toList)
+                |> (fun markedMem -> {lim with Mem = markedMem})
         let lim1 = initLoadImage dataSectionAlignment ([] |> Map.ofList)
         let next = loadProgram lines
         let unres lim = lim.SymInf.Unresolved |> List.length
         let errs lim = lim.Errors |> List.map (fun (e,n,opc) -> n)
         let rec pass lim1 lim2 =
+            //printfn "LoadP in pass = %A, n1=%d, n2=%d" lim2.LoadP (unres lim1) (unres lim2)
             match unres lim1, unres lim2 with
-            | n1,n2 when (n2=0 && (lim1.LoadP.PosI <= lim2.LoadP.DStart)) || n1 = n2
+            | n1,n2 when (n2=0 && (lim2.LoadP.PosI <= lim2.LoadP.DStart)) || (n2 <> 0 && n1 = n2)
                 -> lim2
             | n1,n2 when n1 = n2 && List.isEmpty lim2.Errors -> failwithf "What? %d unresolved refs in load image with no errors" n1
             | _ -> pass lim2 (next lim2)
         let final = 
             pass lim1 (next lim1) 
-            |> next 
             |> next
             |> addCodeMarkers
         let src = indentProgram final lines
