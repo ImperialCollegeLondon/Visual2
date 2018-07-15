@@ -119,8 +119,8 @@ let viewMenu =
 let helpMenu =
         let runPage page = Refs.runPage page
         makeMenu "Help" [
-            makeItem "UAL Instruction Guide" Core.Option.None (runPage <| visualDocsPage "guide")
-            makeItem "VisUAL2 web pages" Core.Option.None (runPage <| visualDocsPage "README")
+            makeItem "UAL Instruction Guide" Core.Option.None (runPage <| visualDocsPage "guide#content")
+            makeItem "VisUAL2 web pages" Core.Option.None (runPage <| visualDocsPage "")
             makeItem "Official ARM documentation" Core.Option.None (runPage "http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.ddi0234b/i1010871.html")
             makeItem "Run Emulator Tests" Core.Option.None Tests.runAllEmulatorTests
             makeItem "Load Sample Code" Core.Option.None Tests.loadDemo
