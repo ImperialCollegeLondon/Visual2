@@ -204,15 +204,9 @@ module String =
     /// return None on no match
     [<CompiledName("RegexMatchGroups")>]
     let regexMatchGroups (regex:string) (str:string) =
-        let m = Text.RegularExpressions.Regex(regex).Match(str)
-        if m.Success
-        then
-            let mLst = [ for x in m.Groups -> x.Value ]
-            Some (m.Value, List.tail mLst) // TODO workaround
-            //let mLst = [ for x in m.Groups -> x.Value ]
-            //Some (List.head mLst, List.tail mLst)
-        else None
-
+        let m = Text.RegularExpressions.Regex.Match(regex, str)
+        [ for n in [1..m.Groups.Count] -> m.Groups.[n].Value ]
+ 
     /// Match a regular expression
     /// Return Some m where m is the match string,
     /// return None on no match
