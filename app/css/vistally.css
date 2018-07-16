@@ -256,12 +256,13 @@
 
 .editor-glyph-margin-error {
     color: red;
+   
     text-align:right;
     font-weight:bolder;
 }
 
 .editor-glyph-margin-error:after {
-    content: "?";
+    content: "\26a0";
 }
 
 .editor-glyph-margin-arrow {
