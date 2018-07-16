@@ -204,7 +204,7 @@ module String =
     /// return None on no match
     [<CompiledName("RegexMatchGroups")>]
     let regexMatchGroups (regex:string) (str:string) =
-        let m = Text.RegularExpressions.Regex.Match(regex, str)
+        let m = Text.RegularExpressions.Regex.Match(str, regex)
         [ for n in [1..m.Groups.Count] -> m.Groups.[n].Value ]
  
     /// Match a regular expression

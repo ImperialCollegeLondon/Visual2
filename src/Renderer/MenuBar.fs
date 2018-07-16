@@ -125,6 +125,7 @@ let helpMenu =
             makeItem "Run Emulator Tests" Core.Option.None Tests.runAllEmulatorTests
             makeItem "Load Sample Code" Core.Option.None Tests.loadDemo
             makeItem "About" Core.option.None ( fun () -> 
+                printfn "Directory is:%s" (Stats.dirOfSettings())
                 electron.remote.dialog.showMessageBox (
                       let opts = createEmpty<ShowMessageBoxOptions>
                       opts.title <- sprintf "Visual2 ARM Simulator v%s" Refs.appVersion |> Some

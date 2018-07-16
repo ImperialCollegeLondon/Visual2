@@ -25,9 +25,10 @@ let mutable sleeping: bool = false
 
 let dirOfSettings() = 
     let settingsF = settings?file() :?> string
-    let m = String.regexMatchGroups @"(.*)[\\\/]([^\\\/]*$)" settingsF
+    printfn "SettingsF=%s" settingsF
+    let m = String.regexMatchGroups @"(.*[\\\/])([^\\\/]*$)" settingsF
     match m with
-    | Some (m, dir :: _) -> dir
+    | [ dir ; _ ; _] -> dir
     | _ -> failwithf "Error finding directory of string: '%s'" settingsF
 
 
