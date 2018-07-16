@@ -1,4 +1,7 @@
 namespace EEExtensions
+/// CHANGELIST
+/// July 2018: add String.regexMatchGroups, correct documentation for regexMatch
+
 /// Miscellaneous extensions to core F# library functions
 /// Additions to Char, String, Map
 
@@ -199,6 +202,20 @@ module String =
     /// Return Some (m,grps) where m is the match string,
     /// grps is the list of match groups (if any)
     /// return None on no match
+    [<CompiledName("RegexMatchGroups")>]
+    let regexMatchGroups (regex:string) (str:string) =
+        let m = Text.RegularExpressions.Regex(regex).Match(str)
+        if m.Success
+        then
+            let mLst = [ for x in m.Groups -> x.Value ]
+            Some (m.Value, List.tail mLst) // TODO workaround
+            //let mLst = [ for x in m.Groups -> x.Value ]
+            //Some (List.head mLst, List.tail mLst)
+        else None
+
+    /// Match a regular expression
+    /// Return Some m where m is the match string,
+    /// return None on no match
     [<CompiledName("RegexMatch")>]
     let regexMatch (regex:string) (str:string) =
         let m = Text.RegularExpressions.Regex(regex).Match(str)
@@ -208,8 +225,6 @@ module String =
             //let mLst = [ for x in m.Groups -> x.Value ]
             //Some (List.head mLst, List.tail mLst)
         else None
-
-
 
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]

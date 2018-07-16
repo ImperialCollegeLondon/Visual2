@@ -13,15 +13,33 @@ open Fable.Import.Browser
 open Fable.Core
 open EEExtensions
 open Node.Exports
+open Refs
+
+let logFileName = "Visual2eventLog.txt"
 
 let time() = System.DateTime.Now.Ticks
 let mutable activity: bool = true
 let mutable sleeping: bool = false
-let logName = os.homedir() + "/.visualLog"
 
-let appendLog = fs.appendFile(logName, fun e -> ())
+ 
 
-type ErrorT = string
+let dirOfSettings() = 
+    let settingsF = settings?file() :?> string
+    let m = String.regexMatchGroups @"(.*)[\\\/]([^\\\/]*$)" settingsF
+    match m with
+    | Some (m, dir :: _) -> dir
+    | _ -> failwithf "Error finding directory of string: '%s'" settingsF
+
+
+
+let appendLog item = 
+    let logHeader = sprintf "%s %s %s\n" Refs.appVersion (os.homedir()) (os.hostname())
+    let logName = dirOfSettings() + "//" + logFileName
+    match fs.existsSync (U2.Case1 logName) with
+    | true -> fs.writeFileSync (logHeader + logName, item)        
+    | false ->  fs.appendFile(logName, item, fun _e -> ())
+
+type ErrorT = (int * string)
 
 type LogT = 
     | Wake 
@@ -44,7 +62,8 @@ let activityStats e =
         sleeping <- false
     activity <- true
 
-
+let pushLogFile() =
+    ()
 
 let checkActivity() =
     if not activity then
@@ -54,6 +73,7 @@ let checkActivity() =
     else 
         logMessage {LogT=Wake;Time=time()}
     activity <- false
+    pushLogFile()
     
 
 document.addEventListener("mousemove", U2.Case1 activityStats)
