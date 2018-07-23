@@ -25,14 +25,16 @@ let fNone = Core.Option.None
 
 let runPipe mess s = printfn "%s: %A" mess s; s
 
-let projectDir = __SOURCE_DIRECTORY__ + @"/../../"
+let projectDir = Refs.appDirName + @"/../"
 
 let sampleDir = projectDir + @"app/samples/"
 
 let loadDemo () =
     Tabs.createFileTab()
     let tId = Refs.currentFileTabId
-    fs.readFile( sampleDir + "karatsuba.s", (fun _ data -> // TODO: find out what this error does
+    let sampleFileName = sampleDir + "karatsuba.s"
+    printfn "Rweading sample file: %s" sampleFileName
+    fs.readFile( sampleFileName, (fun _ data -> // TODO: find out what this error does
             Files.loadFileIntoTab  tId data
         ))
     Tabs.setTabSaved tId
