@@ -48,6 +48,7 @@ type VSettings = {
     EditorWordWrap: string
     EditorRenderWhitespace: string
     CurrentFilePath: string
+    RegisteredKey: string
     }
 
 // ***********************************************************************************
@@ -122,6 +123,7 @@ let mutable vSettings = {
     EditorWordWrap = "off"
     EditorRenderWhitespace = "none"
     CurrentFilePath = Fable.Import.Node.Exports.os.homedir()
+    RegisteredKey = ""
     }
 
 let themes =  [
