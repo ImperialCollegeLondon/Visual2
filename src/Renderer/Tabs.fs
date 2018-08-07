@@ -16,12 +16,14 @@ open EEExtensions
 open CommonData
 open Refs
 
+/// Get flag as stored and displayed in GUI
 let getFlag (id: string) =
     let el = Refs.flag id
     match  el.innerHTML with
     | "1" -> true
     | _ -> false
 
+/// Set flag as stored and displayed in GUI
 let setFlag (id: string) (value: bool) =
     let el = Refs.flag id
     match value with
@@ -32,6 +34,7 @@ let setFlag (id: string) (value: bool) =
             el.setAttribute("style", "background: #4285f4")
             el.innerHTML <- sprintf "%i" 1
 
+/// initialise stored and displayed flags to 0
 let resetFlags () =
     setFlag "N" false
     setFlag "C" false

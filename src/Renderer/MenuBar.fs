@@ -20,43 +20,49 @@ open Tabs
 
 
 
-let showQuitMessage (callBack:int ->unit) =
-    let rem = electron.remote
-    let mess = "You have unsaved changes. Would you like to save them first?"
-    let detail = "Your changes will be lost if you don\'t save them."
-    let buttons =  [ "Save" ; "Dont Save" ] 
-    Refs.showMessage callBack mess detail buttons
-        
-let checkOKToClose() =
+
+/// Check if there is any unsaved info. Display dialog asking for confirmation if there is.
+/// Otherwise exit.   
+let ExitIfOK() =
     let close() = electron.ipcRenderer.send "doClose" |> ignore
     let callback (result:int) =
         match int result with
         | 0 -> ()
         | _ -> close()
     let tabL = Tabs.unsavedTabs()
+    let showQuitMessage (callBack:int ->unit) =
+        let rem = electron.remote
+        let mess = "You have unsaved changes. Would you like to save them first?"
+        let detail = "Your changes will be lost if you don\'t save them."
+        let buttons =  [ "Save" ; "Dont Save" ] 
+        Refs.showMessage callBack mess detail buttons
     if tabL <> [] then
         showQuitMessage callback
     else close()
-        
-let handlerCaster f = System.Func<MenuItem, BrowserWindow, unit> f |> Some
+
+       
 
 let menuSeparator = 
     let sep = createEmpty<MenuItemOptions>
     sep.``type`` <- Some Separator
     sep
 
-let makeItem (label:string) (iKeyOpt: string option)  (iAction: unit -> unit) =
+/// Make action menu item from name, opt key to trigger, and action.
+let makeItem (label:string) (accelerator: string option)  (iAction: unit -> unit) =
+    let handlerCaster f = System.Func<MenuItem, BrowserWindow, unit> f |> Some
     let item = createEmpty<MenuItemOptions>
     item.label <- Some label
-    item.accelerator <- iKeyOpt
+    item.accelerator <- accelerator
     item.click <- handlerCaster (fun _ _ -> iAction())
     item
-    
+
+/// Make role menu from name, opt key to trigger, and action. 
 let makeRoleItem label accelerator role = 
     let item = makeItem label accelerator id
     item.role <- U2.Case1 role |> Some
     item
 
+/// Make a new menu from a a list of menu items
 let makeMenu (name:string) (table:MenuItemOptions list) =
     let subMenu = createEmpty<MenuItemOptions>
     subMenu.label <- Some name
@@ -76,9 +82,10 @@ let fileMenu =
             menuSeparator
             makeItem "Close"    (Some "Ctrl+W")             deleteCurrentTab
             menuSeparator
-            makeItem "Quit"     (Some "Ctrl+Q")             checkOKToClose
+            makeItem "Quit"     (Some "Ctrl+Q")             ExitIfOK
         ]
 
+/// menu action to create a settings tab
 let optCreateSettingsTab() =
     match runMode with
     | ExecutionTop.ResetMode 
@@ -138,6 +145,7 @@ let helpMenu =
                 ) |> ignore; () )
          ]   
 
+/// Make all app menus
 let mainMenu() =
     let template = 
         ResizeArray<MenuItemOptions> [

@@ -297,11 +297,11 @@ let RunEmulatorTest allowed  ts=
         |> Array.filter (fun s -> s <> "")
         |> Array.toList
 
-    let lim, indentedCode = reLoadProgram asm
+    let lim = reLoadProgram asm
 
-    if more then printfn "\n\nIndented ASM:\n%s\n" (indentedCode |> String.concat "\n")
+    if more then printfn "\n\nIndented ASM:\n%s\n" (lim.EditorText |> String.concat "\n")
 
-    let ri = lim |> getRunInfoFromState
+    let ri = lim |> getRunInfoFromImage
 
     if lim.Errors <> [] then 
         match ts.After with

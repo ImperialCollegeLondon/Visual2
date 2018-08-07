@@ -44,7 +44,7 @@ let init () =
     
     // Set up window close interlock using IPC from/to main process
     electron.ipcRenderer.on("closingWindow", (fun (event) ->
-        MenuBar.checkOKToClose ()        
+        MenuBar.ExitIfOK ()        
         )) |> ignore
     
     electron.ipcRenderer.on("resizeWindow", (fun (event) ->
@@ -104,6 +104,7 @@ let init () =
     vSettings <- checkSettings (getJSONSettings())
     Editors.updateAllEditors false
 
+/// top-level function that runs the renderer code
 let handleMonacoReady (_: Event) = init ()
 
 document.addEventListener("monaco-ready", U2.Case1 handleMonacoReady)
