@@ -5,6 +5,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Refs.fs" />
+    <Compile Include="Stats.fs" />
     <Compile Include="Editors.fs" />
     <Compile Include="ErrorDocs.fs" />
     <Compile Include="Tabs.fs" />

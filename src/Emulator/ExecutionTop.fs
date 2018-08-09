@@ -337,7 +337,7 @@ let reLoadProgram (lines: string list) =
             |> addCodeMarkers
         let src = indentProgram final lines
         let lim = {final with Source=src ; EditorText = lines}
-        lim, lines
+        lim
     cacheLastN 10 reLoadProgram' lines
 
 

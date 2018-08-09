@@ -25,14 +25,16 @@ let fNone = Core.Option.None
 
 let runPipe mess s = printfn "%s: %A" mess s; s
 
-let projectDir = __SOURCE_DIRECTORY__ + @"/../../"
+let projectDir = Refs.appDirName + @"/../"
 
 let sampleDir = projectDir + @"app/samples/"
 
 let loadDemo () =
     Tabs.createFileTab()
     let tId = Refs.currentFileTabId
-    fs.readFile( sampleDir + "karatsuba.s", (fun _ data -> // TODO: find out what this error does
+    let sampleFileName = sampleDir + "karatsuba.s"
+    printfn "Rweading sample file: %s" sampleFileName
+    fs.readFile( sampleFileName, (fun _ data -> // TODO: find out what this error does
             Files.loadFileIntoTab  tId data
         ))
     Tabs.setTabSaved tId
@@ -295,11 +297,11 @@ let RunEmulatorTest allowed  ts=
         |> Array.filter (fun s -> s <> "")
         |> Array.toList
 
-    let lim, indentedCode = reLoadProgram asm
+    let lim = reLoadProgram asm
 
-    if more then printfn "\n\nIndented ASM:\n%s\n" (indentedCode |> String.concat "\n")
+    if more then printfn "\n\nIndented ASM:\n%s\n" (lim.EditorText |> String.concat "\n")
 
-    let ri = lim |> getRunInfoFromState
+    let ri = lim |> getRunInfoFromImage
 
     if lim.Errors <> [] then 
         match ts.After with
