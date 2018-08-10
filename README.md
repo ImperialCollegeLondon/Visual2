@@ -175,6 +175,18 @@ For Mac users, download and install [Mono](http://www.mono-project.com/download/
 
 12. See the [Wiki](https://github.com/ImperialCollegeLondon/Visual2/wiki) for more information.
 
+## Reinstalling compiler and libraries
+
+The code requires a global installation of `dotnet` and `node`/`npm`. This does not need changing and is unlikely to cause trouble. All the dependencies are local and installed by yarn (node modules) or dotnet (dotnet assemblies). 
+
+WARNING: `dotnet` assemblies are cached locally at machine level by dotnet. This sometimes goes wrong leading to strange compilation errors. It can be cured very simply by clearing the `dotnet` assembly caches, which is done in `setup.bat`.
+
+To reinstall the build environment (without changing project code):
+
+```
+setup.bat
+```
+
 ## Packaging VisUAL2 as binaries
 
 After you have compiled code (and checked it works) `yarn pack-all` will run electron packager and generate `./dist/os-name/*` files. See also `run-packager-all.bat` if using windows host to make macOS binary. See [the packaging issue](https://github.com/ImperialCollegeLondon/Visual2/issues/7) for more details of how this has been customised to work. Note that if this breaks you can still run individual targets as below.
