@@ -79,6 +79,10 @@ let viewToIdTab =
         Memory, "tab-mem";
         Symbols, "tab-sym"
     ]
+//[<Emit("tippy( $1 , $2 );")>]
+//let tippyTooltip (rClass: string) (tippyOptions: obj) : unit = jsNative
+
+let tippy(rClass:string, tippyOpts:obj):unit = importDefault "tippy.js"
 
 // ************************************************************************************
 //                         Utility functions used in this module
@@ -370,6 +374,8 @@ let mutable currentFileTabId = -1 // By default no tab is open
 let mutable fileTabList : int list = []
 /// Map tabIds to the editors which are contained in them
 let mutable editors : Map<int, obj> = Map.ofList []
+/// Map of content widgets currently on editor, indexed by id
+let mutable currentTabWidgets: Map<string,obj> = Map.empty
 /// id of tab containing settings form, if this exists
 let mutable settingsTab : int option = Microsoft.FSharp.Core.option.None
 /// The current number representation being used

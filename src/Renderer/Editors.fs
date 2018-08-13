@@ -171,3 +171,59 @@ let makeErrorInEditor tId lineNumber (hoverLst:string list) (gHoverLst: string l
 
 let revealLineInWindow tId (lineNumber: int) =
     Refs.editors.[tId]?revealLineInCenterIfOutsideViewport(lineNumber) |> ignore
+
+//*************************************************************************************
+//                              EDITOR CONTENT WIDGETS
+//*************************************************************************************
+type WidgetPlace =
+    | AboveBelow of HPos: int * VPos: int
+    | Exact of HPos: int * VPos: int
+
+
+let makeContentWidget (name: string) (dom:HTMLElement) (pos:WidgetPlace) =
+    let h,v = match pos with | AboveBelow(h,v) -> (h,v) | Exact(h,v) -> (h,v)
+    let widget = createObj  [
+                  "domNode" ==> dom
+                  "getDomNode" ==> fun () -> dom
+                  "getId" ==> fun () -> name
+                  "getPosition" ==> 
+                     fun () -> createObj [
+                                "position" ==>  createObj [
+                                    "lineNumber" ==> v
+                                    "column" ==> h
+                                    ]
+                                "preference" ==>
+                                    match pos with 
+                                    | Exact _ -> [|0|]
+                                    | AboveBelow _ -> [|1;2|]
+                                ]
+             ] 
+    Refs.editors.[Refs.currentFileTabId]?addContentWidget widget |> ignore
+    Refs.currentTabWidgets <- Map.add name widget Refs.currentTabWidgets 
+
+let deleteContentWidget name =
+    match Map.tryFind name Refs.currentTabWidgets with
+    | None -> ()
+    | Some w ->
+        Refs.editors.[Refs.currentFileTabId]?removeContentWidget w |> ignore
+        Refs.currentTabWidgets <- Map.remove name Refs.currentTabWidgets
+
+
+let makeEditorInfoButton h v text click = 
+    let tooltip = Refs.ELEMENT "DIV" ["editor-info-context"] [] |> Refs.INNERHTML "<i> test tooltip </i>"
+    let dom = Refs.ELEMENT "BUTTON" ["editor-info-button"] [] |> Refs.INNERHTML text
+    dom.addEventListener_click( fun _ ->
+        Browser.console.log (sprintf "Clicking button %s" text) |> ignore
+        click() )
+    deleteContentWidget name
+    makeContentWidget "test-button" dom <| Exact(h,v)
+    Refs.tippy( ".editor-info-button", createObj <| 
+        [ 
+            "html" ==> tooltip 
+            "arrow" ==> true
+            "arrowType"==> "round"
+            "theme" ==> 
+                match Refs.vSettings.EditorTheme with
+                | "one-light-pro" | "solarised-light" -> "dark"
+                | _ -> "light"
+        ])
