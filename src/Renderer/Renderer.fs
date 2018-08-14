@@ -19,6 +19,11 @@ Browser.console.log "Hi from renderer.fs" |> ignore
 
 open Refs
 
+
+
+
+    
+
 /// Attach a click event on each of the map elements to a function f
 /// which accepts the map element as an argument
 let mapClickAttacher map (refFinder : 'a -> HTMLElement) f =
@@ -50,6 +55,10 @@ let init () =
     electron.ipcRenderer.on("resizeWindow", (fun (event) ->
         resizeGUI ()        
         )) |> ignore
+
+    tippy( ".tippytest",  createObj [
+            "arrow" ==>  true
+        ])
 
 
     // Actions for the buttons

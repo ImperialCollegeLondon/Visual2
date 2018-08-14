@@ -24,7 +24,8 @@
     "electron-settings": "^3.2.0",
     "electron-tabs": "^0.9.1",
     "monaco-editor": "^0.12.0",
-    "requirejs": "^2.3.5"
+    "requirejs": "^2.3.5",
+    "tippy.js": "^2.5.4"
   },
   "devDependencies": {
     "babel-core": "^6.26.0",

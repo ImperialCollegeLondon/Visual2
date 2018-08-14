@@ -18,7 +18,7 @@ open ExecutionTop
 let maxSymbolWidth = 30
 let maxDataSymbolLength = 16
 
-[<Emit "'0x' + ($0 >>> 0).toString(16)">]
+[<Emit "'0x' + ($0 >>> 0).toString(16).toUpperCase()">]
 let hexFormatter _ : string = jsNative
 
 [<Emit "'u' + ($0 >>> 0).toString(10)">]

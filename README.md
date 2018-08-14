@@ -175,6 +175,21 @@ For Mac users, download and install [Mono](http://www.mono-project.com/download/
 
 12. See the [Wiki](https://github.com/ImperialCollegeLondon/Visual2/wiki) for more information.
 
+## Reinstalling compiler and libraries
+
+The code requires a global installation of `dotnet` and `node`/`npm`. This does not need changing and is unlikely to cause trouble. Later versions of dotnet SDK or node can usually be installed without trouble
+
+
+All the dependencies are local and installed by yarn (node modules) or dotnet (dotnet assemblies). 
+
+WARNING: `dotnet` assemblies are cached locally at machine level by dotnet. This sometimes goes wrong leading to strange compilation errors. It can be cured very simply by clearing the `dotnet` assembly caches, which is done in `setup.bat`.
+
+To reinstall the build environment (without changing project code):
+
+```
+setup.bat
+```
+
 ## Packaging VisUAL2 as binaries
 
 After you have compiled code (and checked it works) `yarn pack-all` will run electron packager and generate `./dist/os-name/*` files. See also `run-packager-all.bat` if using windows host to make macOS binary. See [the packaging issue](https://github.com/ImperialCollegeLondon/Visual2/issues/7) for more details of how this has been customised to work. Note that if this breaks you can still run individual targets as below.
@@ -196,6 +211,7 @@ Useful shortcuts for specific common target OS:
 * F# is v4.1. Update to v4.2 not required but should be painless when needed.
 * Monaco-editor is v0.12, which fixes an annoying markdown display bug. v0.13 does not contain anything more useful AFAIK but the upgrade should be made at some point.
 * Node, Yarn. Versions are baked in by `yarn.lock`. Yarn is currently 1.5.1 but update should be fine.
+* Dotnet Core SDK is 2.1. Upgrade to 2.x is painless (global install the version you want) and should be without trouble. Later versions may run faster. Dotnet Core SDK downgrade can be achieved by reinstalling a lower version.
 * Webpack. Current is v3.11. No idea when/if a major change to this will happen.
 
 ## Boilerplate Development
