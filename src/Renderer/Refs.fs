@@ -402,8 +402,26 @@ let mutable displayedSymbolMap : Map<string, uint32*ExecutionTop.SymbolType> = M
 /// Current state of simulator
 let mutable runMode: ExecutionTop.RunMode = ExecutionTop.ResetMode
 
+/// Return the text in tab id tId as a string
+let getCode tId =
+    if tId < 0 then failwithf "No current Editor!"
+    let editor = editors.[tId]
+    editor?getValue() :?> string
+
+/// Return list of lines in editor tab tId
+let textOfTId tId =
+    getCode tId 
+    |> (fun (x : string) -> x.Split [|'\n'|]) 
+    |> Array.toList
+
+let currentTabText() = 
+    if currentFileTabId < 0 then None
+    else
+        Some (textOfTId currentFileTabId)
+
+
 // ***********************************************************************************************
-//                                  Mini DSL for creating HTML
+//                                  Mini DSL for creating DOM objects
 // ***********************************************************************************************
 
 let ELEMENT elName classes (htmlElements: HTMLElement list) =
@@ -413,6 +431,8 @@ let ELEMENT elName classes (htmlElements: HTMLElement list) =
     ele
 
 let INNERHTML html (ele:HTMLElement) = (ele.innerHTML <- html) ; ele
+let STYLE (name,value) (ele:HTMLElement) = ele.style.setProperty(name,value) ; ele
+
 let ID name (ele:HTMLElement) = (ele.id <- name) ; ele
 let CLICKLISTENER listener (ele:HTMLElement) = (ele.addEventListener_click listener) ; ele
 
@@ -425,3 +445,12 @@ let FORM classes contents =
         // disable form submission
     form.onsubmit <- ( fun _ -> false)
     form
+
+let TABLE = ELEMENT "table"
+
+let toDOM text = ELEMENT "span" [] [] |> INNERHTML text 
+
+let TROW = ELEMENT "tr" []
+
+let TD x = ELEMENT "td" [] <| [x]
+

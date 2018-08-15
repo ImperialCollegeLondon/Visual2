@@ -13,6 +13,11 @@
 
     /* size of digits (and therefore register box height) in normal register display */
     --register-font-size:13pt;
+
+    /* editor font size is changed by F# and written here */
+    /* it is used to size editor content and overlay objects */
+    /* the editor buffer font size is set as an editor option (from F#) */
+    --editor-font-size:16pt;
 }
 
 /* used to animate app and settings windows */
@@ -298,11 +303,7 @@ div.after {
 }
 
 
-.editor-info-button {
-    margin-left: 35px;
-    color: white;
-    background-color:green;
-}
+
 
 /*-------------------------------------------------------------------------------------*/
 /*---------------------------pretty CSS tooltips for info buttons----------------------*/
@@ -351,6 +352,14 @@ div.after {
         background-color: transparent
     }
 
+/* tooltip-info-button sizing */
 
+.info-button-pointer {
+    font-size: calc( 0.6 * var(--editor-font-size));
+    padding-top: 0px;
+    margin-top: 0px;
+    color: white;
+    background-color: green;
+}
 
 

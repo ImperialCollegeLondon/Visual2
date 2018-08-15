@@ -126,9 +126,6 @@ let viewMenu =
 let helpMenu =
         let runPage page = Refs.runPage page
         makeMenu "Help" [
-            makeItem "Test Widget" Core.Option.None (fun () -> (
-                Editors.deleteContentWidget "Pointer"
-                Editors.makeEditorInfoButton 10 10 "Pointer" (fun () -> ())))
             makeItem "UAL Instruction Guide" Core.Option.None (runPage <| visualDocsPage "guide#content")
             makeItem "VisUAL2 web pages" Core.Option.None (runPage <| visualDocsPage "")
             makeItem "Official ARM documentation" Core.Option.None (runPage "http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.ddi0234b/i1010871.html")

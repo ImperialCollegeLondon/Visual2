@@ -68,10 +68,7 @@ let loadFileIntoTab tId (fileData : Node.Buffer.Buffer) =
     editor?setValue(fileData.toString("utf8")) |> ignore
     setTabSaved tId
 
-/// Return the text in tab id tId as a string
-let getCode tId =
-    let editor = editors.[tId]
-    editor?getValue() :?> string
+
 
 /// If x is undefined, return errCase, else return Ok x
 let resultUndefined errCase x =

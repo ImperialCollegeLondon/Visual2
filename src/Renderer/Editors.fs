@@ -13,6 +13,10 @@ open Fable.Import
 open Fable.Import.Browser
 open Fable.Core
 open EEExtensions
+open Refs
+
+open CommonData
+open Memory
 
 let editorOptions (readOnly:bool) = 
     let vs = Refs.vSettings
@@ -57,6 +61,7 @@ let updateAllEditors readOnly =
         | "one-light-pro" | "solarised-light" -> "white" 
         | _ -> "black")
     setTheme (theme) |> ignore
+    setCustomCSS "--editor-font-size" (sprintf "%spx" vSettings.EditorFontSize)
    
 
 // Disable the editor and tab selection during execution
@@ -141,7 +146,7 @@ let makeErrorInEditor tId lineNumber (hoverLst:string list) (gHoverLst: string l
         textLst
         |> List.toArray
         |> Array.map (fun txt ->  createObj [ "isTrusted" ==> true; "value" ==> txt ])
-
+    // decorate the line
     editorLineDecorate 
         Refs.editors.[tId]
         lineNumber 
@@ -154,6 +159,7 @@ let makeErrorInEditor tId lineNumber (hoverLst:string list) (gHoverLst: string l
             //"glyphMarginHoverMessage" ==> makeMarkDown gHoverLst
         ])
         None
+    // decorate the margin
     editorLineDecorate 
         Refs.editors.[tId]
         lineNumber 
@@ -175,6 +181,9 @@ let revealLineInWindow tId (lineNumber: int) =
 //*************************************************************************************
 //                              EDITOR CONTENT WIDGETS
 //*************************************************************************************
+
+type MemDirection = MemRead | MemWrite
+
 type WidgetPlace =
     | AboveBelow of HPos: int * VPos: int
     | Exact of HPos: int * VPos: int
@@ -208,18 +217,29 @@ let deleteContentWidget name =
         Refs.editors.[Refs.currentFileTabId]?removeContentWidget w |> ignore
         Refs.currentTabWidgets <- Map.remove name Refs.currentTabWidgets
 
+let deleteAllContentWidgets() =
+    Array.iter deleteContentWidget (Map.keys Refs.currentTabWidgets) 
+            
 
-let makeEditorInfoButton h v text click = 
-    let tooltip = Refs.ELEMENT "DIV" ["editor-info-context"] [] |> Refs.INNERHTML "<i> test tooltip </i>"
-    let dom = Refs.ELEMENT "BUTTON" ["editor-info-button"] [] |> Refs.INNERHTML text
+let makeEditorInfoButton h v (buttonText:string) (toolTipDOM:HTMLElement) = 
+    let name = buttonText.ToLower()
+    let domID = sprintf "info-button-%s-%d" name v
+    let tooltip = Refs.ELEMENT "DIV" [sprintf "tooltip-%s" name] [toolTipDOM]
+    let dom = 
+        Refs.ELEMENT "BUTTON" [ sprintf "info-button-%s" name] [] 
+        |> Refs.INNERHTML buttonText 
+        |> Refs.ID domID
+        |> Refs.STYLE ("margin-left",sprintf "%.0fpx" (0.6 * (float h+2.0) * float (int vSettings.EditorFontSize)))
     dom.addEventListener_click( fun _ ->
-        Browser.console.log (sprintf "Clicking button %s" text) |> ignore
-        click() )
-    deleteContentWidget name
-    makeContentWidget "test-button" dom <| Exact(h,v)
-    Refs.tippy( ".editor-info-button", createObj <| 
+        Browser.console.log (sprintf "Clicking button %s" buttonText) |> ignore
+        )
+    deleteContentWidget domID // in some cases we may be updating an existing widget
+    makeContentWidget domID dom <| Exact(0,v)
+    Refs.tippy( "#"+domID, createObj <| 
         [ 
             "html" ==> tooltip 
+            "hideOnClick" ==> "persistent"
+            "interactive" ==> true
             "arrow" ==> true
             "arrowType"==> "round"
             "theme" ==> 
@@ -227,3 +247,63 @@ let makeEditorInfoButton h v text click =
                 | "one-light-pro" | "solarised-light" -> "dark"
                 | _ -> "light"
         ])
+
+
+let memStackInfo (ins: Memory.InstrMemMult) (dir: MemDirection) (dp: DataPath) =
+    failwithf "Not implemented"
+
+let findCodeEnd  (lineCol:int) =
+    let tabSize = 6
+    match Refs.currentTabText() with
+    | None -> 0
+    | Some text ->
+        if text.Length <= lineCol then
+            0
+        else
+            let line = text.[lineCol]
+            match String.splitRemoveEmptyEntries [|';'|] line |> Array.toList with
+            | s :: _ -> (s.Length / tabSize)*tabSize + (if s.Length % tabSize > 0 then tabSize else 0)
+            | [] -> 0
+
+let toolTipInfo (v: int) (dp: DataPath) ((cond,instruction): ParseTop.CondInstr) =
+    match Helpers.condExecute cond dp, instruction with
+    | false,_ -> ()
+    | true, ParseTop.IMEM ins -> 
+        match Memory.executeMem ins dp with
+        | Error _ -> ()
+        | Ok res -> 
+            let TROWS = List.map (fun s -> s |> toDOM |> TD) >> TROW
+            let memPointerInfo (ins: Memory.InstrMemSingle) (dir: MemDirection) (dp: DataPath) =
+                let baseAddrU = dp.Regs.[ins.Rb]
+                let baseAddr = int32 baseAddrU
+                let offset = (ins.MAddr dp baseAddr |> uint32) - baseAddrU
+                let ea = match ins.MemMode with | Memory.PreIndex | Memory.NoIndex -> (baseAddrU + offset) | _ -> baseAddrU
+                let mData = (match ins.MemSize with | MWord -> Memory.getDataMemWord | MByte -> Memory.getDataMemByte) ea dp
+                (findCodeEnd v, "Pointer"), TABLE [] [
+                    TROWS [sprintf "Base (%s)" (ins.Rb.ToString()) ; sprintf "0x%08X" baseAddrU]
+                    TROWS ["Address";  ea |> sprintf "0x%08X"]
+                    TROWS ["Offset";  offset |> sprintf "0x%08X"]
+                    TROWS ["Increment"; match ins.MemMode with | Memory.NoIndex ->  0u | _ -> offset
+                                            |> sprintf "%d"]
+                    TROWS ["Data"; match ins.LSType with 
+                                   | LOAD -> match mData with | Ok dat -> dat | _ -> 0u
+                                   | STORE -> dp.Regs.[ins.Rd] 
+                                   |> fun d ->
+                                        match ins.MemSize with
+                                        | MWord -> sprintf "0x%08X" d
+                                        | MByte -> sprintf "0x%02X" ((uint32 d) % 256u)]
+                    ]
+        
+            let makeTip memInfo =
+                let (hOffset, label), tipDom = memInfo dp
+                makeEditorInfoButton hOffset (v+1) label tipDom
+            match ins with
+            | Memory.LDR ins -> makeTip <| memPointerInfo ins MemRead
+            | Memory.STR ins -> makeTip <| memPointerInfo ins MemWrite
+            | Memory.LDM ins -> makeTip <| memStackInfo  ins MemRead
+            | Memory.STM ins -> makeTip <| memStackInfo ins MemWrite
+            | _ -> ()
+    | _ -> ()
+
+let tooltipInfo (dp : DataPath) (code:CodeMemory<ParseTop.CondInstr*int>) =
+    failwithf "Not implemented"   

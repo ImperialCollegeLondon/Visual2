@@ -15,6 +15,7 @@ open Fable.Core
 open EEExtensions
 open CommonData
 open Refs
+open Editors
 
 /// Get flag as stored and displayed in GUI
 let getFlag (id: string) =
@@ -71,7 +72,9 @@ let setMode (rm:ExecutionTop.RunMode) =
     match rm with
     | ExecutionTop.ParseErrorMode -> setErrorStatus "Errors in Code"
     | ExecutionTop.RunErrorMode _ -> setErrorStatus "Runtime Error"
-    | ExecutionTop.ResetMode -> setNoStatus()
+    | ExecutionTop.ResetMode -> 
+        setNoStatus()
+        deleteAllContentWidgets()
     | ExecutionTop.ActiveMode (_,_) -> setStepExecutionStatus ()
     | ExecutionTop.FinishedMode _ -> setExecutionCompleteStatus ()
     setRunButton rm
