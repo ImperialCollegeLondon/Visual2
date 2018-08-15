@@ -220,8 +220,15 @@ let deleteContentWidget name =
 let deleteAllContentWidgets() =
     Array.iter deleteContentWidget (Map.keys Refs.currentTabWidgets) 
             
-
+/// <summary> Make an info button with associated hover tooltip.</summary>
+/// <param name="h"> horizontal char position for LH edge of button in editor</param>
+/// <param name="v"> line number in editor buffer on which to place button (starting from 0 = top)</param>
+/// <param name="buttonText"> label on button</param>
+/// <param name="toolTipDOM"> DOM to display inside tooltip box </param>
 let makeEditorInfoButton h v (buttonText:string) (toolTipDOM:HTMLElement) = 
+    /// Ratio of char width / char size for editor buffer font.
+    /// TODO: work this out properly from a test
+    let editorFontWidthRatio = 0.6 // works OK for Fira Code Mono
     let name = buttonText.ToLower()
     let domID = sprintf "info-button-%s-%d" name v
     let tooltip = Refs.ELEMENT "DIV" [sprintf "tooltip-%s" name] [toolTipDOM]
@@ -229,7 +236,7 @@ let makeEditorInfoButton h v (buttonText:string) (toolTipDOM:HTMLElement) =
         Refs.ELEMENT "BUTTON" [ sprintf "info-button-%s" name] [] 
         |> Refs.INNERHTML buttonText 
         |> Refs.ID domID
-        |> Refs.STYLE ("margin-left",sprintf "%.0fpx" (0.6 * (float h+2.0) * float (int vSettings.EditorFontSize)))
+        |> Refs.STYLE ("margin-left",sprintf "%.0fpx" (editorFontWidthRatio * (float h+2.0) * float (int vSettings.EditorFontSize)))
     dom.addEventListener_click( fun _ ->
         Browser.console.log (sprintf "Clicking button %s" buttonText) |> ignore
         )
@@ -249,8 +256,7 @@ let makeEditorInfoButton h v (buttonText:string) (toolTipDOM:HTMLElement) =
         ])
 
 
-let memStackInfo (ins: Memory.InstrMemMult) (dir: MemDirection) (dp: DataPath) =
-    failwithf "Not implemented"
+
 
 let findCodeEnd  (lineCol:int) =
     let tabSize = 6
@@ -265,6 +271,9 @@ let findCodeEnd  (lineCol:int) =
             | s :: _ -> (s.Length / tabSize)*tabSize + (if s.Length % tabSize > 0 then tabSize else 0)
             | [] -> 0
 
+
+/// Make execution tooltip info for the given instruction and line v, dp before instruction dp.
+/// Does nothing if opcode is not documented with execution tooltip
 let toolTipInfo (v: int) (dp: DataPath) ((cond,instruction): ParseTop.CondInstr) =
     match Helpers.condExecute cond dp, instruction with
     | false,_ -> ()
@@ -273,6 +282,15 @@ let toolTipInfo (v: int) (dp: DataPath) ((cond,instruction): ParseTop.CondInstr)
         | Error _ -> ()
         | Ok res -> 
             let TROWS = List.map (fun s -> s |> toDOM |> TD) >> TROW
+            let memStackInfo (ins: Memory.InstrMemMult) (dir: MemDirection) (dp: DataPath) =
+                let sp = dp.Regs.[ins.Rn]
+                let offs1 = match ins.suff with | IA | IB |
+                let increment = ins.rList.Length
+                (findCodeEnd v, "Stack"), TABLE [] [
+                    TROWS [sprintf "Pointer (%s)" (ins.Rn.ToString());  sp.ToString() ]
+                    TROWS ["Increment";  ea |> sprintf "0x%08X"]
+                    ]
+
             let memPointerInfo (ins: Memory.InstrMemSingle) (dir: MemDirection) (dp: DataPath) =
                 let baseAddrU = dp.Regs.[ins.Rb]
                 let baseAddr = int32 baseAddrU
@@ -305,5 +323,3 @@ let toolTipInfo (v: int) (dp: DataPath) ((cond,instruction): ParseTop.CondInstr)
             | _ -> ()
     | _ -> ()
 
-let tooltipInfo (dp : DataPath) (code:CodeMemory<ParseTop.CondInstr*int>) =
-    failwithf "Not implemented"   

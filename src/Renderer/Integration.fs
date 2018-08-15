@@ -199,9 +199,10 @@ let imageOfTId = textOfTId >> reLoadProgram
 let currentFileTabProgramIsChanged (pInfo:RunInfo) =
     let txt = textOfTId currentFileTabId
     let txt' = pInfo.EditorText
-    txt.Length = txt'.Length &&
+    txt.Length <> txt'.Length ||
     List.zip txt txt'
-    |> List.exists (fun (a,b) -> invariantOfLine a <> invariantOfLine b)
+    |> List.exists (fun (a,b) ->invariantOfLine a <> invariantOfLine b)
+
 
 
 /// Parse text in tId as program. If parse is OK, indent the program.

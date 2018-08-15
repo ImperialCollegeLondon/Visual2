@@ -60,7 +60,7 @@ module Memory
         Rn: RName; 
         WB: bool
         rList: List<RName>; 
-        suff: Option<MultSuffix>
+        suff: MultSuffix
         }
 
     type Instr = 
@@ -287,15 +287,15 @@ module Memory
             let splitMult = splitAny ls.Operands '{'
             
             let checkMultSuffix = function
-                | "IA" -> Some IA |> Ok
-                | "IB" -> Some IB |> Ok
-                | "DA" -> Some DA |> Ok
-                | "DB" -> Some DB |> Ok
-                | "FD" -> Some FD |> Ok
-                | "ED" -> Some ED |> Ok
-                | "FA" -> Some FA |> Ok
-                | "EA" -> Some EA |> Ok
-                | ""   -> Some IA |> Ok
+                | "IA" -> IA |> Ok
+                | "IB" -> IB |> Ok
+                | "DA" -> DA |> Ok
+                | "DB" -> DB |> Ok
+                | "FD" -> FD |> Ok
+                | "ED" -> ED |> Ok
+                | "FA" -> FA |> Ok
+                | "EA" -> EA |> Ok
+                | ""   -> IA |> Ok
                 | x -> makeParseError "Valid LDM/STM suffix IA,IB,DA,DB,FD,ED,FA,EA" x "list#multiple-register-memory-transfer-instructions"
 
             let ops = 
@@ -390,8 +390,33 @@ module Memory
                     | MWord -> updateMemData (Dat dp.Regs.[ins.Rd]) ef dp 
                     | MByte -> updateMemByte (dp.Regs.[ins.Rd] |> byte) ef dp)               
 
-    let executeMem instr (cpuData: DataPath) =
-        
+    let rec makeOffsetList inlst outlist incr start = 
+        match inlst with
+        | _ :: tail -> (start + incr) |> makeOffsetList tail (start :: outlist) incr
+        | [] -> outlist
+
+    let offsetList start suffix rl wb isLDM = 
+                let lst, rDiff =
+                    match suffix with
+                    | IA -> 0, 4
+                    | IB -> 4, 4
+                    | DA -> 0, -4
+                    | DB -> -4, -4
+                    | _ -> 
+                        match suffix,isLDM with
+                        | FD,true | EA,false -> 0, 4
+                        | ED,true | FA,false -> 4, 4
+                        | FA,true | ED,false -> 0, -4
+                        | EA,true | FD, false -> -4, -4
+                        | _ -> failwithf "What? Cannot happen!"
+                    |> fun (st,chg) -> 
+                        makeOffsetList rl [] chg (start + st)
+                        |> if chg < 0 then id else List.rev
+                        |> (fun lst -> lst, if wb then chg * lst.Length else 0)
+
+                List.map (fun el -> el |> uint32) lst, rDiff
+
+    let executeMem instr (cpuData: DataPath) =       
         /// get multiple memory 
         let rec getMemMult addrList contentsLst cpuData = 
             match addrList with
@@ -399,34 +424,10 @@ module Memory
                 let addedVal = (getDataMemWord head cpuData) :: contentsLst
                 getMemMult tail addedVal cpuData
             | [] -> contentsLst |> List.rev
-
-        /// make an offset list for ldm and stm by recursively
-        /// adding an incr to the address for the length of the list
-        let rec makeOffsetList inlst outlist incr start = 
-            match inlst with
-            | _ :: tail -> (start + incr) |> makeOffsetList tail (start :: outlist) incr
-            | [] -> outlist
         
         let executeLDM wb suffix rn rl cpuData =
-            let offsetList start = 
-                let lst, rDiff =
-                    match suffix with
-                    | None | Some IA -> 0, 4
-                    | Some IB -> 4, 4
-                    | Some DA -> 0, -4
-                    | Some DB -> -4, -4
-                    | Some FD -> 0, 4
-                    | Some ED -> 4, 4
-                    | Some FA -> 0, -4
-                    | Some EA -> -4, -4
-                    |> fun (st,chg) -> 
-                        makeOffsetList rl [] chg (start + st)
-                        |> if chg < 0 then id else List.rev
-                        |> (fun lst -> lst, if wb then chg * lst.Length else 0)
-
-                List.map (fun el -> el |> uint32) lst, rDiff
             let baseAddrInt = (cpuData.Regs.[rn]) |> int32
-            let lst, rEnd = offsetList baseAddrInt
+            let lst, rEnd = offsetList baseAddrInt suffix rl wb true
             let contents = getMemMult lst [] cpuData
             let condensedContents = condenseResultList (id) contents
             Result.map (fun conts -> setMultRegs rl conts cpuData) condensedContents
@@ -434,30 +435,12 @@ module Memory
 
         let executeSTM wb suffix rn rl cpuData = 
             let getReg rn = cpuData.Regs.[rn]
-            let offsetList start = 
-                let lst,rDiff =
-                    match suffix with
-                    | None | Some IA -> 0, 4
-                    | Some IB ->  4, 4
-                    | Some DA -> 0, -4
-                    | Some DB -> -4, -4
-                    | Some EA -> 0, 4
-                    | Some FA -> 4, 4
-                    | Some ED -> 0, -4
-                    | Some FD -> -4, -4
-                    |> fun (st, chg) ->  
-                         makeOffsetList rl [] chg (start+st)
-                         |> (if chg < 0 then id else List.rev)
-                         |> (fun lst -> lst, if wb then chg * lst.Length else 0)
-
-                List.map (fun el -> el |> uint32) lst, rDiff
             let baseAddrInt = (getReg rn) |> int32
             let regContentsList = List.map (getReg) rl
-            let lst, rEnd = offsetList baseAddrInt
+            let lst, rEnd = offsetList baseAddrInt suffix rl wb false
             setMultMem (regContentsList |> List.map Dat) lst cpuData
             |> Result.map (fun dp -> setReg rn ((dp.Regs.[rn] + uint32 rEnd) &&& 0xFFFFFFFFu) dp)
  
-
         match instr with
         | LDR ins | STR ins -> executeLDRSTR ins cpuData
         | LDM operands ->

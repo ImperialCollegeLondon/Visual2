@@ -301,8 +301,12 @@ let indentProgram lim lines =
         | [lab] -> spaces n + lab
     List.map indentLine lines
 
+/// Version of assembly line with whitespace removed that allows 
+/// indented code to be compared with original code
 let invariantOfLine =
-    String.splitRemoveEmptyEntries [|' ';'\t';'\f'|] >> String.concat " "
+    String.splitRemoveEmptyEntries [|' ';'\t';'\f'|] 
+    >> String.concat " " 
+    >> String.trim
 
     
 
