@@ -362,4 +362,19 @@ div.after {
     background-color: green;
 }
 
+.info-button-stack {
+    font-size: calc( 0.6 * var(--editor-font-size));
+    padding-top: 0px;
+    margin-top: 0px;
+    color: white;
+    background-color: darkgoldenrod;
+}
+
+.tooltip-stack-regs {
+    margin-left: 2px;
+    padding: 0px;
+    color: blue; 
+    font-weight:bold;
+}
+
 

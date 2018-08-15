@@ -272,6 +272,14 @@ let findCodeEnd  (lineCol:int) =
             | [] -> 0
 
 
+
+let shiftIns src num sFunc =
+    let bit n src = (int ((src >>> n) &&& 1u)).ToString()
+    let makeBitRow n = 
+        [n.ToString() ; bit n src; (src |> sFunc |> bit n) ]
+    let TROWS = List.map (fun s -> s |> toDOM |> TD) >> TROW
+    TABLE [] (List.map (makeBitRow >> TROWS) [0..31])
+
 /// Make execution tooltip info for the given instruction and line v, dp before instruction dp.
 /// Does nothing if opcode is not documented with execution tooltip
 let toolTipInfo (v: int) (dp: DataPath) ((cond,instruction): ParseTop.CondInstr) =
@@ -283,13 +291,28 @@ let toolTipInfo (v: int) (dp: DataPath) ((cond,instruction): ParseTop.CondInstr)
         | Ok res -> 
             let TROWS = List.map (fun s -> s |> toDOM |> TD) >> TROW
             let memStackInfo (ins: Memory.InstrMemMult) (dir: MemDirection) (dp: DataPath) =
-                let sp = dp.Regs.[ins.Rn]
-                let offs1 = match ins.suff with | IA | IB |
-                let increment = ins.rList.Length
-                (findCodeEnd v, "Stack"), TABLE [] [
-                    TROWS [sprintf "Pointer (%s)" (ins.Rn.ToString());  sp.ToString() ]
-                    TROWS ["Increment";  ea |> sprintf "0x%08X"]
+                let sp = dp.Regs.[ins.Rn] |> uint32
+                let offLst,increment = Memory.offsetList (sp |> int32) ins.suff ins.rList ins.WB (dir=MemRead)
+                let locs = List.zip ins.rList offLst
+                let makeRegRow (rn:RName ,ol:uint32) =
+                    [ 
+                        rn.ToString()
+                        (match dir with | MemRead -> "\u2190" | MemWrite -> "\u2192")
+                        (sprintf "Mem<sub>32</sub>[0x%08X]" ol) 
+                        (match dir with 
+                            | MemRead -> dp.MM.[WA ol] |> (function | Dat x -> x | _ -> 0u) 
+                            | MemWrite -> dp.Regs.[rn])
+                        |> (fun x -> if abs (int x) < 10000 then sprintf "(%d)" x else sprintf "(0x%08X)" x)
                     ]
+                let regRows =
+                    locs
+                    |> List.map (makeRegRow >> TROWS) 
+                (findCodeEnd v, "Stack"), TABLE [] [
+                    DIV [] [
+                        TROWS [sprintf "Pointer (%s)" (ins.Rn.ToString());  sprintf "0x%08X" sp ]
+                        TROWS ["Increment";  increment |> sprintf "%d"]
+                    ]
+                    DIV ["tooltip-stack-regs"]  regRows]
 
             let memPointerInfo (ins: Memory.InstrMemSingle) (dir: MemDirection) (dp: DataPath) =
                 let baseAddrU = dp.Regs.[ins.Rb]

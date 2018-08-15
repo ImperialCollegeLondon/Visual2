@@ -390,31 +390,30 @@ module Memory
                     | MWord -> updateMemData (Dat dp.Regs.[ins.Rd]) ef dp 
                     | MByte -> updateMemByte (dp.Regs.[ins.Rd] |> byte) ef dp)               
 
-    let rec makeOffsetList inlst outlist incr start = 
-        match inlst with
-        | _ :: tail -> (start + incr) |> makeOffsetList tail (start :: outlist) incr
-        | [] -> outlist
-
     let offsetList start suffix rl wb isLDM = 
-                let lst, rDiff =
-                    match suffix with
-                    | IA -> 0, 4
-                    | IB -> 4, 4
-                    | DA -> 0, -4
-                    | DB -> -4, -4
-                    | _ -> 
-                        match suffix,isLDM with
-                        | FD,true | EA,false -> 0, 4
-                        | ED,true | FA,false -> 4, 4
-                        | FA,true | ED,false -> 0, -4
-                        | EA,true | FD, false -> -4, -4
-                        | _ -> failwithf "What? Cannot happen!"
-                    |> fun (st,chg) -> 
-                        makeOffsetList rl [] chg (start + st)
-                        |> if chg < 0 then id else List.rev
-                        |> (fun lst -> lst, if wb then chg * lst.Length else 0)
+        let rec makeOffsetList inlst outlist incr start = 
+            match inlst with
+            | _ :: tail -> (start + incr) |> makeOffsetList tail (start :: outlist) incr
+            | [] -> outlist
+        let lst, rDiff =
+            match suffix with
+            | IA -> 0, 4
+            | IB -> 4, 4
+            | DA -> 0, -4
+            | DB -> -4, -4
+            | _ -> 
+                match suffix,isLDM with
+                | FD,true | EA,false -> 0, 4
+                | ED,true | FA,false -> 4, 4
+                | FA,true | ED,false -> 0, -4
+                | EA,true | FD, false -> -4, -4
+                | _ -> failwithf "What? Cannot happen!"
+            |> fun (st,chg) -> 
+                makeOffsetList rl [] chg (start + st)
+                |> if chg < 0 then id else List.rev
+                |> (fun lst -> lst, if wb then chg * lst.Length else 0)
 
-                List.map (fun el -> el |> uint32) lst, rDiff
+        List.map (fun el -> el |> uint32) lst, rDiff
 
     let executeMem instr (cpuData: DataPath) =       
         /// get multiple memory 
