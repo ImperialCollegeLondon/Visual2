@@ -43,7 +43,7 @@ let makeHover tId lineNo opc (linkOpt, lines, gLines) =
 /// Process an editor line parse error. Generate a hover message and line decoration. Set Parse Error Mode
 let highlightErrorParse ((err:ParseError), lineNo) tId opc = 
     let ML = EEExtensions.String.split [|'\n'|] >> Array.toList
-    let codeLines = Files.getCode tId |> EEExtensions.String.split [|'\n'|]
+    let codeLines = Refs.getCode tId |> EEExtensions.String.split [|'\n'|]
     let (gHover,range) =
         if opc <> "" then
             ErrorDocs.getOpcHover "" opc codeLines.[lineNo-1]
@@ -137,34 +137,36 @@ let showInfoFromCurrentMode () =
 /// Move current instruction line to middle of window if not visible.
 let highlightCurrentAndNextIns classname pInfo tId  =
     removeEditorDecorations tId
-    let pc = pInfo.dpCurrent.Regs.[R15]
-    match Map.tryFind (WA pc) pInfo.IMem with
-    | Some (_, lineNo) -> 
-        highlightNextInstruction tId lineNo
-    | _ -> ()
-    match pInfo.LastPC with
+    deleteAllContentWidgets()
+    match pInfo.LastDP with
     | None -> ()
-    | Some pc ->
-        match Map.tryFind (WA pc) pInfo.IMem with
-        | Some (ci, lineNo) -> 
+    | Some dp ->
+        match Map.tryFind (WA dp.Regs.[R15]) pInfo.IMem with
+        | Some (condInstr, lineNo) -> 
             highlightLine tId lineNo classname 
             Editors.revealLineInWindow tId lineNo
+            Editors.toolTipInfo (lineNo-1) dp condInstr
         | Option.None
-        | Some _ -> failwithf "What? Current PC value (%x) is not an instruction: this should be impossible!" pc
+        | Some _ -> failwithf "What? Current PC value (%x) is not an instruction: this should be impossible!" dp.Regs.[R15]
+    let pc = pInfo.dpCurrent.Regs.[R15]
+    match Map.tryFind (WA pc) pInfo.IMem with
+    | Some (condInstr, lineNo) -> 
+        highlightNextInstruction tId lineNo
+        Editors.toolTipInfo (lineNo-1) pInfo.dpCurrent condInstr
+    | _ -> ()
     
 /// Update GUI after a runtime error. Highlight error line (and make it visible).
 /// Set suitable error message hover.
 let UpdateGUIWithRunTimeError e (pInfo:RunInfo)  =
     let getCodeLineMess pInfo pos =
-        match pInfo.LastPC with
+        match pInfo.LastDP with
         | None -> ""
-        | Some pc ->
-            match Map.tryFind (WA pc) pInfo.IMem with
+        | Some dp ->
+            match Map.tryFind (WA dp.Regs.[R15]) pInfo.IMem with
             | Some (_, lineNo) -> sprintf "on line %d" lineNo
             | _ -> ""
     match e with
     | EXIT ->
-        let prevInstr (pInfo:RunInfo) = { pInfo with LastPC = Option.map (fun n -> n - 4u) pInfo.LastPC }
         setMode (FinishedMode pInfo)
         highlightCurrentAndNextIns "editor-line-highlight" (pInfo) currentFileTabId
         enableEditors()
@@ -188,11 +190,7 @@ let UpdateGUIWithRunTimeError e (pInfo:RunInfo)  =
         setMode (RunMode.RunErrorMode pInfo)
     showInfoFromCurrentMode()
 
-/// Return list of lines in editor tab tId
-let textOfTId tId =
-    Files.getCode tId 
-    |> (fun (x : string) -> x.Split [|'\n'|]) 
-    |> Array.toList
+
 
 /// Return executable image of program in editor tab
 let imageOfTId = textOfTId >> reLoadProgram
@@ -201,9 +199,10 @@ let imageOfTId = textOfTId >> reLoadProgram
 let currentFileTabProgramIsChanged (pInfo:RunInfo) =
     let txt = textOfTId currentFileTabId
     let txt' = pInfo.EditorText
-    txt.Length = txt'.Length &&
+    txt.Length <> txt'.Length ||
     List.zip txt txt'
-    |> List.exists (fun (a,b) -> invariantOfLine a <> invariantOfLine b)
+    |> List.exists (fun (a,b) ->invariantOfLine a <> invariantOfLine b)
+
 
 
 /// Parse text in tId as program. If parse is OK, indent the program.
@@ -218,7 +217,7 @@ let tryParseAndIndentCode tId =
         //Browser.console.log(sprintf "%A" lim)
         let editor = editors.[tId]
         let newCode = String.concat "\n" lim.Source
-        if Files.getCode tId <> newCode then 
+        if Refs.getCode tId <> newCode then 
             (editor?setValue newCode) |> ignore
         (lim, lim.Source) |> Some
     | lim -> 
@@ -251,7 +250,7 @@ let getRunInfoFromImage (lim:LoadImage) =
             lim.SymInf.SymTab
             |> Map.map (fun sym addr -> addr, getSymTyp sym) 
         IMem = lim.Code; 
-        LastPC = None
+        LastDP = None
         StepsDone=0L
         Source = lim.Source
         EditorText = lim.EditorText

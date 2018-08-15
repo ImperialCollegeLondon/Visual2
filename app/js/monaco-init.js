@@ -11,7 +11,16 @@ var amdRequire = global.require;
 global.require = nodeRequire;
 
 // require node modules before loader.js comes in
+
+// get tippy for awesome tootips
+
+global.tippy = require('tippy.js')
+// get monaco editor path
+
+
+
 var path = require('path');
+
 function uriFromPath(_path) {
   var pathName = path.resolve(_path).replace(/\\/g, '/');
   if (pathName.length > 0 && pathName.charAt(0) !== '/') {

@@ -145,6 +145,7 @@ let helpMenu =
                 ) |> ignore; () )
          ]   
 
+
 /// Make all app menus
 let mainMenu() =
     let template = 

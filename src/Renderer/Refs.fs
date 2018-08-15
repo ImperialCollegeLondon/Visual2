@@ -21,7 +21,7 @@ open Node.Exports
 //                                  App Version 
 // **********************************************************************************
 
-let appVersion = "0.12.1"
+let appVersion = "0.12.3"
 
 // **********************************************************************************
 //                               Types used in this module
@@ -79,6 +79,10 @@ let viewToIdTab =
         Memory, "tab-mem";
         Symbols, "tab-sym"
     ]
+//[<Emit("tippy( $1 , $2 );")>]
+//let tippyTooltip (rClass: string) (tippyOptions: obj) : unit = jsNative
+
+let tippy(rClass:string, tippyOpts:obj):unit = importDefault "tippy.js"
 
 // ************************************************************************************
 //                         Utility functions used in this module
@@ -370,6 +374,8 @@ let mutable currentFileTabId = -1 // By default no tab is open
 let mutable fileTabList : int list = []
 /// Map tabIds to the editors which are contained in them
 let mutable editors : Map<int, obj> = Map.ofList []
+/// Map of content widgets currently on editor, indexed by id
+let mutable currentTabWidgets: Map<string,obj> = Map.empty
 /// id of tab containing settings form, if this exists
 let mutable settingsTab : int option = Microsoft.FSharp.Core.option.None
 /// The current number representation being used
@@ -396,8 +402,26 @@ let mutable displayedSymbolMap : Map<string, uint32*ExecutionTop.SymbolType> = M
 /// Current state of simulator
 let mutable runMode: ExecutionTop.RunMode = ExecutionTop.ResetMode
 
+/// Return the text in tab id tId as a string
+let getCode tId =
+    if tId < 0 then failwithf "No current Editor!"
+    let editor = editors.[tId]
+    editor?getValue() :?> string
+
+/// Return list of lines in editor tab tId
+let textOfTId tId =
+    getCode tId 
+    |> (fun (x : string) -> x.Split [|'\n'|]) 
+    |> Array.toList
+
+let currentTabText() = 
+    if currentFileTabId < 0 then None
+    else
+        Some (textOfTId currentFileTabId)
+
+
 // ***********************************************************************************************
-//                                  Mini DSL for creating HTML
+//                                  Mini DSL for creating DOM objects
 // ***********************************************************************************************
 
 let ELEMENT elName classes (htmlElements: HTMLElement list) =
@@ -407,6 +431,8 @@ let ELEMENT elName classes (htmlElements: HTMLElement list) =
     ele
 
 let INNERHTML html (ele:HTMLElement) = (ele.innerHTML <- html) ; ele
+let STYLE (name,value) (ele:HTMLElement) = ele.style.setProperty(name,value) ; ele
+
 let ID name (ele:HTMLElement) = (ele.id <- name) ; ele
 let CLICKLISTENER listener (ele:HTMLElement) = (ele.addEventListener_click listener) ; ele
 
@@ -419,3 +445,12 @@ let FORM classes contents =
         // disable form submission
     form.onsubmit <- ( fun _ -> false)
     form
+
+let TABLE = ELEMENT "table"
+
+let toDOM text = ELEMENT "span" [] [] |> INNERHTML text 
+
+let TROW = ELEMENT "tr" []
+
+let TD x = ELEMENT "td" [] <| [x]
+

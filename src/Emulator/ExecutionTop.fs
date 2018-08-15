@@ -100,7 +100,7 @@ type RunInfo = {
     StepsDone: int64
     dpCurrent: DataPath
     State: ProgState
-    LastPC: uint32 option
+    LastDP: DataPath option
     Source: string list
     EditorText: string list
     History: Step list
@@ -301,8 +301,12 @@ let indentProgram lim lines =
         | [lab] -> spaces n + lab
     List.map indentLine lines
 
+/// Version of assembly line with whitespace removed that allows 
+/// indented code to be compared with original code
 let invariantOfLine =
-    String.splitRemoveEmptyEntries [|' ';'\t';'\f'|] >> String.concat " "
+    String.splitRemoveEmptyEntries [|' ';'\t';'\f'|] 
+    >> String.concat " " 
+    >> String.trim
 
     
 
@@ -388,28 +392,28 @@ let asmStep (numSteps:int64) (ri:RunInfo) =
         let mutable dp = ri.dpInit // initial dataPath
         let mutable stepsDone = 0L // number of instructions completed without error
         let mutable state = PSRunning
-        let mutable lastPC = None
+        let mutable lastDP = None
         let (future,past) = List.partition (fun (st:Step) -> st.NumDone >= numSteps) ri.History
         let mutable history = past
         match past with | step :: _ -> dp <- step.Dp ; stepsDone <- step.NumDone | _ -> ()   
         //printf "Stepping before while Done=%d num=%d dp=%A" stepsDone numSteps  dp
         let mutable running = true // true if no error has yet happened
-        if stepsDone >= numSteps then lastPC <- Some dp.Regs.[R15];
+        if stepsDone >= numSteps then lastDP <- Some dp;
         while stepsDone < numSteps && running do
             let historyLastRecord = match history with | [] -> 0L | h :: _ -> h.NumDone
             if (stepsDone - historyLastRecord) > historyMaxGap then
                 history <- {Dp=dp; NumDone=stepsDone} :: history
             match dataPathStep (dp,ri.IMem) with
-            | Result.Ok dp' ->  lastPC <- Some dp.Regs.[R15]; dp <- dp' ; stepsDone <- stepsDone + 1L;
+            | Result.Ok dp' ->  lastDP <- Some dp; dp <- dp' ; stepsDone <- stepsDone + 1L;
             | Result.Error EXIT -> running <- false ; state <- PSExit;
-            | Result.Error e ->  running <- false ; state <- PSError e; lastPC <- Some dp.Regs.[R15];
+            | Result.Error e ->  running <- false ; state <- PSError e; lastDP <- Some dp;
 
         //printf "stepping after while PC=%d, dp=%A, done=%d --- err'=%A" dp.Regs.[R15] dp stepsDone (dataPathStep (dp,ri.IMem))
         {
             ri with 
                 dpCurrent = dp
                 State = state                   
-                LastPC = lastPC
+                LastDP = lastDP
                 StepsDone=stepsDone
                 History = future @ history
         } 
