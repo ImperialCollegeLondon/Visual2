@@ -67,6 +67,10 @@ var rendererConfig = Object.assign({
       {
         from: 'node_modules/monaco-editor/min/vs',
         to: 'vs',
+      },
+      {
+        from: 'node_modules/tippy.js/dist/tippy.all.min.js',
+        to: 'app/js/tippy.all.min.js',
       }
     ])
   ],
