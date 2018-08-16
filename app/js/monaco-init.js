@@ -10,15 +10,19 @@ Description: Javascript code to run Monaco editor and define code highlighting r
 var amdRequire = global.require;
 global.require = nodeRequire;
 
-// require node modules before loader.js comes in
+//
+// get tippy.js node module for awesome tooltips
+// global.tippy = require('tippy.js');
+// NB this does not package properly:
+// SOLUTION: use tippy-all-min.js
+// add to app/js directory
+// add <script src="js/tippy.all.min.js"></script> to index.html
+// (optional, but best practice) to allow update via yarn, 
+// copy this file from ./node_modules/tippy.js to app/js via webpack.config.js CopyWebpackPlugin
+//
 
-// get tippy for awesome tootips
 
-global.tippy = require('tippy.js')
-// get monaco editor path
-
-
-
+// todo: why does this work when tippy.js does not?
 var path = require('path');
 
 function uriFromPath(_path) {

@@ -64,12 +64,12 @@ let createMainWindow () =
     options.backgroundColor <- Some "#F0F0F0" //"#5F9EA0"
     options.icon <- Some (U2.Case2  "app/visual.ico")
     let window = electron.BrowserWindow.Create(options)
-    //window.webContents.openDevTools();
+    window.webContents.openDevTools();
     // Load the index.html of the app.
     let opts = createEmpty<Node.Url.Url<obj>>
     opts.pathname <- Some <| path.join(Node.Globals.__dirname, "/app/index.html")
     opts.protocol <- Some "file:"
-    // printfn "Loading HTML: %A, icon=%A" opts.pathname options.icon
+    printfn "Loading HTML: %A, icon=%A" opts.pathname options.icon
     window.loadURL(url.format(opts))
     //window.show()
     printfn "load complete"
