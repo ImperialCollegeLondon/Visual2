@@ -289,10 +289,12 @@ let toolTipInfo (v: int) (dp: DataPath) ((cond,instruction): ParseTop.CondInstr)
         match Memory.executeMem ins dp with
         | Error _ -> ()
         | Ok res -> 
-            let TROWS = List.map (fun s -> s |> toDOM |> TD) >> TROW
+            let TROWS s = 
+                printfn "ROW=%A" s
+                (List.map (fun s -> s |> toDOM |> TD) >> TROW) s
             let memStackInfo (ins: Memory.InstrMemMult) (dir: MemDirection) (dp: DataPath) =
-                let sp = dp.Regs.[ins.Rn] |> uint32
-                let offLst,increment = Memory.offsetList (sp |> int32) ins.suff ins.rList ins.WB (dir=MemRead)
+                let sp = dp.Regs.[ins.Rn] |> int64 |> uint64 |> uint32
+                let offLst,increment = Memory.offsetList (sp |> int64 |> int32) ins.suff ins.rList ins.WB (dir=MemRead)
                 let locs = List.zip ins.rList offLst
                 let makeRegRow (rn:RName ,ol:uint32) =
                     [ 
@@ -313,6 +315,7 @@ let toolTipInfo (v: int) (dp: DataPath) ((cond,instruction): ParseTop.CondInstr)
                         TROWS ["Increment";  increment |> sprintf "%d"]
                     ]
                     DIV ["tooltip-stack-regs"]  regRows]
+             
 
             let memPointerInfo (ins: Memory.InstrMemSingle) (dir: MemDirection) (dp: DataPath) =
                 let baseAddrU = dp.Regs.[ins.Rb]
