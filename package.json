@@ -13,6 +13,7 @@
     "pack-linux": "yarn build && yarn pack-nobuild-linux",
     "pack-osx": "yarn build && yarn pack-nobuild-osx && yarn make-osx-dmg",
     "launch": "electron . -w",
+    "launch-debug": "electron . -w --debug",
     "make-osx-dmg": "yarn electron-installer-dmg --overwrite --icon=app/visual.ico.icns dist/visual2-darwin-x64 dist/visual2-osx"
   },
   "dependencies": {
