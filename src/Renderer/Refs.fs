@@ -16,6 +16,7 @@ open Fable.Import
 open Fable.Import.Browser
 open Microsoft.FSharp.Collections
 open Node.Exports
+open System.Collections
 
 // **********************************************************************************
 //                                  App Version 
@@ -178,11 +179,13 @@ let setJSONSettings() =
     let setSetting (name : string) (value : string) =
         printf "Saving JSON: %A" value
         settings?set(name, value) |> ignore
+    printfn "Saving settings to this PC: %A" vSettings
     setSetting "JSON" (Fable.Import.JS.JSON.stringify vSettings)
 
 
 let getJSONSettings() = 
     let json = settings?get("JSON", "undefined") :?> string
+    printfn "Getting settings"
     match json = "undefined" with
     | true ->
             printfn "No JSON settings found on this PC"
@@ -190,10 +193,12 @@ let getJSONSettings() =
             vSettings
     | false -> 
         try
-            (Fable.Import.JS.JSON.parse json) :?> VSettings
+            let vs = (Fable.Import.JS.JSON.parse json) :?> VSettings
+            printfn "Found saved settings: %A" vs
+            vs
         with
         | e -> 
-            printfn "default settings"
+            printfn "Parse failed: using default settings"
             vSettings
 
     
@@ -469,12 +474,13 @@ let addFixedToolTips() =
                 "arrowType"==> "round"
                 "theme" ==> "dark"
             ])
-    let makeTextTT htmlID text = makeTT htmlID (ELEMENT "p" [] [] |> INNERHTML text)
-    makeTextTT "flags" "ARM Status bits (Flags) NZCV. <br> Blue indicates that Flag was written by <br> the most recently executed instruction."
-    makeTextTT "clock" "Number of instructions <br> executed"
-    makeTextTT "BR15" "R15 (PC) is the Program Counter <br> It cannot be used as a data register"
-    makeTextTT "BR14" "R14 (LR) is the Link Register <br> It can be used as a data register"
-    makeTextTT "BR13" "R13 (SP) is the Stack Pointer. <br> It can be used as a data register"
+    let makeTextTT htmlID cssClassLst text = makeTT htmlID (ELEMENT "p" cssClassLst [] |> INNERHTML text)
+    makeTextTT "flags" ["tootip-fixed"] "ARM Status bits (Flags) NZCV. <br> Blue indicates that Flag was written by <br> the most recently executed instruction."
+    makeTextTT "clock-symbol" ["tootip-fixed"] "Execution time"
+    makeTextTT "clock-time" ["tootip-fixed"] "Number of <br> Instructions"
+    makeTextTT "BR15" ["tootip-fixed"] "R15 (PC) is the Program Counter <br> It cannot be used as a data register"
+    makeTextTT "BR14" ["tootip-fixed"] "R14 (LR) is the Link Register <br> It can be used as a data register"
+    makeTextTT "BR13" ["tootip-fixed"] "R13 (SP) is the Stack Pointer. <br> It can be used as a data register"
     
-    let makeRegTT regID = makeTextTT  ("B"+regID) (sprintf "%s is a data register" regID)
-    List.iter (fun n -> makeRegTT (sprintf "R%d" n)) [0..12]
+    let makeRegTT regID = makeTextTT  ("B"+regID) ["tootip-fixed"] (sprintf "%s is a data register" regID)
+    List.iter (fun n -> makeRegTT  (sprintf "R%d" n)) [0..12]

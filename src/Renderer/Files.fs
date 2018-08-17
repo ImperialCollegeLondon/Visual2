@@ -87,6 +87,27 @@ let fileFilterOpts =
         ]
     ] |> Some
 
+let updateCurrentPath p =
+            let dir = p |> String.split [|'\\';'/'|]
+            if dir.Length > 1 then
+                let path = path.join dir.[0..dir.Length-2]
+                printfn "Made path=%A" path
+                if (fs.statSync (U2.Case1 path)).isDirectory() then
+                    printf "Changing current path from %A to %A" vSettings.CurrentFilePath path
+                    vSettings <- {vSettings with CurrentFilePath = path}
+                    Refs.setJSONSettings()
+            p
+
+
+let updateCurrentPathFromList (res : string list) =
+        printfn "Updating path to: %A" res
+        match res with
+        | p :: _ ->updateCurrentPath p |> ignore
+        | _ -> ()
+        res
+
+
+
 let openFile () =
     let options = createEmpty<OpenDialogOptions>
     options.properties <- ResizeArray(["openFile"; "multiSelections"]) |> Some
@@ -104,24 +125,11 @@ let openFile () =
         setTabFilePath tId path
         (path, tId)
 
-    let updateCurrentPath (res : string list) =
-        printfn "Updating path to: %A" res
-        match res with
-        | [p] ->
-            let dir = p |> String.split [|'\\';'/'|]
-            if dir.Length > 1 then
-                let path = path.join dir.[0..dir.Length-2]
-                printfn "Made path=%A" path
-                if (fs.statSync (U2.Case1 path)).isDirectory() then
-                    printf "Changing current path from %A to %A" vSettings.CurrentFilePath path
-                    vSettings <- {vSettings with CurrentFilePath = path}
-        | _ -> ()
-        res
     electron.remote.dialog.showOpenDialog(options)
     |> resultUndefined ()
     |> Result.map (fun x -> x.ToArray())
     |> Result.map Array.toList
-    |> Result.map updateCurrentPath
+    |> Result.map updateCurrentPathFromList
     |> Result.map (List.map (makeTab >> readPath))
     |> Result.map List.last
     |> Result.map selectFileTab
@@ -155,8 +163,8 @@ let saveFileAs () =
         |> resultUndefined ()
         |> resultIter writeCurrentCodeToFile
         |> resultIter (setTabFilePath currentFileTabId)
+        |> resultIter updateCurrentPath
         |> Result.map baseFilePath
-
         |> Result.map (setTabName currentFileTabId)
         |> Result.map (fun _ -> setTabSaved (currentFileTabId))
         |> ignore

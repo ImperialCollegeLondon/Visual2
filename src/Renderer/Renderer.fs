@@ -110,6 +110,7 @@ let init () =
 
     // Create an empty tab to start with
     Tabs.createFileTab ()
+    printfn "Ending renderer init"
     vSettings <- checkSettings (getJSONSettings())
     Editors.updateAllEditors false
 
