@@ -42,6 +42,9 @@ let resetEmulator () =
     updateRegisters ()
     resetRegs()
     resetFlags()
+    updateClockTime 0uL
+
+    
 
 
 //*************************************************************************************

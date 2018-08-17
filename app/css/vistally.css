@@ -112,6 +112,22 @@
     width: 33.3%;
 }
 
+#clock {
+    margin-left:20px;
+}
+
+#clock-symbol {
+    font-size: 15px;
+    padding-top:3px;
+    padding-bottom:3px;
+}
+
+#clock-time {
+    font-size:15px;
+    padding-top:3px;
+    padding-bottom:3px;
+}
+
 #dashboard {
     position: relative;
     overflow: hidden;

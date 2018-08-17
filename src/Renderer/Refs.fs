@@ -454,15 +454,27 @@ let TROW = ELEMENT "tr" []
 
 let TD x = ELEMENT "td" [] <| [x]
 
+
+let updateClockTime (n:uint64) = getHtml "clock-time" |> INNERHTML (sprintf "%d" n) |> ignore
+
+
 let addFixedToolTips() =
     let makeTT domID tooltip = 
         tippy( "#"+domID, createObj <| 
             [ 
                 "html" ==> tooltip 
-                "hideOnClick" ==> "persistent"
-                "interactive" ==> true
+                "hideOnClick" ==> true
+                "interactive" ==> false
                 "arrow" ==> true
                 "arrowType"==> "round"
                 "theme" ==> "dark"
             ])
-    makeTT "flags" (ELEMENT "p" [] [] |> INNERHTML "ARM Status bits (Flags) NZCV. <br> Blue indicates that Flag was written by <br> the most recently executed instruction.")
+    let makeTextTT htmlID text = makeTT htmlID (ELEMENT "p" [] [] |> INNERHTML text)
+    makeTextTT "flags" "ARM Status bits (Flags) NZCV. <br> Blue indicates that Flag was written by <br> the most recently executed instruction."
+    makeTextTT "clock" "Number of instructions <br> executed"
+    makeTextTT "BR15" "R15 (PC) is the Program Counter <br> It cannot be used as a data register"
+    makeTextTT "BR14" "R14 (LR) is the Link Register <br> It can be used as a data register"
+    makeTextTT "BR13" "R13 (SP) is the Stack Pointer. <br> It can be used as a data register"
+    
+    let makeRegTT regID = makeTextTT  ("B"+regID) (sprintf "%s is a data register" regID)
+    List.iter (fun n -> makeRegTT (sprintf "R%d" n)) [0..12]
