@@ -454,3 +454,15 @@ let TROW = ELEMENT "tr" []
 
 let TD x = ELEMENT "td" [] <| [x]
 
+let addFixedToolTips() =
+    let makeTT domID tooltip = 
+        tippy( "#"+domID, createObj <| 
+            [ 
+                "html" ==> tooltip 
+                "hideOnClick" ==> "persistent"
+                "interactive" ==> true
+                "arrow" ==> true
+                "arrowType"==> "round"
+                "theme" ==> "dark"
+            ])
+    makeTT "flags" (ELEMENT "p" [] [] |> INNERHTML "ARM Status bits (Flags) NZCV. <br> Blue indicates that Flag was written by <br> the most recently executed instruction.")

@@ -113,6 +113,8 @@ let init () =
     vSettings <- checkSettings (getJSONSettings())
     Editors.updateAllEditors false
 
+    Refs.addFixedToolTips()
+
 /// top-level function that runs the renderer code
 let handleMonacoReady (_: Event) = init ()
 

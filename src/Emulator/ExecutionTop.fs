@@ -88,7 +88,7 @@ type LoadImage = {
 
 type Step = {
     NumDone: int64
-    Dp: DataPath
+    Dp: DataPath*UFlags
     }
 
 type ProgState = | PSExit | PSRunning | PSError of ExecuteError
@@ -98,9 +98,9 @@ type RunInfo = {
     IMem: CodeMemory<CondInstr * int>
     st: AnnotatedSymbolTable
     StepsDone: int64
-    dpCurrent: DataPath
+    dpCurrent: DataPath * DP.UFlags
     State: ProgState
-    LastDP: DataPath option
+    LastDP: (DataPath * DP.UFlags) option
     Source: string list
     EditorText: string list
     History: Step list
@@ -353,6 +353,8 @@ let dataPathStep (dp : DataPath, code:CodeMemory<CondInstr*int>) =
     let addToPc a dp = {dp with Regs = Map.add R15 ((uint32 a + dp.Regs.[R15]) &&& 0xffffffffu) dp.Regs}
     let pc = dp.Regs.[R15]
     let dp' = addToPc 8 dp // +8 during instruction execution so PC reads correct (pipelining)
+    let uFl = DP.toUFlags dp'.Fl
+    let noFlagChange = Result.map (fun d -> d,uFl )
     match Map.tryFind (WA pc) code with
     | None ->
         NotInstrMem pc |> Error
@@ -361,20 +363,20 @@ let dataPathStep (dp : DataPath, code:CodeMemory<CondInstr*int>) =
         | true -> 
             match instr with
             | IDP instr' ->
-                executeDP instr' dp'
+                executeDP instr' dp' 
             | IMEM instr' ->
-                executeMem instr' dp'
+                executeMem instr' dp' |> noFlagChange
             | IBRANCH instr' ->
-                executeBranch instr' dp'
+                executeBranch instr' dp' |> noFlagChange
             | IMISC (Misc.ADR adrInstr) ->
                 //printfn "Executing ADR"
-                executeADR adrInstr dp' |> Ok
+                (executeADR adrInstr dp', uFl) |> Ok
             | IMISC ( x) -> (``Run time error`` ( dp.Regs.[R15], sprintf "Can't execute %A" x)) |> Error
             | ParseTop.EMPTY _ -> failwithf "Shouldn't be executing empty instruction"
-        | false -> dp' |> Ok
+        | false -> (dp', uFl) |> Ok
         // NB because PC is incremented after execution all exec instructions that write PC must in fact 
         // write it as (+8-4) of real value. setReg does this.
-        |> Result.map (addToPc (4 - 8)) // undo +8 for pipelining added before execution. Add +4 to advance to next instruction
+        |> Result.map (fun (dp,uF) -> addToPc (4 - 8) dp, uF) // undo +8 for pipelining added before execution. Add +4 to advance to next instruction
 
 /// <summary> <para> Top-level function to run an assembly program.
 /// Will run until error, program end, or numSteps instructions have been executed. </para>
@@ -389,7 +391,7 @@ let asmStep (numSteps:int64) (ri:RunInfo) =
         // Can't use a tail recursive function here since FABLE will maybe not optimise stack.
         // We need this code to be fast and possibly execute for a long time
         // so use this ugly while loop with mutable variables!
-        let mutable dp = ri.dpInit // initial dataPath
+        let mutable dp = ri.dpInit, toUFlags ri.dpInit.Fl// initial dataPath
         let mutable stepsDone = 0L // number of instructions completed without error
         let mutable state = PSRunning
         let mutable lastDP = None
@@ -403,8 +405,8 @@ let asmStep (numSteps:int64) (ri:RunInfo) =
             let historyLastRecord = match history with | [] -> 0L | h :: _ -> h.NumDone
             if (stepsDone - historyLastRecord) > historyMaxGap then
                 history <- {Dp=dp; NumDone=stepsDone} :: history
-            match dataPathStep (dp,ri.IMem) with
-            | Result.Ok dp' ->  lastDP <- Some dp; dp <- dp' ; stepsDone <- stepsDone + 1L;
+            match dataPathStep (fst dp, ri.IMem) with
+            | Result.Ok (dp') ->  lastDP <- Some dp; dp <- dp' ; stepsDone <- stepsDone + 1L;
             | Result.Error EXIT -> running <- false ; state <- PSExit;
             | Result.Error e ->  running <- false ; state <- PSError e; lastDP <- Some dp;
 

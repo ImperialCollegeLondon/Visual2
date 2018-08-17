@@ -96,11 +96,12 @@ let setRegs regs =
 let getRegs() = regMap
 
 /// Set all current stored flags    
-let setFlags flags =
-    setFlag "N" flags.N
-    setFlag "C" flags.C
-    setFlag "Z" flags.Z
-    setFlag "V" flags.V
+let setFlags (uFlags:DP.UFlags) =
+    let flags = uFlags.F
+    setFlag "N" flags.N uFlags.NZU
+    setFlag "C" flags.C uFlags.CU
+    setFlag "Z" flags.Z uFlags.NZU
+    setFlag "V" flags.V uFlags.VU
 
 /// Get all current stored flags
 let getFlags() =
@@ -124,12 +125,12 @@ let showInfoFromCurrentMode () =
     | RunErrorMode ri ->
         symbolMap <- ri.st
         updateSymTable()
-        let dp = ri.dpCurrent
+        let dp,uFl = ri.dpCurrent
         memoryMap <- makeDataLocMemoryMap dp.MM
         if currentView = Refs.Views.Memory || isStopped then
             updateMemory()
         setRegs dp.Regs
-        setFlags dp.Fl
+        setFlags uFl
         updateRegisters()
     | _ -> ()
 
@@ -140,7 +141,7 @@ let highlightCurrentAndNextIns classname pInfo tId  =
     deleteAllContentWidgets()
     match pInfo.LastDP with
     | None -> ()
-    | Some dp ->
+    | Some (dp,_uFl) ->
         match Map.tryFind (WA dp.Regs.[R15]) pInfo.IMem with
         | Some (condInstr, lineNo) -> 
             highlightLine tId lineNo classname 
@@ -148,11 +149,11 @@ let highlightCurrentAndNextIns classname pInfo tId  =
             Editors.toolTipInfo (lineNo-1) dp condInstr
         | Option.None
         | Some _ -> failwithf "What? Current PC value (%x) is not an instruction: this should be impossible!" dp.Regs.[R15]
-    let pc = pInfo.dpCurrent.Regs.[R15]
+    let pc = (fst pInfo.dpCurrent).Regs.[R15]
     match Map.tryFind (WA pc) pInfo.IMem with
     | Some (condInstr, lineNo) -> 
         highlightNextInstruction tId lineNo
-        Editors.toolTipInfo (lineNo-1) pInfo.dpCurrent condInstr
+        Editors.toolTipInfo (lineNo-1) (fst pInfo.dpCurrent) condInstr
     | _ -> ()
     
 /// Update GUI after a runtime error. Highlight error line (and make it visible).
@@ -161,7 +162,7 @@ let UpdateGUIWithRunTimeError e (pInfo:RunInfo)  =
     let getCodeLineMess pInfo pos =
         match pInfo.LastDP with
         | None -> ""
-        | Some dp ->
+        | Some (dp,_) ->
             match Map.tryFind (WA dp.Regs.[R15]) pInfo.IMem with
             | Some (_, lineNo) -> sprintf "on line %d" lineNo
             | _ -> ""
@@ -244,7 +245,7 @@ let getRunInfoFromImage (lim:LoadImage) =
              } 
     {
         dpInit=dp; 
-        dpCurrent = dp
+        dpCurrent = dp, DP.toUFlags dp.Fl
         State = PSRunning
         st = 
             lim.SymInf.SymTab

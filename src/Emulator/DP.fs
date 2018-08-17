@@ -16,10 +16,18 @@ open CommonLex
 open Helpers
 
 
+
 let failDiag() = 
     failwithf "OK so far at %s:%s done!" __SOURCE_FILE__ __LINE__
 
 let pipePrint mess x = printfn "debug %s %A" mess x; x
+
+/// Flags with update info
+type UFlags = {F: Flags; CU: bool; VU: bool; NZU: bool}
+type UCarry = {Ca: bool; CaU:bool}
+
+let toUFlags (fl:Flags) = {F=fl; CU=false; VU=false; NZU=false}
+let toUCarry (carry: bool) = {Ca=carry; CaU = false}
 
 type InstrNegativeLiteralMode = 
     | NegatedLit
@@ -35,14 +43,14 @@ let trimUint32 u = ((int64 u) &&& ((1L <<< 32) - 1L)) |> uint32
 let makeDPE wanted s = makeParseError wanted s ""
 
 /// instruction type
-type Instr =  (DataPath -> Result<DataPath, ExecuteError>)
+type Instr =  (DataPath -> Result<DataPath*UFlags, ExecuteError>)
                       
 let Executable f = Ok f
 
 // ///////////// datapath manipulation ///////////////////////////
 
-let writeBack result dest flags updateFlags d =
-    {Helpers.setReg dest result d with Fl = if updateFlags then flags else d.Fl}
+let writeBack result dest (uFlags:UFlags) updateFlags d =
+    {Helpers.setReg dest result d with Fl = if updateFlags then uFlags.F else d.Fl}, if updateFlags then uFlags else toUFlags d.Fl
 
 let evalRegister reg d = Map.find reg d.Regs
 
@@ -67,7 +75,7 @@ type Op2 =
 let evalOp2 op2 d =
     let evalRrx (src : uint32) (carry : bool) =
         let msbMask = if carry then (1ul <<< 31) else 0ul
-        (src >>> 1) ||| msbMask, (src &&& 1u = 1u)
+        (src >>> 1) ||| msbMask, {Ca=src &&& 1u = 1u; CaU=true}
         
     let rotateRight value amt =
         let lowerBits = value >>> amt
@@ -92,8 +100,8 @@ let evalOp2 op2 d =
                         else if shiftBy = 0u
                         then src, false
                         else rotateRight src (int (shiftBy % 32u)), (src >>> int ((shiftBy - 1u) % 32u)) &&& 1u = 1u
-        // carry is always false if no shift happens
-        newVal, if shiftBy <> 0u then carryBit else d.Fl.C
+        // carry is always unchanged if no shift happens
+        newVal, if shiftBy <> 0u then {Ca=carryBit;CaU=true}  else toUCarry d.Fl.C
 
     let evalNumberLiteral (l:int64) rot sub oldC =
         let u, carry = evalShift (uint32 l) ROR rot
@@ -101,7 +109,7 @@ let evalOp2 op2 d =
         | NoNegLit -> u
         | InvertedLit -> ~~~u
         | NegatedLit -> (uint32 -(int u))
-        |> fun u -> u, if rot = 0u then oldC else carry
+        |> fun u -> u, if rot = 0u then toUCarry oldC else carry
     
     match op2 with
     | NumberLiteral (l,rot,sub) -> evalNumberLiteral l (uint32 rot) sub d.Fl.C // carry possibly is changed
@@ -114,28 +122,28 @@ let evalOp2 op2 d =
        
 /// higher-order function that executes arbitrary integer arithmetic and logic
 let execArithmetic
-        (fn : uint32 -> uint32 -> Flags -> bool -> Result<uint32 * Flags, ExecuteError>)
+        (fn : uint32 -> uint32 -> Flags -> UCarry -> Result<uint32 * UFlags, ExecuteError>)
         (updateFlags : bool)
         (dst : RName) (op1 : RName) (op2 : Op2)
         (d : DataPath) =
 
     let val1 = evalRegister op1 d
-    let val2, carry = evalOp2 op2 d
-    let result = fn val1 (trimUint32 val2) d.Fl carry
+    let val2, uCarry = evalOp2 op2 d
+    let result = fn val1 (trimUint32 val2) d.Fl uCarry
 
-    result |> Result.map (fun (n, flags) -> writeBack n dst flags updateFlags d)
+    result |> Result.map (fun (n, uFlags) -> writeBack n dst uFlags updateFlags d)
 
 
 /// higher-order function that executes arbitrary comparison instructions
 let execComparison
-        (fn : uint32 -> uint32 -> Flags -> bool -> Result<uint32 * Flags, ExecuteError>)
+        (fn : uint32 -> uint32 -> Flags -> UCarry -> Result<uint32 * UFlags, ExecuteError>)
         (op1 : RName)
         (op2 : Op2)
         (d : DataPath) =
 
     // these functions must only update the flags, not the registers
     match (execArithmetic fn true R0 op1 op2 d) with
-    | Ok d' -> Ok {d with Fl = d'.Fl}
+    | Ok (d',uf) -> Ok ({d with Fl = d'.Fl}, uf)
     | Error e -> Error e
 
 
@@ -147,26 +155,27 @@ let execMove
         (src : Op2)
         (d : DataPath) =
 
-    let op2val, carry = evalOp2 src d
+    let op2val, (uCarry:UCarry) = evalOp2 src d
     let result = trimUint32 <| if negated then ~~~op2val else op2val
         
 
-    let flags = {d.Fl with N = setFlagN result ; Z = setFlagZ result ; C = carry }
+    let uFlags = {F= {d.Fl with N = setFlagN result ; Z = setFlagZ result ; C = uCarry.Ca}; NZU=true; CU=uCarry.CaU ; VU = false}
 
-    Ok (writeBack result dst flags updateFlags d)
+    Ok (writeBack result dst uFlags updateFlags d)
 
 /// function that executes adr instruction
 let execAdr
         (updateFlags: bool)
         (dst: RName)
         (op2val: uint32)
+        (op2uCarry: UCarry)
         (d: DataPath) =
 
-    let flags = {d.Fl with N = setFlagN op2val ; Z = setFlagZ op2val }
+    let flags = {d.Fl with N = setFlagN op2val ; Z = setFlagZ op2val; C=op2uCarry.Ca }
 
     match op2val with
     | op when int64 (d.Regs.[R15]+8u) - int64 (op) |> abs < 0x400L -> 
-        Ok (writeBack (trimUint32 op2val) dst flags updateFlags d)         
+        Ok (writeBack (trimUint32 op2val) dst {F=flags; VU=false; CU=op2uCarry.CaU; NZU=true} updateFlags d)         
     | _ -> sprintf "Out of range operand %d in ADR instruction" op2val |> Error
 
 // ///////////// simulator functions /////////////////////////////
@@ -179,10 +188,10 @@ let simMathWithCarry a b cIn =
     let signedTrueRes = (int64 (int a)) + (int64 (int b)) + int64 cIn
     let overflow = bit 31 signedTrueRes <> bit 32 signedTrueRes
     let carry = unsignedTrueRes >= (1L <<< 32)
-    Ok (res, { N = setFlagN res;
-                Z = setFlagZ res;
-                C = carry;
-                V = overflow })
+    Ok (res, {F = { N = setFlagN res;
+                   Z = setFlagZ res;
+                   C = carry;
+                   V = overflow }; NZU=true; CU=true; VU=true})
 
 let to64s (u32:uint32) = u32 |> int32 |> int64
 // basic add
@@ -198,11 +207,11 @@ let simRSB a b = simSUB b a
 let simRSC a b = simSBC b a
 
 // any bitwise logic (and, orr, eor...)
-let simBitwiseLogic op a b flags op2carry =
+let simBitwiseLogic op a b flags op2uCarry =
     let mask = (1L <<< 32)-1L
     let res:int64 = (op (int64 a) (int64 b)) &&& mask
     let ures = uint32 res
-    Ok (ures, {flags with N = setFlagN ures ; Z = setFlagZ ures ; C = op2carry})
+    Ok (ures, {F={flags with N = setFlagN ures ; Z = setFlagZ ures ; C = op2uCarry.Ca}; NZU=true; CU=op2uCarry.CaU; VU=false} )
 
 
 

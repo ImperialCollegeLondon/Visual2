@@ -157,7 +157,7 @@ let handleTestRunError e (pInfo:RunInfo) (ts: TestSetup) =
         |> List.map (fun (r,(a,m)) -> sprintf "Bad output:R%d is 0x%x should be 0x%x" r (uint64 a) (uint64 m))
         |> String.concat "\n"
 
-    let dp = pInfo.dpCurrent
+    let dp,uf = pInfo.dpCurrent
 
     let regs = 
         dp.Regs
@@ -243,7 +243,7 @@ let writeResultsToFile fn rt resL =
     let displayTest (tt: TestT, ts:TestSetup,ri:RunInfo,mess:string) =
         sprintf "\n--------------%s----------------\n" ts.Name +
         mess + "\n\r\n" +
-        displayState ts (ri.dpCurrent) + "\n" +
+        displayState ts (fst ri.dpCurrent) + "\n" +
         "       ---------ASM----------\n" +
         ts.Asm +
         "\n----------------------------------\n\n"
