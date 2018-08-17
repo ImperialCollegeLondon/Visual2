@@ -25,22 +25,26 @@ let getFlag (id: string) =
     | _ -> false
 
 /// Set flag as stored and displayed in GUI
-let setFlag (id: string) (value: bool) =
+let setFlag (id: string) (value: bool) (hasChanged:bool) =
     let el = Refs.flag id
     match value with
         | false ->
-            el.setAttribute("style", "background: #fcfcfc")
             el.innerHTML <- sprintf "%i" 0
         | true ->
-            el.setAttribute("style", "background: #4285f4")
             el.innerHTML <- sprintf "%i" 1
+    match hasChanged with
+        | false ->
+            el.setAttribute("style", "background: #fcfcfc")
+        | true ->
+            el.setAttribute("style", "background: #4285f4")
+
 
 /// initialise stored and displayed flags to 0
 let resetFlags () =
-    setFlag "N" false
-    setFlag "C" false
-    setFlag "Z" false
-    setFlag "V" false
+    setFlag "N" false false
+    setFlag "C" false false
+    setFlag "Z" false false
+    setFlag "V" false false
 
 let setStatusButton msg (className:string)=
     let classes = [| "btn-positive";"btn-negative";"btn-primary"|]

@@ -30,29 +30,28 @@ let args =
     Fable.Import.Node.Globals.``process``.argv 
     |> Seq.toList
     |> List.map (fun s -> s.ToLower())
-    
+/// returns true if any of flags are present as command line argument    
 let argFlagIsOn (flags:string list) = 
     let fl = List.map (fun (s:string) -> s.ToLower()) flags
     List.exists (fun flag -> List.contains flag args) fl
 
-
+/// returns true if fl is recognised as valid?
 let isValidFlag fl =
     List.contains fl ["-h";"--help";"-d";"--debug";"-w";".";]
 
+/// returns true if we need to disable startup and print help message
 let hasHelpArgs() =
     argFlagIsOn ["--help";"-h"] || List.exists (fun arg -> not (isValidFlag arg)) (List.tail args)
 
-if hasHelpArgs() (*&& not (argFlagIsOn ["--help";"-h"])*) then
+if hasHelpArgs() && not (argFlagIsOn ["--help";"-h"]) then
     printfn "Bad arguments: %A" args
-    
-
+ 
+ /// returns true if we need to add debugging info and printout
 let hasDebugArgs() = argFlagIsOn ["--debug";"-d"]
-
 
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
 let mutable mainWindow: BrowserWindow option = Option.None
-
 
 /// ensure that if app is started again the first instance is focussed and the second quits
 let shouldQuit = electron.app.makeSingleInstance( fun _ _ ->
@@ -76,6 +75,7 @@ let settings:obj = importDefault "electron-settings"
 
 if hasDebugArgs() then printfn "settings=%A" (settings?get "editor-theme")
 
+/// create main renderer window of app
 let createMainWindow () =
     if hasHelpArgs() then printHelpMessage()
     else 
