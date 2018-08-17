@@ -219,6 +219,12 @@ let deleteContentWidget name =
 
 let deleteAllContentWidgets() =
     Array.iter deleteContentWidget (Map.keys Refs.currentTabWidgets) 
+
+let tippyTheme() =
+    match Refs.vSettings.EditorTheme with
+    | "one-light-pro" | "solarised-light" -> "dark"
+    | _ -> "light"
+
             
 /// <summary> Make an info button with associated hover tooltip.</summary>
 /// <param name="h"> horizontal char position for LH edge of button in editor</param>
@@ -249,10 +255,7 @@ let makeEditorInfoButton h v (buttonText:string) (toolTipDOM:HTMLElement) =
             "interactive" ==> true
             "arrow" ==> true
             "arrowType"==> "round"
-            "theme" ==> 
-                match Refs.vSettings.EditorTheme with
-                | "one-light-pro" | "solarised-light" -> "dark"
-                | _ -> "light"
+            "theme" ==> tippyTheme()
         ])
 
 
@@ -314,7 +317,7 @@ let toolTipInfo (v: int) (dp: DataPath) ((cond,instruction): ParseTop.CondInstr)
                         TROWS [sprintf "Pointer (%s)" (ins.Rn.ToString());  sprintf "0x%08X" sp ]
                         TROWS ["Increment";  increment |> sprintf "%d"]
                     ]
-                    DIV ["tooltip-stack-regs"]  regRows]
+                    DIV ["tooltip-stack-regs-"+tippyTheme()+"-theme"]  regRows]
              
 
             let memPointerInfo (ins: Memory.InstrMemSingle) (dir: MemDirection) (dp: DataPath) =

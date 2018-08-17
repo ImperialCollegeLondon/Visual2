@@ -384,11 +384,18 @@ div.after {
     background-color: darkgoldenrod;
 }
 
-.tooltip-stack-regs {
+.tooltip-stack-regs-light-theme {
     margin-left: 2px;
     padding: 0px;
     color: blue; 
     font-weight:bold;
+}
+
+.tooltip-stack-regs-dark-theme {
+    margin-left: 2px;
+    padding: 0px;
+    color: lightblue;
+    font-weight: bold;
 }
 
 .tootip-fixed {
