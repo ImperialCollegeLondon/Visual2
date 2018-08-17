@@ -132,6 +132,7 @@ let showInfoFromCurrentMode () =
         setRegs dp.Regs
         setFlags uFl
         updateRegisters()
+        updateClockTime (ri.StepsDone |> uint64) |> ignore
     | _ -> ()
 
 /// Apply GUI decorations to instruction line of last PC and current PC.

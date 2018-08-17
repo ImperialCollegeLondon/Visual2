@@ -202,4 +202,5 @@ let alterFontSize (n:int) =
         {Refs.vSettings with 
             EditorFontSize = (int64 newSize).ToString()
         }
+    Refs.setJSONSettings()
     updateAllEditors false

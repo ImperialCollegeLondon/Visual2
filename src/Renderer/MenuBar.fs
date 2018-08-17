@@ -130,7 +130,7 @@ let helpMenu =
             makeItem "VisUAL2 web pages" Core.Option.None (runPage <| visualDocsPage "")
             makeItem "Official ARM documentation" Core.Option.None (runPage "http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.ddi0234b/i1010871.html")
             makeItem "Run Emulator Tests" Core.Option.None Tests.runAllEmulatorTests
-            makeItem "Load Sample Code" Core.Option.None Tests.loadDemo
+            makeItem "Load Complex Demo Code" Core.Option.None Tests.loadDemo
             makeItem "About" Core.option.None ( fun () -> 
                 printfn "Directory is:%s" (Stats.dirOfSettings())
                 electron.remote.dialog.showMessageBox (

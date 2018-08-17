@@ -1,23 +1,19 @@
 
 :root {
-    --dashboard-width-init:350px; /* normal viewer width */
-    --dashboard-width-binrep:500px; /* wider viewer width needed for binary */
-
+    --dashboard-width-init: 350px; /* normal viewer width */
+    --dashboard-width-binrep: 500px; /* wider viewer width needed for binary */
     /* dashboard-width depends on viewer content and is set from F# when view 
        representation is changed */
     --dashboard-width: 350px; /* actual viewer width */
-
-    /* header-height depends on how many lines controls use. It is reset
-       dynamically from F# on window resize that might change this */
-    --header-height:51px; /* initial header height - does not matter because reset */
-
+    /* header-height depends on how many lines controls use. It is reset */
+    /* dynamically from F# on window resize that might change this */
+    --header-height: 51px; /* initial header height - does not matter because reset */
     /* size of digits (and therefore register box height) in normal register display */
-    --register-font-size:13pt;
-
+    --register-font-size: 13pt;
     /* editor font size is changed by F# and written here */
     /* it is used to size editor content and overlay objects */
     /* the editor buffer font size is set as an editor option (from F#) */
-    --editor-font-size:16pt;
+    --editor-font-size: 16pt;
 }
 
 /* used to animate app and settings windows */
@@ -110,6 +106,24 @@
 
 .btn-view {
     width: 33.3%;
+}
+
+#clock {
+    margin-left:20px;
+}
+
+#clock-symbol {
+    font-size: 15px;
+    padding-top:3px;
+    padding-bottom:3px;
+    padding-left: 2px;
+    padding-right: 2px;
+}
+
+#clock-time {
+    font-size:15px;
+    padding-top:3px;
+    padding-bottom:3px;
 }
 
 #dashboard {
@@ -375,6 +389,10 @@ div.after {
     padding: 0px;
     color: blue; 
     font-weight:bold;
+}
+
+.tootip-fixed {
+    font-size: 12px;
 }
 
 

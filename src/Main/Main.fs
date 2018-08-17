@@ -63,8 +63,8 @@ let shouldQuit = electron.app.makeSingleInstance( fun _ _ ->
             win.focus();
         | Core.Option.None -> ())
      
-//if (shouldQuit) then 
-//    electron.app.quit()
+if (shouldQuit) then 
+    electron.app.quit()
 
 
 // Used for right-click context menu
