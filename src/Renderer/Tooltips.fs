@@ -381,7 +381,7 @@ let addFixedToolTips() =
 
    
 
-let makeShiftTooltip (h,v) (dp:CommonData.DataPath) (rn:CommonData.RName) (shiftT:DP.ArmShiftType Option) (shiftAmt:uint32) (op2: Op2) =
+let makeShiftTooltip (h,v) (dp:CommonData.DataPath) (rn:CommonData.RName) (shiftT:DP.ArmShiftType Option) (shiftAmt:uint32) (op2: DP.Op2) =
     let before = dp.Regs.[rn]|> uint64 |> int64 |> int32
     let (after,uf) = DP.evalOp2 op2 dp 
     let after' = after |> uint64 |> int64 |> int32
