@@ -3,3 +3,4 @@ Fable.Core
 Fable.Import.Browser
 Fable.Import.Electron
 Fable.PowerPack
+Fable.Elmish.React

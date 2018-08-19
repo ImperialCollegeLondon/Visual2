@@ -20,6 +20,7 @@ open Branch
 open Errors
 open Expressions
 open ParseTop
+open System.Drawing
 
 //**************************************************************************************
 //                            HELPER FUNCTIONS
@@ -354,7 +355,7 @@ let dataPathStep (dp : DataPath, code:CodeMemory<CondInstr*int>) =
     let pc = dp.Regs.[R15]
     let dp' = addToPc 8 dp // +8 during instruction execution so PC reads correct (pipelining)
     let uFl = DP.toUFlags dp'.Fl
-    let noFlagChange = Result.map (fun d -> d,uFl )
+    let noFlagChange = Result.map (fun d -> d,uFl) 
     match Map.tryFind (WA pc) code with
     | None ->
         NotInstrMem pc |> Error
@@ -391,7 +392,7 @@ let asmStep (numSteps:int64) (ri:RunInfo) =
         // Can't use a tail recursive function here since FABLE will maybe not optimise stack.
         // We need this code to be fast and possibly execute for a long time
         // so use this ugly while loop with mutable variables!
-        let mutable dp = ri.dpInit, toUFlags ri.dpInit.Fl// initial dataPath
+        let mutable dp = ri.dpInit, toUFlags ri.dpInit.Fl // initial dataPath
         let mutable stepsDone = 0L // number of instructions completed without error
         let mutable state = PSRunning
         let mutable lastDP = None
@@ -406,7 +407,7 @@ let asmStep (numSteps:int64) (ri:RunInfo) =
             if (stepsDone - historyLastRecord) > historyMaxGap then
                 history <- {Dp=dp; NumDone=stepsDone} :: history
             match dataPathStep (fst dp, ri.IMem) with
-            | Result.Ok (dp') ->  lastDP <- Some dp; dp <- dp' ; stepsDone <- stepsDone + 1L;
+            | Result.Ok (dp',uF') ->  lastDP <- Some dp; dp <- dp',uF' ; stepsDone <- stepsDone + 1L;
             | Result.Error EXIT -> running <- false ; state <- PSExit;
             | Result.Error e ->  running <- false ; state <- PSError e; lastDP <- Some dp;
 

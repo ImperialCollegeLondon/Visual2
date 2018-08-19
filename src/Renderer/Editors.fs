@@ -14,6 +14,7 @@ open Fable.Import.Browser
 open Fable.Core
 open EEExtensions
 open Refs
+open Tooltips
 
 open CommonData
 open Memory
@@ -184,83 +185,6 @@ let revealLineInWindow tId (lineNumber: int) =
 
 type MemDirection = MemRead | MemWrite
 
-type WidgetPlace =
-    | AboveBelow of HPos: int * VPos: int
-    | Exact of HPos: int * VPos: int
-
-
-let makeContentWidget (name: string) (dom:HTMLElement) (pos:WidgetPlace) =
-    let h,v = match pos with | AboveBelow(h,v) -> (h,v) | Exact(h,v) -> (h,v)
-    let widget = createObj  [
-                  "domNode" ==> dom
-                  "getDomNode" ==> fun () -> dom
-                  "getId" ==> fun () -> name
-                  "getPosition" ==> 
-                     fun () -> createObj [
-                                "position" ==>  createObj [
-                                    "lineNumber" ==> v
-                                    "column" ==> h
-                                    ]
-                                "preference" ==>
-                                    match pos with 
-                                    | Exact _ -> [|0|]
-                                    | AboveBelow _ -> [|1;2|]
-                                ]
-             ] 
-    Refs.editors.[Refs.currentFileTabId]?addContentWidget widget |> ignore
-    Refs.currentTabWidgets <- Map.add name widget Refs.currentTabWidgets 
-
-let deleteContentWidget name =
-    match Map.tryFind name Refs.currentTabWidgets with
-    | None -> ()
-    | Some w ->
-        Refs.editors.[Refs.currentFileTabId]?removeContentWidget w |> ignore
-        Refs.currentTabWidgets <- Map.remove name Refs.currentTabWidgets
-
-let deleteAllContentWidgets() =
-    Array.iter deleteContentWidget (Map.keys Refs.currentTabWidgets) 
-
-let tippyTheme() =
-    match Refs.vSettings.EditorTheme with
-    | "one-light-pro" | "solarised-light" -> "dark"
-    | _ -> "light"
-
-            
-/// <summary> Make an info button with associated hover tooltip.</summary>
-/// <param name="h"> horizontal char position for LH edge of button in editor</param>
-/// <param name="v"> line number in editor buffer on which to place button (starting from 0 = top)</param>
-/// <param name="buttonText"> label on button</param>
-/// <param name="toolTipDOM"> DOM to display inside tooltip box </param>
-let makeEditorInfoButton h v (buttonText:string) (toolTipDOM:HTMLElement) = 
-    /// Ratio of char width / char size for editor buffer font.
-    /// TODO: work this out properly from a test
-    let editorFontWidthRatio = 0.6 // works OK for Fira Code Mono
-    let name = buttonText.ToLower()
-    let domID = sprintf "info-button-%s-%d" name v
-    let tooltip = Refs.ELEMENT "DIV" [sprintf "tooltip-%s" name] [toolTipDOM]
-    let dom = 
-        Refs.ELEMENT "BUTTON" [ sprintf "info-button-%s" name] [] 
-        |> Refs.INNERHTML buttonText 
-        |> Refs.ID domID
-        |> Refs.STYLE ("margin-left",sprintf "%.0fpx" (editorFontWidthRatio * (float h+2.0) * float (int vSettings.EditorFontSize)))
-    dom.addEventListener_click( fun _ ->
-        Browser.console.log (sprintf "Clicking button %s" buttonText) |> ignore
-        )
-    deleteContentWidget domID // in some cases we may be updating an existing widget
-    makeContentWidget domID dom <| Exact(0,v)
-    Refs.tippy( "#"+domID, createObj <| 
-        [ 
-            "html" ==> tooltip 
-            "hideOnClick" ==> "persistent"
-            "interactive" ==> true
-            "arrow" ==> true
-            "arrowType"==> "round"
-            "theme" ==> tippyTheme()
-        ])
-
-
-
-
 let findCodeEnd  (lineCol:int) =
     let tabSize = 6
     match Refs.currentTabText() with
@@ -273,8 +197,6 @@ let findCodeEnd  (lineCol:int) =
             match String.splitRemoveEmptyEntries [|';'|] line |> Array.toList with
             | s :: _ -> (s.Length / tabSize)*tabSize + (if s.Length % tabSize > 0 then tabSize else 0)
             | [] -> 0
-
-
 
 let shiftIns src num sFunc =
     let bit n src = (int ((src >>> n) &&& 1u)).ToString()
@@ -343,12 +265,20 @@ let toolTipInfo (v: int) (dp: DataPath) ((cond,instruction): ParseTop.CondInstr)
         
             let makeTip memInfo =
                 let (hOffset, label), tipDom = memInfo dp
-                makeEditorInfoButton hOffset (v+1) label tipDom
+                makeEditorInfoButton false hOffset (v+1) label tipDom
             match ins with
             | Memory.LDR ins -> makeTip <| memPointerInfo ins MemRead
             | Memory.STR ins -> makeTip <| memPointerInfo ins MemWrite
             | Memory.LDM ins -> makeTip <| memStackInfo  ins MemRead
             | Memory.STM ins -> makeTip <| memStackInfo ins MemWrite
             | _ -> ()
+    | true, ParseTop.IDP (_exec,op2) -> 
+        let pos = findCodeEnd v,v
+        match op2 with
+        | DP.Op2.NumberLiteral _
+        | DP.Op2.RegisterWithShift(_,_,0u) -> ()
+        | DP.Op2.RegisterWithShift(rn,shiftT,shiftAmt) -> makeShiftTooltip pos dp rn (Some shiftT) shiftAmt op2
+        | DP.Op2.RegisterWithRegisterShift(rn,shiftT,sRn) -> makeShiftTooltip pos dp rn (Some shiftT) (dp.Regs.[sRn] % 32u) op2
+        | DP.Op2.RegisterWithRRX rn -> makeShiftTooltip pos dp rn None 1u op2
     | _ -> ()
 

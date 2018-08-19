@@ -56,14 +56,10 @@ let init () =
         resizeGUI ()        
         )) |> ignore
 
-    tippy( ".tippytest",  createObj [
-            "arrow" ==>  true
-        ])
-
 
     // Actions for the buttons
     Refs.openFileBtn.addEventListener_click(fun _ ->
-        Files.openFile ()
+        MenuBar.openFile ()
     )
     Refs.saveFileBtn.addEventListener_click(fun _ ->
         Files.saveFile ()
@@ -79,7 +75,7 @@ let init () =
     )
 
     resetSimulationBtn.addEventListener_click(fun _ ->
-        Files.resetEmulator()
+        Integration.resetEmulator()
     )
 
     mapClickAttacher repToId Refs.representation (fun rep ->
@@ -114,7 +110,7 @@ let init () =
     vSettings <- checkSettings (getJSONSettings())
     Editors.updateAllEditors false
 
-    Refs.addFixedToolTips()
+    Tooltips.addFixedToolTips()
 
 /// top-level function that runs the renderer code
 let handleMonacoReady (_: Event) = init ()

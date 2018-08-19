@@ -1,3 +1,4 @@
+.paket\paket.exe install
 git submodule update --init --recursive
 git submodule update --recursive --remote
 :: .paket\paket.bootstrapper.exe

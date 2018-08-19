@@ -7,7 +7,7 @@ nuget Fable.Import.Browser
 nuget Fable.Import.Node
 nuget Fable.Import.Electron
 nuget Fable.PowerPack
-
+nuget Fable.Elmish.React
 github fable-compiler/Fable src/dotnet/Fable.JS/Interfaces.fs
 nuget Expecto
 nuget Expecto.FsCheck

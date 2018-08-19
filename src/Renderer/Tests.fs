@@ -29,15 +29,7 @@ let projectDir = Refs.appDirName + @"/../"
 
 let sampleDir = projectDir + @"app/samples/"
 
-let loadDemo () =
-    Tabs.createFileTab()
-    let tId = Refs.currentFileTabId
-    let sampleFileName = sampleDir + "karatsuba.s"
-    printfn "Rweading sample file: %s" sampleFileName
-    fs.readFile( sampleFileName, (fun _ data -> // TODO: find out what this error does
-            Files.loadFileIntoTab  tId data
-        ))
-    Tabs.setTabSaved tId
+
 
 
 type Flags = {

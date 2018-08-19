@@ -18,35 +18,6 @@ open ExecutionTop
 let maxSymbolWidth = 30
 let maxDataSymbolLength = 16
 
-[<Emit "'0x' + ($0 >>> 0).toString(16).toUpperCase()">]
-let hexFormatter _ : string = jsNative
-
-[<Emit "'u' + ($0 >>> 0).toString(10)">]
-let uDecFormatter _ : string = jsNative
-
-// Returns a formatter for the given representation
-let formatterWithWidth width rep = 
-// TODO: Use binformatter from testformats.fs
-    let binFormatter width fmt x =
-        let bin a =
-            [0..width-1]
-            |> List.fold (fun s x -> 
-                match ((a >>> x) % 2u),x with
-                | 1u,7 | 1u,15 | 1u,23 -> "_1" + s
-                | 0u,7 | 0u,15 | 0u,23 -> "_0" + s
-                | 1u,_ -> "1" + s
-                | 0u,_ -> "0" + s
-                | _ -> failwithf "modulo is broken"
-            ) ""
-        sprintf fmt (bin x)
-    match rep with
-    | Refs.Hex -> hexFormatter
-    | Refs.Bin -> (binFormatter width "0b%s")
-    | Refs.Dec -> (int32 >> sprintf "%d")
-    | Refs.UDec -> uDecFormatter
-
-
-let formatter = formatterWithWidth 32
 
 let nameSquash maxW name =
     let nameLen = String.length name
@@ -56,18 +27,7 @@ let nameSquash maxW name =
         let lp = maxW - (fp + 3)
         name.[0..fp-1] + "..." + name.[nameLen - lp .. nameLen - 1]
 
-let setRegister (id: CommonData.RName) (value: uint32) =
-    let el = Refs.register id.RegNum
-    el.innerHTML <- formatter Refs.currentRep value
 
-let updateRegisters () =
-    Map.iter setRegister Refs.regMap
-
-let resetRegs () =
-    [0..15]
-    |> List.map (fun x -> setRegister (CommonData.register x) 0u)
-    |> ignore
-    
 
 let setRepresentation rep =
     // Disable the other button

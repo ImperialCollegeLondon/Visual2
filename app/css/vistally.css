@@ -366,8 +366,12 @@ div.after {
         background-color: transparent
     }
 
-/* tooltip-info-button sizing */
+.tippy-tooltip.dark-theme {
+    border-style: solid;
+    border-color: blue;
+}
 
+/* tooltip-info-button sizing */
 .info-button-pointer {
     font-size: calc( 0.6 * var(--editor-font-size));
     padding-top: 0px;
@@ -384,6 +388,13 @@ div.after {
     background-color: darkgoldenrod;
 }
 
+.info-button-shift {
+    font-size: calc( 0.6 * var(--editor-font-size));
+    padding-top: 0px;
+    margin-top: 0px;
+    color: white;
+    background-color: blue;
+}
 .tooltip-stack-regs-light-theme {
     margin-left: 2px;
     padding: 0px;
@@ -400,6 +411,17 @@ div.after {
 
 .tootip-fixed {
     font-size: 12px;
+}
+
+.tooltip-shift-reg-box {
+    stroke-width:0.2px;
+    stroke:blue;
+    fill: white;
+}
+
+.tooltip-shift-reg-txt {
+    font-size:1.8px;
+    fill: green;
 }
 
 

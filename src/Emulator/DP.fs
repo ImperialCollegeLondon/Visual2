@@ -37,13 +37,26 @@ type InstrNegativeLiteralMode =
 /// deal with bug in FABLE uint32 handling
 let trimUint32 u = ((int64 u) &&& ((1L <<< 32) - 1L)) |> uint32
 
+// ///////////// flexible op2 definition and evaluation //////////
+
+type ArmImmediate = { baseVal: byte ; rotate: uint32 }
+type ArmShiftType = LSL | ASR | LSR | ROR
+
+/// ARM flexible operand 2
+type Op2 =
+    | NumberLiteral of K: int64 * Rot: int * Sub: InstrNegativeLiteralMode
+    | RegisterWithShift of RName * ArmShiftType * uint32
+    | RegisterWithRRX of RName
+    | RegisterWithRegisterShift of RName * ArmShiftType * RName
+
+
 
 // ///////////// runtime types ///////////////////////////////////
 
 let makeDPE wanted s = makeParseError wanted s ""
 
 /// instruction type
-type Instr =  (DataPath -> Result<DataPath*UFlags, ExecuteError>)
+type Instr =  ((DataPath -> Result<DataPath*UFlags, ExecuteError>)*Op2)
                       
 let Executable f = Ok f
 
@@ -58,17 +71,6 @@ let setFlagN value = value > 0x7FFFFFFFu
 let setFlagZ value = (value = 0u)
 
 
-// ///////////// flexible op2 definition and evaluation //////////
-
-type ArmImmediate = { baseVal: byte ; rotate: uint32 }
-type ArmShiftType = LSL | ASR | LSR | ROR
-
-/// ARM flexible operand 2
-type Op2 =
-    | NumberLiteral of K: int64 * Rot: int * Sub: InstrNegativeLiteralMode
-    | RegisterWithShift of RName * ArmShiftType * uint32
-    | RegisterWithRRX of RName
-    | RegisterWithRegisterShift of RName * ArmShiftType * RName
 
 /// compute the resulting uint32 from a flexible op2 definition
 /// returns (value * carry)
@@ -117,6 +119,9 @@ let evalOp2 op2 d =
     | RegisterWithRRX rSrc -> evalRrx d.Regs.[rSrc] d.Fl.C
     | RegisterWithRegisterShift (rSrc, shiftType, rShiftBy) -> evalShift d.Regs.[rSrc] shiftType d.Regs.[rShiftBy]
 
+
+let addNullOp2Info op2Result =
+    Result.map (fun op2 -> op2,None)
 
 // ///////////// simulator HOFs //////////////////////////////////
        
@@ -330,7 +335,7 @@ let makeTwoOpInstr subMode fn symTable operands =
         let op2' = parseOp2 subMode symTable op2flex
 
         match op1', op2' with
-        | Ok op1'', Ok op2'' -> Ok (fn op1'' op2'')
+        | Ok op1'', Ok op2'' -> Ok (fn op1'' op2'', op2'')
         | Error e, _ -> Error e
         | _, Error e -> Error e
 
@@ -389,7 +394,7 @@ let makeShiftInstr shiftType symTable operands updateFlags =
                 | sftTxt -> makeFormatError "Error in shift specification - should be #N or Rx" sftTxt "flexop2"
  
 
-            Result.map (fun op2' -> execMove false updateFlags dst' op2') op2
+            Result.map (fun op2' -> execMove false updateFlags dst' op2', op2') op2
         | Error e, _ -> Error e
         | _, Error e -> Error e
 
@@ -400,7 +405,7 @@ let makeRRXInstr symTable operands updateFlags =
     match operands with
     | [dst ; src] ->
         match parseRegister dst, parseRegister src with
-        | Ok dst', Ok src' -> Ok (execMove false updateFlags dst' (RegisterWithRRX src'))
+        | Ok dst', Ok src' -> Ok (execMove false updateFlags dst' (RegisterWithRRX src'), Op2.RegisterWithRRX src')
         | Error e, _ -> Error e
         | _, Error e -> Error e
 
@@ -501,5 +506,6 @@ let parse (ls: LineData) : Parse<Instr> option =
 
 let (|IMatch|_|) ld = parse ld
 
-let executeDP = id
+let executeDP = fun (execFn,_dPInfo) dp -> execFn dp
+
 
