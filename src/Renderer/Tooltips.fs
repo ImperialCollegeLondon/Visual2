@@ -1,8 +1,8 @@
 (* 
     VisUAL2 @ Imperial College London
     Project: A user-friendly ARM emulator in F# and Web Technologies ( Github Electron & Fable Compiler )
-    Module: Renderer.Refs
-    Description: F# references to elements in the DOM + some user settings handling
+    Module: Renderer.Tooltips
+    Description: Code to implement tooltips and dynamic graphical popups
 *)
 
 /// F# References to static parts of renderer DOM
@@ -125,7 +125,10 @@ let inline tspan b c = svgEl "tspan" b c
 
 open Fable.Helpers.React
 open Fable.Helpers.React.Props
+open System.Diagnostics
+open System
 
+let lineTipsClickable = false
 
 let arrowMarker mId color =
     defs [] [
@@ -144,15 +147,26 @@ let arrowMarker mId color =
 /// Include all markers used here for SVG diagrams
 /// This function must be inserted in SVG just once before other descriptions.
 let svgMarkerDefs() =
-    arrowMarker "arrowHead" "black"
+    svgEl "g" [] [
+        arrowMarker "arrowHead-black" "black"
+        arrowMarker "arrowHead-red" "red"
+        ]
 
-let arrow (x1,y1) (x2,y2) =
+let arrow color (x1,y1) (x2,y2) =
     let head = 1.
     let al = sqrt((x1-x2)**2. + (y1-y2)**2.)
     let headX = head * (x2-x1) / al
     let headY = head * (y2-y1) / al
     let fS f = sprintf "%.2f" f
-    line [X1  (fS x1) ; Y1  (fS y1); X2 (fS (x2-headX)); Y2  (fS (y2-headY)); SVGAttr.StrokeWidth (fS (head/5.));  SVGAttr.Stroke "black"; SVGAttr.MarkerEnd "url(#arrowHead)"] []
+    line [
+            X1  (fS x1) ; 
+            Y1  (fS y1); 
+            X2 (fS (x2-headX)); 
+            Y2  (fS (y2-headY)); 
+            SVGAttr.StrokeWidth (fS (head/5.));  
+            SVGAttr.Stroke color; 
+            SVGAttr.MarkerEnd (sprintf "url(#arrowHead-%s)" color)
+         ] []
 
 let arrowCurve pathCmds =
     path [D pathCmds; SVGAttr.Stroke "black"; SVGAttr.Fill "transparent"; SVGAttr.MarkerEnd "url(#arrowHead)" ] []
@@ -165,18 +179,33 @@ let textInBox (width,height) (boxClass:string) (txtClass:string) (rhTopX,rhTopY)
             Y (fS rhTopY)
             SVGAttr.Height (fS height)
             SVGAttr.Width (fS width)
-            !!("dominant-baseline","middle") //align vertically on centre
+            !!("dominantBaseline","middle") //align vertically on centre
             SVGAttr.TextAnchor "middle" // align horizontally on centre
-            !!("class", boxClass)
+            !!("className", boxClass)
         ] []
         text [ 
             X (rhTopX+width/2.0 |> fS); 
             Y (rhTopY+height/2.0 |> fS) ; 
-            !!("dominant-baseline","middle"); 
+            !!("dominantBaseline","middle"); 
             SVGAttr.TextAnchor "middle"
-            !!("class", txtClass)
+            !!("className", txtClass)
         ] [ ofString txt ]
     ]
+
+
+let svgText alignX alignY txtClass posX posY txt =
+    let fS f = sprintf "%.2f" f
+    text [ 
+        X (posX |> fS); 
+        Y (posY |> fS) ; 
+        !!("dominantBaseline",alignY); 
+        SVGAttr.TextAnchor alignX
+        !!("className", txtClass)
+    ] [ ofString txt ]
+
+let labelText = svgText "left" "middle"
+
+let colText = svgText "middle" "bottom"
 
 let register boxClass txtClass (boxW,boxH) (posX,posY) (bits:int list) =
     let box xp yp b =
@@ -191,9 +220,7 @@ let register boxClass txtClass (boxW,boxH) (posX,posY) (bits:int list) =
             box xp posY b)
     svgEl "g" [] boxes
 
-let arrowSet (x,y) (dx,dy) pitch num =
-    let arrow' n = arrow (x+(float n)*pitch,y) (x+dx+(float n)*pitch,y+dy)
-    svgEl "g" [] (List.map arrow' [0..num-1])
+
 
 let makeHtmlFromSVG re =
     let ele = ELEMENT "div" [] []
@@ -201,27 +228,88 @@ let makeHtmlFromSVG re =
     ele
 
 /// generate an SVG diagram for shifts as HTML DOM
-let displayShiftDiagram rn beforeNum (afterNum, afterUf) (shiftT: DP.ArmShiftType option) shiftNum =
+let displayShiftDiagram rn (beforeNum, beforeC) (op2Num, op2C, finalC, writeC, alu) (shiftT: DP.ArmShiftType option) shiftNum =
     let boxW,boxH = 2.7, 2.7
-    let posX,posY = 7., 10.
+    let posX,posY = 11., 10.
+    let posLabX = 2.
+    let aluW,aluH = 20.,10.
+    let posAluX = posX + boxW*16. - aluW/2.
+    let posAluY = posY + 50.
     let sepY = 35.
+    let sepY' = posAluY + aluH/2. - boxH/2. - posY
+    let carryNX = 2
+    let posCX = posX - (float carryNX)*boxW
     let boxClass = "tooltip-shift-reg-box"
+    let carryBoxClass = "tooltip-shift-carry-box"
+    let aluTxtClass = "tooltip-shift-alu-txt"
     let txtClass = "tooltip-shift-reg-txt"
-    let arrowXOff = if shiftNum < 0 then - (float shiftNum) * boxW else 0.
-    let arrowXOff2 = if shiftNum > 0 then (32. - float shiftNum) * boxW else 0.
+    let makeLabel = labelText txtClass posLabX
+    let svgIfTrue b el =
+        svgEl "g" []  (if b then el else [])
+
+
+    let carryBox yp b =
+        let txt = sprintf "%d" b
+        textInBox (boxW,boxH) carryBoxClass txtClass (posCX,yp) txt
+
+    let arrow' color startN endN = arrow color (boxW/2. + posX + (float startN)*boxW, posY+boxH) (boxW/2. + posX + (float endN)*boxW, posY+sepY)
+
+    let arrowSet startN endN num =
+        svgEl "g" [] (List.map (fun i -> arrow' "black" (startN + i) (endN + i)) [0..num-1])
+
     let getBits num = 
-        [0..31] 
+        [31..-1..0] 
         |> List.map (fun n -> match (num &&& (1 <<< n)) with | 0 -> 0 | _ -> 1)
+
     let reg = register boxClass txtClass (boxW,boxH)
+
+    let arrows =
+            match shiftT with
+            | Some DP.LSR
+            | Some DP.ASR ->
+                [
+                    svgIfTrue writeC [arrow' "red" (32 - shiftNum) (-carryNX)]
+                    arrowSet 0 shiftNum (32-shiftNum)
+                    svgIfTrue (shiftT = Some DP.ASR) <| List.map (fun n -> arrow' "black" 0 n) [0..shiftNum-1]
+                ]
+            | Some DP.LSL -> 
+                [
+                    svgIfTrue writeC [arrow' "red" (shiftNum-1) (-carryNX)]
+                    arrowSet shiftNum 0 (32 - shiftNum)
+                ]
+            | Some DP.ROR ->
+                [
+                    svgIfTrue writeC [arrow' "red" (32 - shiftNum) (-carryNX)]
+                    arrowSet 0 shiftNum (32-shiftNum)
+                    arrowSet (32-shiftNum) 0 shiftNum
+                ]
+
+            | None -> // RRX
+                [
+                    svgIfTrue writeC [arrow' "red" 31 (-carryNX)]
+                    svgIfTrue writeC [arrow' "red" (-carryNX) 0]
+                    arrowSet 0 1 31
+
+                ]
+
     svg
-        [ ViewBox "0 0 100 50"; unbox ("width", "600px") ]
-        [
+        [ ViewBox "0 0 100 80"; unbox ("width", "600px") ] (
+        [      
             svgMarkerDefs() // used to define arrow heads
+            carryBox posY beforeC
+            carryBox (posY+sepY) op2C
+            carryBox (posY+sepY') finalC
+            svgIfTrue (not writeC) [arrow' "red" -carryNX -carryNX]
+            svgIfTrue (not (alu && writeC)) [arrow "red" (boxW/2. + posCX, posY+sepY+boxH) (boxW/2. + posCX, posY+sepY')]
+            svgIfTrue (alu && writeC) [arrow "red" (posAluX, posAluY+aluH/2.) (posCX+boxW, posY+sepY'+boxH/2.)]
+            textInBox (aluW,aluH) boxClass aluTxtClass (posAluX,posAluY) "ALU"
             reg (posX,posY) (getBits (beforeNum |> int))
-            reg (posX,posY+sepY) (getBits afterNum)
-            arrowSet (posX + boxW/2. + arrowXOff,posY+boxH) (boxW*(float shiftNum),(sepY-boxW)) boxW (32 - abs shiftNum)
-            arrowSet (posX + arrowXOff2 + boxW/2. , posY+boxH) ((if shiftNum > 0 then -arrowXOff2 else (32. + float shiftNum)*boxW) , (sepY-boxW)) boxW (abs shiftNum)
-        ]
+            reg (posX,posY+sepY) (getBits op2Num)
+            makeLabel (posY + boxH/2.) "In"
+            makeLabel (posY + sepY + boxH/2.) "Op2"
+            makeLabel (posY + sepY' + boxH/2.) "Out"
+            colText txtClass (posCX + boxW/2.) (posY - 1.) "C"
+        ] @ arrows)       
     |> makeHtmlFromSVG
 
 
@@ -237,8 +325,8 @@ let demoSVG ()  =
         text [X "50"; Y "50"] [ofString "b"]
         svgMarkerDefs()
         line [X1  "50"; Y1  "50"; X2 "25"; Y2  "25"; SVGAttr.Stroke "red"; SVGAttr.MarkerEnd "url(#arrow)"] []
-        rect [X "40.5"; Y "40.5"; SVGAttr.Width "50"; SVGAttr.Height "20"; SVGAttr.Stroke "red"; SVGAttr.Fill "white"; !!("class","tooltip-shift-reg-box")] []
-        text [ X "65"; Y "50" ; !!("dominant-baseline","middle"); SVGAttr.TextAnchor "middle"; !!("class","tooltip-shift-reg-txt")] [ ofString "1" ]
+        rect [X "40.5"; Y "40.5"; SVGAttr.Width "50"; SVGAttr.Height "20"; SVGAttr.Stroke "red"; SVGAttr.Fill "white"; !!("className","tooltip-shift-reg-box")] []
+        text [ X "65"; Y "50" ; !!("dominantBaseline","middle"); SVGAttr.TextAnchor "middle"; !!("className","tooltip-shift-reg-txt")] [ ofString "1" ]
       ]
       
 
@@ -331,7 +419,7 @@ let makeTooltip (theme:string) (placement:string) (clickable:bool) (button:bool)
 /// <param name = "v"> line number in editor buffer on which to place button (starting from 0 = top)</param>
 /// <param name = "buttonText"> label on button</param>
 /// <param name = "toolTipDOM"> DOM to display inside tooltip box </param>
-let makeEditorInfoButton (clickable:bool) h v (buttonText:string) (toolTipDOM:HTMLElement) = 
+let makeEditorInfoButtonWithTheme theme (clickable:bool) h v (buttonText:string) (toolTipDOM:HTMLElement) = 
     /// Ratio of char width / char size for editor buffer font.
     /// TODO: work this out properly from a test
     let editorFontWidthRatio = 0.6 // works OK for Fira Code Mono
@@ -348,9 +436,9 @@ let makeEditorInfoButton (clickable:bool) h v (buttonText:string) (toolTipDOM:HT
         )
     deleteContentWidget domID // in some cases we may be updating an existing widget
     makeContentWidget domID dom <| Exact(0,v)
-    makeTooltip (tippyTheme()) "bottom" true false domID tooltip
+    makeTooltip theme "bottom" clickable false domID tooltip
 
-
+let makeEditorInfoButton clickable h v = makeEditorInfoButtonWithTheme (tippyTheme()) clickable h v
 
 /// Add all the static tooltip information on the editor
 let addFixedToolTips() =
@@ -379,14 +467,18 @@ let addFixedToolTips() =
     let makeRegTT regID = makeTextTT  "right" ("B"+regID) ["tootip-fixed"] (sprintf "%s is a data register" regID)
     List.iter (fun n -> makeRegTT  (sprintf "R%d" n)) [0..12]
 
-   
+open CommonData   
 
-let makeShiftTooltip (h,v) (dp:CommonData.DataPath) (rn:CommonData.RName) (shiftT:DP.ArmShiftType Option) (shiftAmt:uint32) (op2: DP.Op2) =
+let makeShiftTooltip (h,v) (dp:DataPath, dpAfter:DataPath, uFAfter:DP.UFlags) (rn:RName) (shiftT:DP.ArmShiftType Option, alu:bool) (shiftAmt:uint32) (op2: DP.Op2) =
+    let bToi = function |true -> 1 |false -> 0
     let before = dp.Regs.[rn]|> uint64 |> int64 |> int32
-    let (after,uf) = DP.evalOp2 op2 dp 
+    let (after,uF) = DP.evalOp2 op2 dp 
+    let finalC = bToi dpAfter.Fl.C
+    let finalFWrite = uFAfter.CU
     let after' = after |> uint64 |> int64 |> int32
     printfn "Making shift tooltip"
-    makeEditorInfoButton true h (v+1) "Shift" (displayShiftDiagram rn before (after',uf) shiftT (shiftAmt |> int))
+    let diagram = displayShiftDiagram rn (before |> uint32, bToi dp.Fl.C) (after', bToi uF.Ca, finalC, finalFWrite, alu) shiftT (shiftAmt |> int)
+    makeEditorInfoButtonWithTheme "light" lineTipsClickable h (v+1) "Shift" diagram
     
     
 

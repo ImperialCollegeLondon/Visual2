@@ -66,7 +66,11 @@ module ParseTop
     
     
 
-    type CondInstr = Condition * Instr
+    type CondInstr = {
+        Cond: Condition
+        InsExec: Instr
+        InsOpCode: string
+        }
 
     let makeParse labOpt la ins =
         {

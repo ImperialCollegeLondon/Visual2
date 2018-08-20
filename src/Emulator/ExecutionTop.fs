@@ -40,6 +40,9 @@ let cacheLastN N objFunc =
                  
                 
 
+let isArithmeticOpCode opc =
+    let arithmeticOpcRoots = ["ADD";"ADC";"SUB";"SBC";"RSB";"RSC";"CMP";"CMN"]
+    List.exists (fun s -> String.startsWith s opc) arithmeticOpcRoots
 
 
 
@@ -237,7 +240,7 @@ let loadLine (lim:LoadImage) ((line,lineNum) : string * int) =
             | 4u, Some 0u -> 
                     match pa.PInstr with
                     | Ok pai -> 
-                        lim.Mem, Map.add (WA lp.PosI) ((pa.PCond,pai) , lineNum) lim.Code
+                        lim.Mem, Map.add (WA lp.PosI) ({Cond=pa.PCond;InsExec=pai;InsOpCode= pa.POpCode} , lineNum) lim.Code
                     | _ -> lim.Mem, lim.Code
             | i, d -> failwithf "What? Unexpected sizes (I=%d ; D=%A) in parse load" i d
 
@@ -261,7 +264,7 @@ let loadLine (lim:LoadImage) ((line,lineNum) : string * int) =
 let addTermination (lim:LoadImage) =
     let insLst = Map.toList lim.Code |> List.sortByDescending fst
     match insLst with
-    | (_, ((Cal,IBRANCH END),_)) :: _ -> lim 
+    | (_, ({Cond=Cal;InsExec=IBRANCH END;InsOpCode="END"},_)) :: _ -> lim 
     | []
     | _ -> loadLine lim ("END",1)
 
@@ -359,7 +362,7 @@ let dataPathStep (dp : DataPath, code:CodeMemory<CondInstr*int>) =
     match Map.tryFind (WA pc) code with
     | None ->
         NotInstrMem pc |> Error
-    | Some ((cond,instr),line) ->
+    | Some ({Cond=cond;InsExec=instr;InsOpCode=_iopc},line) ->
         match condExecute cond dp' with
         | true -> 
             match instr with

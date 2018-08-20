@@ -351,7 +351,9 @@ div.after {
 .tippy-tooltip.light-theme {
     color: #26323d;
     box-shadow: 0 0 20px 4px rgba(154,161,177,.15),0 4px 80px -8px rgba(36,40,47,.25),0 4px 4px -2px rgba(91,94,105,.15);
-    background-color: #fff
+    background-color: #fff;
+    border-style: solid;
+    border-color: blue;
 }
 
     .tippy-tooltip.light-theme .tippy-backdrop {
@@ -419,9 +421,18 @@ div.after {
     fill: white;
 }
 
+.tooltip-shift-carry-box {
+    stroke-width: 0.2px;
+    stroke: red;
+    fill: white;
+}
 .tooltip-shift-reg-txt {
     font-size:1.8px;
     fill: green;
 }
 
+.tooltip-shift-alu-txt {
+    font-size: 5px;
+    fill: blue;
+}
 

@@ -4,6 +4,7 @@
     <TargetFramework>netstandard2.0</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="Playground.fs" />
     <Compile Include="Refs.fs" />
     <Compile Include="Tooltips.fs" />
     <Compile Include="Stats.fs" />

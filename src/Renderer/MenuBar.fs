@@ -191,6 +191,7 @@ let helpMenu =
             makeItem "Official ARM documentation" Core.Option.None (runPage "http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.ddi0234b/i1010871.html")
             makeItem "Run Emulator Tests" Core.Option.None Tests.runAllEmulatorTests
             makeItem "Load Complex Demo Code" Core.Option.None loadDemo
+            makeItem "Run dev tools FABLE checks" Core.Option.None Playground.check1
             makeItem "About" Core.option.None ( fun () -> 
                 printfn "Directory is:%s" (Stats.dirOfSettings())
                 electron.remote.dialog.showMessageBox (

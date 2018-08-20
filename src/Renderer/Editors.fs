@@ -207,7 +207,7 @@ let shiftIns src num sFunc =
 
 /// Make execution tooltip info for the given instruction and line v, dp before instruction dp.
 /// Does nothing if opcode is not documented with execution tooltip
-let toolTipInfo (v: int) (dp: DataPath) ((cond,instruction): ParseTop.CondInstr) =
+let toolTipInfo (v: int) (dp: DataPath) ({Cond=cond;InsExec=instruction;InsOpCode=opc}: ParseTop.CondInstr) =
     match Helpers.condExecute cond dp, instruction with
     | false,_ -> ()
     | true, ParseTop.IMEM ins -> 
@@ -265,20 +265,24 @@ let toolTipInfo (v: int) (dp: DataPath) ((cond,instruction): ParseTop.CondInstr)
         
             let makeTip memInfo =
                 let (hOffset, label), tipDom = memInfo dp
-                makeEditorInfoButton false hOffset (v+1) label tipDom
+                makeEditorInfoButton Tooltips.lineTipsClickable hOffset (v+1) label tipDom
             match ins with
             | Memory.LDR ins -> makeTip <| memPointerInfo ins MemRead
             | Memory.STR ins -> makeTip <| memPointerInfo ins MemWrite
             | Memory.LDM ins -> makeTip <| memStackInfo  ins MemRead
             | Memory.STM ins -> makeTip <| memStackInfo ins MemWrite
             | _ -> ()
-    | true, ParseTop.IDP (_exec,op2) -> 
+    | true, ParseTop.IDP (exec,op2) -> 
+        let alu = ExecutionTop.isArithmeticOpCode opc
         let pos = findCodeEnd v,v
-        match op2 with
-        | DP.Op2.NumberLiteral _
-        | DP.Op2.RegisterWithShift(_,_,0u) -> ()
-        | DP.Op2.RegisterWithShift(rn,shiftT,shiftAmt) -> makeShiftTooltip pos dp rn (Some shiftT) shiftAmt op2
-        | DP.Op2.RegisterWithRegisterShift(rn,shiftT,sRn) -> makeShiftTooltip pos dp rn (Some shiftT) (dp.Regs.[sRn] % 32u) op2
-        | DP.Op2.RegisterWithRRX rn -> makeShiftTooltip pos dp rn None 1u op2
+        match exec dp with
+        | Error _ -> ()
+        |Ok (dp',uF') ->
+            match op2 with
+            | DP.Op2.NumberLiteral _
+            | DP.Op2.RegisterWithShift(_,_,0u) -> ()
+            | DP.Op2.RegisterWithShift(rn,shiftT,shiftAmt) -> makeShiftTooltip pos (dp,dp',uF') rn (Some shiftT, alu) shiftAmt op2
+            | DP.Op2.RegisterWithRegisterShift(rn,shiftT,sRn) -> makeShiftTooltip pos (dp,dp',uF') rn (Some shiftT, alu) (dp.Regs.[sRn] % 32u) op2
+            | DP.Op2.RegisterWithRRX rn -> makeShiftTooltip pos (dp,dp',uF') rn (None,alu) 1u op2
     | _ -> ()
 
