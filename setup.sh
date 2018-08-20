@@ -1,3 +1,4 @@
+paket install
 git submodule update --init --recursive
 git submodule update --recursive --remote
 dotnet nuget locals all --clean
