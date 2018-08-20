@@ -127,12 +127,14 @@ let makeMenu (name:string) (table:MenuItemOptions list) =
         |> U2.Case2 |> Some
     subMenu
 
+let ifDevel lst = if Refs.debugLevel > 0 then lst else []
+let ifDebug lst = if Refs.debugLevel > 1 then lst else []
 (****************************************************************************************************
  *
  *                                         MENUS
  *
  ****************************************************************************************************)
-let fileMenu =
+let fileMenu() =
     makeMenu "File" [
             makeItem "New"      (Some "CmdOrCtrl+N")        createFileTab
             menuSeparator
@@ -152,7 +154,7 @@ let optCreateSettingsTab() =
     | ExecutionTop.ParseErrorMode -> createSettingsTab ()
     | _ -> Browser.window.alert "Can't change preferences while simulator is running" |> ignore
 
-let editMenu = 
+let editMenu() = 
     makeMenu "Edit" [
         makeItem "Undo" (Some "CmdOrCtrl+Z") Files.editorUndo
         makeItem "Redo" (Some "CmdOrCtrl+Shift+Z") Files.editorRedo
@@ -171,7 +173,7 @@ let editMenu =
         makeItem  "Preferences"  Option.None optCreateSettingsTab
     ]
 
-let viewMenu = 
+let viewMenu() = 
         let devToolsKey = if Node.Globals.``process``.platform = NodeJS.Platform.Darwin then "Alt+Command+I" else "Ctrl+Shift+I"
         makeMenu "View" [
             makeRoleItem "Toggle Fullscreen"  (Some "F11")  MenuItemRole.Togglefullscreen
@@ -183,38 +185,42 @@ let viewMenu =
             makeItem "Toggle Dev Tools" (Some "F12") (electron.remote.getCurrentWebContents()).toggleDevTools
         ]
 
-let helpMenu =
+let helpMenu() =
         let runPage page = Refs.runPage page
-        makeMenu "Help" [
-            makeItem "UAL Instruction Guide" Core.Option.None (runPage <| visualDocsPage "guide#content")
-            makeItem "VisUAL2 web pages" Core.Option.None (runPage <| visualDocsPage "")
-            makeItem "Official ARM documentation" Core.Option.None (runPage "http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.ddi0234b/i1010871.html")
-            makeItem "Run Emulator Tests" Core.Option.None Tests.runAllEmulatorTests
-            makeItem "Load Complex Demo Code" Core.Option.None loadDemo
-            makeItem "Run dev tools FABLE checks" Core.Option.None Playground.check1
-            makeItem "About" Core.option.None ( fun () -> 
-                printfn "Directory is:%s" (Stats.dirOfSettings())
-                electron.remote.dialog.showMessageBox (
-                      let opts = createEmpty<ShowMessageBoxOptions>
-                      opts.title <- sprintf "Visual2 ARM Simulator v%s" Refs.appVersion |> Some
-                      opts.message <- "(c) 2018, Imperial College" |> Some
-                      opts.detail <- 
-                            "Acknowledgements: Salman Arif (VisUAL), HLP 2018 class" +
-                            " (F# reimplementation), with special mention to Thomas Carrotti," +
-                            " Lorenzo Silvestri, and HLP Team 10" |> Some
-                      opts
-                ) |> ignore; () )
-         ]   
+        makeMenu "Help" ( 
+            [
+                makeItem "UAL Instruction Guide" Core.Option.None (runPage <| visualDocsPage "guide#content")
+                makeItem "VisUAL2 web pages" Core.Option.None (runPage <| visualDocsPage "")
+                makeItem "Official ARM documentation" Core.Option.None (runPage "http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.ddi0234b/i1010871.html")           
+                makeItem "Load Complex Demo Code" Core.Option.None loadDemo
+            ] @ ifDevel [
+                makeItem "Run dev tools FABLE checks" Core.Option.None Playground.check1
+                makeItem "Run Emulator Tests" Core.Option.None Tests.runAllEmulatorTests
+            ] @
+            [
+                makeItem "About" Core.option.None ( fun () -> 
+                    printfn "Directory is:%s" (Stats.dirOfSettings())
+                    electron.remote.dialog.showMessageBox (
+                          let opts = createEmpty<ShowMessageBoxOptions>
+                          opts.title <- sprintf "Visual2 ARM Simulator v%s" Refs.appVersion |> Some
+                          opts.message <- "(c) 2018, Imperial College" |> Some
+                          opts.detail <- 
+                                "Acknowledgements: Salman Arif (VisUAL), HLP 2018 class" +
+                                " (F# reimplementation), with special mention to Thomas Carrotti," +
+                                " Lorenzo Silvestri, and HLP Team 10" |> Some
+                          opts
+                    ) |> ignore; () )
+            ])  
 
 
 /// Make all app menus
 let mainMenu() =
     let template = 
         ResizeArray<MenuItemOptions> [
-            fileMenu
-            editMenu
-            viewMenu
-            helpMenu
+            fileMenu()
+            editMenu()
+            viewMenu()
+            helpMenu()
         ]
     template
     |> electron.remote.Menu.buildFromTemplate

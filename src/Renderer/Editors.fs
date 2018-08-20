@@ -185,6 +185,7 @@ let revealLineInWindow tId (lineNumber: int) =
 
 type MemDirection = MemRead | MemWrite
 
+/// find editor Horizontal char position after end of code (ignoring comment)
 let findCodeEnd  (lineCol:int) =
     let tabSize = 6
     match Refs.currentTabText() with
@@ -198,12 +199,6 @@ let findCodeEnd  (lineCol:int) =
             | s :: _ -> (s.Length / tabSize)*tabSize + (if s.Length % tabSize > 0 then tabSize else 0)
             | [] -> 0
 
-let shiftIns src num sFunc =
-    let bit n src = (int ((src >>> n) &&& 1u)).ToString()
-    let makeBitRow n = 
-        [n.ToString() ; bit n src; (src |> sFunc |> bit n) ]
-    let TROWS = List.map (fun s -> s |> toDOM |> TD) >> TROW
-    TABLE [] (List.map (makeBitRow >> TROWS) [0..31])
 
 /// Make execution tooltip info for the given instruction and line v, dp before instruction dp.
 /// Does nothing if opcode is not documented with execution tooltip

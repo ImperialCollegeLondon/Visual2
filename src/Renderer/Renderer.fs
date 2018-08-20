@@ -19,6 +19,20 @@ Browser.console.log "Hi from renderer.fs" |> ignore
 
 open Refs
 
+/// Hack to provide a constant global variable
+/// set from command line arguments of main process.
+/// 0 => production. 1 => dev. 2 => debug.
+let setDebugLevel() =
+    let argV = 
+        electron.remote.``process``.argv 
+        |> Seq.toList 
+        |> List.tail
+        |> List.map (fun s -> s.ToLower())
+    let isArg s = List.contains s argV
+    debugLevel <-
+        if isArg "--debug" || isArg "-d" then 2
+        elif isArg "-w" then 1
+        else 0
 
 
 
@@ -44,6 +58,9 @@ let resizeGUI() =
 /// Initialization after `index.html` is loaded.
 /// Equivalent of main() function
 let init () =
+
+    setDebugLevel()
+    printfn "Debug level = %d" debugLevel
     // Show the body once we are ready to go!
     document.getElementById("vis-body").classList.remove("invisible")
     

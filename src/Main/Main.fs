@@ -104,7 +104,6 @@ let createMainWindow () =
         window.loadURL(url.format(opts))
         if not (hasDebugArgs()) then window.show()
         if hasDebugArgs() then printfn "load complete"
-
       
         #if WATCH
         printfn "Enabling development hot reload..."

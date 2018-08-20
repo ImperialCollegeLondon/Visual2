@@ -7,14 +7,10 @@
 
 /// F# References to static parts of renderer DOM
 module Tooltips
-open System
 open Fable.Import
 open Fable.Import.Browser
-open Fable.Core
 open Fable.Core.JsInterop
-
 open Microsoft.FSharp.Collections
-open Node.Exports
 open EEExtensions
 open Refs
 
@@ -130,6 +126,7 @@ open System
 
 let lineTipsClickable = false
 
+/// define SVG marker for arrowhead. mId = marker ID. color = marker color.
 let arrowMarker mId color =
     defs [] [
                 svgEl "marker" [
@@ -152,6 +149,7 @@ let svgMarkerDefs() =
         arrowMarker "arrowHead-red" "red"
         ]
 
+/// Draw arrow from (x1,y1) to (x2,y2) of given color
 let arrow color (x1,y1) (x2,y2) =
     let head = 1.
     let al = sqrt((x1-x2)**2. + (y1-y2)**2.)
@@ -168,9 +166,11 @@ let arrow color (x1,y1) (x2,y2) =
             SVGAttr.MarkerEnd (sprintf "url(#arrowHead-%s)" color)
          ] []
 
+/// Draw a curve with an arrow at the end
 let arrowCurve pathCmds =
     path [D pathCmds; SVGAttr.Stroke "black"; SVGAttr.Fill "transparent"; SVGAttr.MarkerEnd "url(#arrowHead)" ] []
 
+/// Draw a box with text inside
 let textInBox (width,height) (boxClass:string) (txtClass:string) (rhTopX,rhTopY) txt =
     let fS f = sprintf "%.2f" f
     svgEl "g" [] [
@@ -192,7 +192,7 @@ let textInBox (width,height) (boxClass:string) (txtClass:string) (rhTopX,rhTopY)
         ] [ ofString txt ]
     ]
 
-
+/// Draw text with given alignment on SVG
 let svgText alignX alignY txtClass posX posY txt =
     let fS f = sprintf "%.2f" f
     text [ 
@@ -203,10 +203,13 @@ let svgText alignX alignY txtClass posX posY txt =
         !!("className", txtClass)
     ] [ ofString txt ]
 
+/// Draw text with LHS middle alignment
 let labelText = svgText "left" "middle"
 
+/// Draw text with middle bottom alignment
 let colText = svgText "middle" "bottom"
 
+/// Draw a set of 32 horizontally aligned boxes with bits inside as a register
 let register boxClass txtClass (boxW,boxH) (posX,posY) (bits:int list) =
     let box xp yp b =
         let txt = sprintf "%d" b
@@ -221,13 +224,13 @@ let register boxClass txtClass (boxW,boxH) (posX,posY) (bits:int list) =
     svgEl "g" [] boxes
 
 
-
+/// Turn react element into HTML DOM element
 let makeHtmlFromSVG re =
     let ele = ELEMENT "div" [] []
     ReactDom.render(re, ele)
     ele
 
-/// generate an SVG diagram for shifts as HTML DOM
+/// Generate an SVG diagram for shifts as HTML DOM
 let displayShiftDiagram rn (beforeNum, beforeC) (op2Num, op2C, finalC, writeC, alu) (shiftT: DP.ArmShiftType option) shiftNum =
     let boxW,boxH = 2.7, 2.7
     let posX,posY = 11., 10.
@@ -314,7 +317,7 @@ let displayShiftDiagram rn (beforeNum, beforeC) (op2Num, op2C, finalC, writeC, a
 
 
 
-
+/// Simple SVG picture as demo
 let demoSVG ()  =
     svg 
       [ ViewBox "0 0 100 100"; unbox ("width", "700x") ]
@@ -382,10 +385,11 @@ let deleteContentWidget name =
     | Some w ->
         editors.[currentFileTabId]?removeContentWidget w |> ignore
         currentTabWidgets <- Map.remove name currentTabWidgets
-
+/// delete all content widgets
 let deleteAllContentWidgets() =
     Array.iter deleteContentWidget (Map.keys currentTabWidgets) 
 
+/// work out tippy theme with opposite background to editor
 let tippyTheme() =
     match vSettings.EditorTheme with
     | "one-light-pro" | "solarised-light" -> "dark"
@@ -438,6 +442,7 @@ let makeEditorInfoButtonWithTheme theme (clickable:bool) h v (buttonText:string)
     makeContentWidget domID dom <| Exact(0,v)
     makeTooltip theme "bottom" clickable false domID tooltip
 
+/// Make an editor tooltip info button with correct theme
 let makeEditorInfoButton clickable h v = makeEditorInfoButtonWithTheme (tippyTheme()) clickable h v
 
 /// Add all the static tooltip information on the editor
@@ -469,6 +474,7 @@ let addFixedToolTips() =
 
 open CommonData   
 
+/// Drive the displayShiftDiagram function from a tooltip with correct parameters for given line
 let makeShiftTooltip (h,v) (dp:DataPath, dpAfter:DataPath, uFAfter:DP.UFlags) (rn:RName) (shiftT:DP.ArmShiftType Option, alu:bool) (shiftAmt:uint32) (op2: DP.Op2) =
     let bToi = function |true -> 1 |false -> 0
     let before = dp.Regs.[rn]|> uint64 |> int64 |> int32
