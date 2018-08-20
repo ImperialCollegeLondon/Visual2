@@ -16,6 +16,7 @@ open Fable.Core.JsInterop
 open Fable.Import
 open Fable.Import.Electron
 open Node.Exports
+open System.Diagnostics
 
 let printHelpMessage() =
     printfn """
@@ -73,7 +74,25 @@ let contextMenu () = jsNative
 
 let settings:obj = importDefault "electron-settings"
 
-if hasDebugArgs() then printfn "settings=%A" (settings?get "editor-theme")
+let dTrace fmt s = if hasDebugArgs() then printfn fmt s
+
+dTrace "settings=%A" (settings?get "editor-theme")
+
+let enableHotReload (window:BrowserWindow) =
+        printfn "Enabling development hot reload..."
+        fs.watch(path.join(Node.Globals.__dirname, "/main.js"), fun _ _ ->
+            window.webContents.reloadIgnoringCache()
+        ) |> ignore
+        fs.watch(path.join(Node.Globals.__dirname, "/app/js"), fun _ _ ->
+            window.webContents.reloadIgnoringCache()
+        ) |> ignore
+        fs.watch(path.join(Node.Globals.__dirname, "/app/css"), fun _ _ ->
+            window.webContents.reloadIgnoringCache()
+        ) |> ignore
+        fs.watch(path.join(Node.Globals.__dirname, "/app"), fun _ _ ->
+            window.webContents.reloadIgnoringCache()
+        ) |> ignore
+
 
 /// create main renderer window of app
 let createMainWindow () =
@@ -94,60 +113,41 @@ let createMainWindow () =
         options.hasShadow <- Some true
         options.backgroundColor <-  Some "#5F9EA0"
         options.icon <- Some (U2.Case2  "app/visual.ico")
+
         let window = electron.BrowserWindow.Create(options)
         if hasDebugArgs() then  window.webContents.openDevTools();
         // Load the index.html of the app.
         let opts = createEmpty<Node.Url.Url<obj>>
         opts.pathname <- Some <| path.join(Node.Globals.__dirname, "/app/index.html")
         opts.protocol <- Some "file:"
-        if hasDebugArgs() then printfn "Loading HTML: %A, icon=%A" opts.pathname options.icon
+        dTrace "Loading HTML: %A" opts.pathname
         window.loadURL(url.format(opts))
-        if not (hasDebugArgs()) then window.show()
-        if hasDebugArgs() then printfn "load complete"
-      
-        #if WATCH
-        printfn "Enabling development hot reload..."
-    
-        fs.watch(path.join(Node.Globals.__dirname, "/main.js"), fun _ _ ->
-            window.webContents.reloadIgnoringCache()
-        ) |> ignore
-
-        fs.watch(path.join(Node.Globals.__dirname, "/app/js"), fun _ _ ->
-            window.webContents.reloadIgnoringCache()
-        ) |> ignore
-        fs.watch(path.join(Node.Globals.__dirname, "/app/css"), fun _ _ ->
-            window.webContents.reloadIgnoringCache()
-        ) |> ignore
-        fs.watch(path.join(Node.Globals.__dirname, "/app"), fun _ _ ->
-            window.webContents.reloadIgnoringCache()
-        ) |> ignore
-    
-        #endif 
+        dTrace "%s" "load complete"       
         let mutable closeAfterSave = false
         window.on("close", 
-                    unbox (fun e ->
-                        if not closeAfterSave then
-                            if hasDebugArgs() then printfn "Close event received!"
-                            e?preventDefault () |> ignore
-                            window.webContents.send "closingWindow")) |> ignore
+             unbox (fun e ->
+                  if not closeAfterSave then
+                       dTrace "%s" "Close event received!"
+                       e?preventDefault () |> ignore
+                       window.webContents.send "closingWindow"
+             )) |> ignore
         // Emitted when the window is closed.
         window.on("closed", unbox(fun () ->
             // Dereference the window object, usually you would store windows
             // in an array if your app supports multi windows, this is the time
             // when you should delete the corresponding element.
             mainWindow <- Option.None
-        )) |> ignore
-
+            )) |> ignore
 
         window.on("resize",
-                    unbox ( fun _ ->
-                        window.webContents.send "resizeWindow")) |> ignore
+            unbox ( fun _ ->
+                window.webContents.send "resizeWindow")) |> ignore
     
         electron.ipcMain?on ("doClose", unbox (fun () ->
-                     closeAfterSave <- true
-                     if hasDebugArgs() then printfn "Closing window NOW!"
-                     window?close()
-                   )) |> ignore
+            closeAfterSave <- true
+            dTrace "%s" "Closing window NOW!"
+            window?close()
+            )) |> ignore
 
 
         // Maximize the window
@@ -162,7 +162,9 @@ let createMainWindow () =
         window.on("ready-to-show", (fun () -> 
             window.show() 
             options.backgroundColor <- Some "#F0F0F0"
-            window.focus())
+            window.focus()
+            dTrace "%s" "Window on!"
+            if argFlagIsOn ["-w"] then enableHotReload window)
          ) |> ignore
 
         mainWindow <- Some window
@@ -185,10 +187,4 @@ electron.app.on("activate", unbox(fun () ->
     if mainWindow.IsNone  then
         createMainWindow()
 )) |> ignore
-
-
-
-
-
-
 

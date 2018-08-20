@@ -233,14 +233,14 @@ let makeHtmlFromSVG re =
 /// Generate an SVG diagram for shifts as HTML DOM
 let displayShiftDiagram rn (beforeNum, beforeC) (op2Num, op2C, finalC, writeC, alu) (shiftT: DP.ArmShiftType option) shiftNum =
     let boxW,boxH = 2.7, 2.7
-    let posX,posY = 11., 10.
-    let posLabX = 2.
+    let posX,posY = 30., 5.
+    let posLabX = 20.
     let aluW,aluH = 20.,10.
     let posAluX = posX + boxW*16. - aluW/2.
     let posAluY = posY + 50.
     let sepY = 35.
     let sepY' = posAluY + aluH/2. - boxH/2. - posY
-    let carryNX = 2
+    let carryNX = 7
     let posCX = posX - (float carryNX)*boxW
     let boxClass = "tooltip-shift-reg-box"
     let carryBoxClass = "tooltip-shift-carry-box"
@@ -296,7 +296,7 @@ let displayShiftDiagram rn (beforeNum, beforeC) (op2Num, op2C, finalC, writeC, a
                 ]
 
     svg
-        [ ViewBox "0 0 100 80"; unbox ("width", "600px") ] (
+        [ ViewBox "0 0 120 80"; unbox ("width", "800px") ] (
         [      
             svgMarkerDefs() // used to define arrow heads
             carryBox posY beforeC

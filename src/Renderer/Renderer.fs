@@ -24,7 +24,8 @@ open Refs
 /// 0 => production. 1 => dev. 2 => debug.
 let setDebugLevel() =
     let argV = 
-        electron.remote.``process``.argv 
+        //electron.remote.``process``.argv 
+        ["22";"--debug"]
         |> Seq.toList 
         |> List.tail
         |> List.map (fun s -> s.ToLower())
