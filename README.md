@@ -161,7 +161,7 @@ For Mac users, download and install [Mono](http://www.mono-project.com/download/
 
 5. Fetch the required `npm` packages by executing `yarn install`. This project consistently uses `yarn` Node package manager instead of the older and less competent `npm`.
 
-6. Run `setup.bat` (on Windows) or `sh setup.sh` (on linux or macOS). This downloads and updates the submodules, and installs their packages individually (necessary because of the submodule structure), then restores the global packages. On other systems run the statements in this file (modified if needed for your system) individually. If MSB error occur while running the script (on macOS) and were using Mono installed by brew previously, run `brew uninstall mono` and refer to step 2 for install Mono correctly).
+6. On macOS or linux ensure you have [paket installed](https://fsprojects.github.io/Paket/installation.html). Run `setup.bat` (on Windows) or `sh setup.sh` (on linux or macOS). This downloads and updates the submodules, and installs their packages individually (necessary because of the submodule structure), then restores the global packages. On other systems run the statements in this file (modified if needed for your system) individually. If MSB error occur while running the script (on macOS) and were using Mono installed by brew previously, run `brew uninstall mono` and refer to step 2 for install Mono correctly).
 
 7. Goto step 10 if all you want to do is to generate uptodate binaries.
 
