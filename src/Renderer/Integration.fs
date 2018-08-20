@@ -31,6 +31,10 @@ let slowDisplayThreshold: int64 = 20000L
 /// URL to display top-level Instruction Help Guide
 let guideHTML = "https://tomcl.github.io/visual2.github.io/guide.html"
 
+let fstOf3 (x,_,_) = x
+let dpAndInfo (dp,_,dpi) = dp,dpi
+
+
 /// Generate the hover error box.
 /// Decorate the line with error indication.
 /// The text generated is full GH markdown.
@@ -116,6 +120,20 @@ let getFlags() =
 let setCurrentModeActiveFromInfo runState ri =
     setMode (ActiveMode (runState,ri))
 
+let resetEmulator () =
+    printfn "Resetting..."
+    Editors.removeEditorDecorations currentFileTabId
+    Editors.enableEditors()   
+    memoryMap <- Map.empty
+    symbolMap <- Map.empty
+    regMap <- initialRegMap
+    setMode ResetMode
+    updateMemory()
+    updateSymTable()
+    updateRegisters ()
+    resetRegs()
+    resetFlags()
+    updateClockTime 0uL
 /// Display current execution state in GUI from stored runMode
 let showInfoFromCurrentMode () =
     let isStopped = match runMode with | ActiveMode(Running,_) -> true | _ -> false
@@ -139,7 +157,7 @@ let showInfoFromCurrentMode () =
 /// Move current instruction line to middle of window if not visible.
 let highlightCurrentAndNextIns classname pInfo tId  =
     removeEditorDecorations tId
-    deleteAllContentWidgets()
+    Tooltips.deleteAllContentWidgets()
     match pInfo.LastDP with
     | None -> ()
     | Some (dp,_uFl) ->
@@ -346,7 +364,7 @@ let runEditorTab steps =
 let runCode () = 
     match runMode with
     | FinishedMode _ 
-    | RunErrorMode _ -> Files.resetEmulator()
+    | RunErrorMode _ -> resetEmulator()
     | _ -> ()
     match runMode with
     | ActiveMode(RunState.Running,ri) -> setCurrentModeActiveFromInfo(RunState.Stopping) ri
@@ -378,7 +396,7 @@ let stepCodeBackBy numSteps =
             setCurrentModeActiveFromInfo RunState.Running ri
 
             if target <= 0L then
-                Files.resetEmulator()
+                resetEmulator()
                 removeEditorDecorations currentFileTabId
                 showInfoFromCurrentMode()
             else

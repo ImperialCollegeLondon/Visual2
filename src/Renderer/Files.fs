@@ -29,20 +29,7 @@ open CommonData
 open ExecutionTop
 
 
-let resetEmulator () =
-    printfn "Resetting..."
-    Editors.removeEditorDecorations currentFileTabId
-    Editors.enableEditors()   
-    memoryMap <- Map.empty
-    symbolMap <- Map.empty
-    regMap <- initialRegMap
-    setMode ResetMode
-    updateMemory()
-    updateSymTable()
-    updateRegisters ()
-    resetRegs()
-    resetFlags()
-    updateClockTime 0uL
+
 
     
 
@@ -63,13 +50,6 @@ let baseFilePath (path : string) =
     path.Split [|'/';'\\'|]
     |> Array.last
 
-/// Load the node Buffer into the specified tab
-let loadFileIntoTab tId (fileData : Node.Buffer.Buffer) =
-    if currentFileTabId = tId then
-        resetEmulator()
-    let editor = editors.[tId]
-    editor?setValue(fileData.toString("utf8")) |> ignore
-    setTabSaved tId
 
 
 
@@ -108,32 +88,6 @@ let updateCurrentPathFromList (res : string list) =
 
 
 
-let openFile () =
-    let options = createEmpty<OpenDialogOptions>
-    options.properties <- ResizeArray(["openFile"; "multiSelections"]) |> Some
-    options.filters <- fileFilterOpts
-    options.defaultPath <- Some vSettings.CurrentFilePath
-    let readPath (path, tId) = 
-        fs.readFile(path, (fun err data -> // TODO: find out what this error does
-            loadFileIntoTab tId data
-        ))
-        |> ignore
-        tId // Return the tab id list again to open the last one
-
-    let makeTab path =
-        let tId = createNamedFileTab (baseFilePath path) path
-        setTabFilePath tId path
-        (path, tId)
-
-    electron.remote.dialog.showOpenDialog(options)
-    |> resultUndefined ()
-    |> Result.map (fun x -> x.ToArray())
-    |> Result.map Array.toList
-    |> Result.map updateCurrentPathFromList
-    |> Result.map (List.map (makeTab >> readPath))
-    |> Result.map List.last
-    |> Result.map selectFileTab
-    |> ignore
 
 
 let writeCurrentCodeToFile path = (Refs.writeToFile (getCode currentFileTabId) path)

@@ -9,20 +9,25 @@
 module Refs
 open CommonData
 
-
+open System
 open Fable.Core
 open Fable.Core.JsInterop
 open Fable.Import
 open Fable.Import.Browser
 open Microsoft.FSharp.Collections
 open Node.Exports
-open System.Collections
+open Elmish.React
+open Fable.Helpers
+open Fable.Helpers.React
+open Fable.Helpers.React.Props
+open EEExtensions
+
 
 // **********************************************************************************
 //                                  App Version 
 // **********************************************************************************
 
-let appVersion = "0.13"
+let appVersion = "0.14"
 
 // **********************************************************************************
 //                               Types used in this module
@@ -52,10 +57,76 @@ type VSettings = {
     RegisteredKey: string
     }
 
+// ***********************************************************************************************
+//                                  Mini DSL for creating DOM objects
+// ***********************************************************************************************
+
+let ELEMENT elName classes (htmlElements: HTMLElement list) =
+    let ele = document.createElement elName
+    ele.classList.add (classes |> List.toArray)
+    List.iter (ele.appendChild >> ignore) htmlElements
+    ele
+
+let INNERHTML html (ele:HTMLElement) = (ele.innerHTML <- html) ; ele
+let STYLE (name,value) (ele:HTMLElement) = ele.style.setProperty(name,value) ; ele
+
+let ID name (ele:HTMLElement) = (ele.id <- name) ; ele
+let CLICKLISTENER listener (ele:HTMLElement) = (ele.addEventListener_click listener) ; ele
+
+let DIV = ELEMENT "div"
+
+let BR() = document.createElement "br"
+
+let FORM classes contents = 
+    let form = ELEMENT "form" classes contents
+        // disable form submission
+    form.onsubmit <- ( fun _ -> false)
+    form
+
+let TABLE = ELEMENT "table"
+
+let toDOM text = ELEMENT "span" [] [] |> INNERHTML text 
+
+let TROW = ELEMENT "tr" []
+
+let TD x = ELEMENT "td" [] <| [x]
+
+// *************************************************************************************
+//                               References to DOM elements
+// *************************************************************************************
+
+/// look up a DOM element
+let getHtml = Browser.document.getElementById
+//--------------------------- Buttons -------------------------------
+
+let openFileBtn = getHtml "explore" :?> HTMLButtonElement
+let saveFileBtn = getHtml "save" :?> HTMLButtonElement
+let runSimulationBtn: HTMLButtonElement = getHtml "run" :?> HTMLButtonElement
+let resetSimulationBtn = getHtml "reset" :?> HTMLButtonElement
+let stepForwardBtn = getHtml "stepf" :?> HTMLButtonElement
+let stepBackBtn = getHtml "stepb" :?> HTMLButtonElement
+/// get byte/word switch button element
+let byteViewBtn = getHtml "byte-view"
+
+/// get memory list element
+let memList = getHtml "mem-list"
+
+/// get symbol table View element
+let symView = getHtml "sym-view"
+
+/// get symbol table element
+let symTable = getHtml "sym-table"
+
+//---------------------File tab elements-------------------------------
+
+/// get element containing all tab headers
+let fileTabMenu = getHtml "tabs-files"
+
+/// get last (invisible) tab header
+let newFileTab = getHtml "new-file-tab"
 // ***********************************************************************************
 //                       Functions Relating to Right-hand View Panel
 // ***********************************************************************************
-
 
 /// used to get ID of button for each representation
 let repToId = 
@@ -80,19 +151,100 @@ let viewToIdTab =
         Memory, "tab-mem";
         Symbols, "tab-sym"
     ]
-//[<Emit("tippy( $1 , $2 );")>]
-//let tippyTooltip (rClass: string) (tippyOptions: obj) : unit = jsNative
+/// Get Flag display element from ID ("C", "V", "N", "Z")
+let flag id = getHtml <| sprintf "flag_%s" id
 
-let tippy(rClass:string, tippyOpts:obj):unit = importDefault "tippy.js"
+/// get button for specific representation
+let representation rep = getHtml repToId.[rep]
+
+/// get View pane element from View
+let viewView view = getHtml viewToIdView.[view]
+
+/// get View Tab element from view
+let viewTab view = getHtml viewToIdTab.[view]
+
+
+/// get ID of Tab for Tab number tabID
+let fileTabIdFormatter tabID = sprintf "file-tab-%d" tabID
+
+/// get element corresponding to file tab tabID
+let fileTab tabID = getHtml <| fileTabIdFormatter tabID
+
+/// get ID of editor window containing file
+let fileViewIdFormatter = sprintf "file-view-%d"
+
+/// get element of editor window containing file
+let fileView id = getHtml <| fileViewIdFormatter id
+
+/// get pane element containing for tab menu and editors
+let fileViewPane = getHtml "file-view-pane"
+
+/// get id of element containing tab name as dispalyed
+let tabNameIdFormatter = sprintf "file-view-name-%d"
+
+/// get element containing tab name as displayed
+let fileTabName id = getHtml <| tabNameIdFormatter id
+
+/// get id of element containing file path
+let tabFilePathIdFormatter = sprintf "file-view-path-%d"
+/// get (invisible)  element containing file path
+let tabFilePath id = getHtml <| tabFilePathIdFormatter id
+/// get the editor window overlay element
+
+//--------------- Simulation Indicator elements----------------------
+
+let darkenOverlay = getHtml "darken-overlay"
+/// get element for status-bar button (and indicator)
+let statusBar = getHtml "status-bar"
+
+/// Set the background of file panes.
+/// This is done based on theme (light or dark) to prevent flicker
+let setFilePaneBackground color =
+    fileViewPane.setAttribute("style", sprintf "background: %s" color)
+
+let updateClockTime (n:uint64) = getHtml "clock-time" |> INNERHTML (if n = 0uL then "-" else sprintf "%d" n) |> ignore
 
 // ************************************************************************************
 //                         Utility functions used in this module
 // ************************************************************************************
+[<Emit "'0x' + ($0 >>> 0).toString(16).toUpperCase()">]
+let hexFormatter _ : string = jsNative
+
+[<Emit "'u' + ($0 >>> 0).toString(10)">]
+let uDecFormatter _ : string = jsNative
+
+// Returns a formatter for the given representation
+let formatterWithWidth width rep = 
+// TODO: Use binformatter from testformats.fs
+    let binFormatter width fmt x =
+        let bin a =
+            [0..width-1]
+            |> List.fold (fun s x -> 
+                match ((a >>> x) % 2u),x with
+                | 1u,7 | 1u,15 | 1u,23 -> "_1" + s
+                | 0u,7 | 0u,15 | 0u,23 -> "_0" + s
+                | 1u,_ -> "1" + s
+                | 0u,_ -> "0" + s
+                | _ -> failwithf "modulo is broken"
+            ) ""
+        sprintf fmt (bin x)
+    match rep with
+    | Hex -> hexFormatter
+    | Bin -> (binFormatter width "0b%s")
+    | Dec -> (int32 >> sprintf "%d")
+    | UDec -> uDecFormatter
+
+
+let formatter = formatterWithWidth 32
+
+
+/// Determine whether JS value is undefined
+[<Emit("$0 === undefined")>]
+let isUndefined (_: 'a) : bool = jsNative
 
 [<Emit("__dirname")>]
 
 let appDirName:string  = jsNative
-
 
 /// compare input with last input: if different, or no last input, execute function
 let cacheLastWithActionIfChanged actionFunc =
@@ -105,21 +257,13 @@ let cacheLastWithActionIfChanged actionFunc =
             cache <- Some inDat
             actionFunc inDat
 
-    
-    
-    
 
 
-/// Determine whether JS value is undefined
-[<Emit("$0 === undefined")>]
-let isUndefined (_: 'a) : bool = jsNative
+
 
 /// A reference to the settings for the app
 /// persistent using electron-settings
 let settings:obj = electron.remote.require "electron-settings"
-/// look up a DOM element
-let getHtml = Browser.document.getElementById
-
 
 let mutable vSettings = {
     EditorFontSize = "16"
@@ -201,10 +345,6 @@ let getJSONSettings() =
             printfn "Parse failed: using default settings"
             vSettings
 
-    
-  
-
-
 let showMessage (callBack:int ->unit) (message:string) (detail:string) (buttons:string list) =
     let rem = electron.remote
     let retFn = unbox callBack
@@ -273,92 +413,6 @@ let writeToFile str path =
     fs.writeFile(path, str, errorHandler)
 
 
-// *************************************************************************************
-//                               References to DOM elements
-// *************************************************************************************
-
-//--------------------------- Buttons -------------------------------
-
-let openFileBtn = getHtml "explore" :?> HTMLButtonElement
-let saveFileBtn = getHtml "save" :?> HTMLButtonElement
-let runSimulationBtn: HTMLButtonElement = getHtml "run" :?> HTMLButtonElement
-let resetSimulationBtn = getHtml "reset" :?> HTMLButtonElement
-let stepForwardBtn = getHtml "stepf" :?> HTMLButtonElement
-let stepBackBtn = getHtml "stepb" :?> HTMLButtonElement
-/// get byte/word switch button element
-let byteViewBtn = getHtml "byte-view"
-
-//----------------------- View pane elements -------------------------
-
-/// Get Flag display element from ID ("C", "V", "N", "Z")
-let flag id = getHtml <| sprintf "flag_%s" id
-
-/// get button for specific representation
-let representation rep = getHtml repToId.[rep]
-
-/// get View pane element from View
-let viewView view = getHtml viewToIdView.[view]
-
-/// get View Tab element from view
-let viewTab view = getHtml viewToIdTab.[view]
-
-
-/// get memory list element
-let memList = getHtml "mem-list"
-
-/// get symbol table View element
-let symView = getHtml "sym-view"
-
-/// get symbol table element
-let symTable = getHtml "sym-table"
-
-//---------------------File tab elements-------------------------------
-
-/// get element containing all tab headers
-let fileTabMenu = getHtml "tabs-files"
-
-/// get last (invisible) tab header
-let newFileTab = getHtml "new-file-tab"
-
-/// get ID of Tab for Tab number tabID
-let fileTabIdFormatter tabID = sprintf "file-tab-%d" tabID
-
-/// get element corresponding to file tab tabID
-let fileTab tabID = getHtml <| fileTabIdFormatter tabID
-
-/// get ID of editor window containing file
-let fileViewIdFormatter = sprintf "file-view-%d"
-
-/// get element of editor window containing file
-let fileView id = getHtml <| fileViewIdFormatter id
-
-/// get pane element containing for tab menu and editors
-let fileViewPane = getHtml "file-view-pane"
-
-/// get id of element containing tab name as dispalyed
-let tabNameIdFormatter = sprintf "file-view-name-%d"
-
-/// get element containing tab name as displayed
-let fileTabName id = getHtml <| tabNameIdFormatter id
-
-/// get id of element containing file path
-let tabFilePathIdFormatter = sprintf "file-view-path-%d"
-/// get (invisible)  element containing file path
-let tabFilePath id = getHtml <| tabFilePathIdFormatter id
-/// get the editor window overlay element
-
-//--------------- Simulation Indicator elements----------------------
-
-let darkenOverlay = getHtml "darken-overlay"
-/// get element for status-bar button (and indicator)
-let statusBar = getHtml "status-bar"
-
-/// Set the background of file panes.
-/// This is done based on theme (light or dark) to prevent flicker
-let setFilePaneBackground color =
-    fileViewPane.setAttribute("style", sprintf "background: %s" color)
-
-
 // ***********************************************************************************************
 //                                       Mutable state
 // ***********************************************************************************************
@@ -425,62 +479,16 @@ let currentTabText() =
         Some (textOfTId currentFileTabId)
 
 
-// ***********************************************************************************************
-//                                  Mini DSL for creating DOM objects
-// ***********************************************************************************************
 
-let ELEMENT elName classes (htmlElements: HTMLElement list) =
-    let ele = document.createElement elName
-    ele.classList.add (classes |> List.toArray)
-    List.iter (ele.appendChild >> ignore) htmlElements
-    ele
+let setRegister (id: CommonData.RName) (value: uint32) =
+    let el = register id.RegNum
+    el.innerHTML <- formatter currentRep value
 
-let INNERHTML html (ele:HTMLElement) = (ele.innerHTML <- html) ; ele
-let STYLE (name,value) (ele:HTMLElement) = ele.style.setProperty(name,value) ; ele
+let updateRegisters () =
+    Map.iter setRegister regMap
 
-let ID name (ele:HTMLElement) = (ele.id <- name) ; ele
-let CLICKLISTENER listener (ele:HTMLElement) = (ele.addEventListener_click listener) ; ele
-
-let DIV = ELEMENT "div"
-
-let BR() = document.createElement "br"
-
-let FORM classes contents = 
-    let form = ELEMENT "form" classes contents
-        // disable form submission
-    form.onsubmit <- ( fun _ -> false)
-    form
-
-let TABLE = ELEMENT "table"
-
-let toDOM text = ELEMENT "span" [] [] |> INNERHTML text 
-
-let TROW = ELEMENT "tr" []
-
-let TD x = ELEMENT "td" [] <| [x]
-
-
-let updateClockTime (n:uint64) = getHtml "clock-time" |> INNERHTML (sprintf "%d" n) |> ignore
-
-
-let addFixedToolTips() =
-    let makeTT domID tooltip = 
-        tippy( "#"+domID, createObj <| 
-            [ 
-                "html" ==> tooltip 
-                "hideOnClick" ==> true
-                "interactive" ==> false
-                "arrow" ==> true
-                "arrowType"==> "round"
-                "theme" ==> "dark"
-            ])
-    let makeTextTT htmlID cssClassLst text = makeTT htmlID (ELEMENT "p" cssClassLst [] |> INNERHTML text)
-    makeTextTT "flags" ["tootip-fixed"] "ARM Status bits (Flags) NZCV. <br> Blue indicates that Flag was written by <br> the most recently executed instruction."
-    makeTextTT "clock-symbol" ["tootip-fixed"] "Execution time"
-    makeTextTT "clock-time" ["tootip-fixed"] "Number of <br> Instructions"
-    makeTextTT "BR15" ["tootip-fixed"] "R15 (PC) is the Program Counter <br> It cannot be used as a data register"
-    makeTextTT "BR14" ["tootip-fixed"] "R14 (LR) is the Link Register <br> It can be used as a data register"
-    makeTextTT "BR13" ["tootip-fixed"] "R13 (SP) is the Stack Pointer. <br> It can be used as a data register"
+let resetRegs () =
+    [0..15]
+    |> List.map (fun x -> setRegister (CommonData.register x) 0u)
+    |> ignore
     
-    let makeRegTT regID = makeTextTT  ("B"+regID) ["tootip-fixed"] (sprintf "%s is a data register" regID)
-    List.iter (fun n -> makeRegTT  (sprintf "R%d" n)) [0..12]

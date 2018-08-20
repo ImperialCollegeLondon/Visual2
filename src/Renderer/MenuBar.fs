@@ -17,7 +17,57 @@ open Refs
 open Settings
 open Tabs
 
+(****************************************************************************************************
+ *
+ *                                      MENU OPERATIONS
+ *
+ ****************************************************************************************************)
 
+ /// Load the node Buffer into the specified tab
+let loadFileIntoTab tId (fileData : Node.Buffer.Buffer) =
+    if currentFileTabId = tId then
+        Integration.resetEmulator()
+    let editor = editors.[tId]
+    editor?setValue(fileData.toString("utf8")) |> ignore
+    setTabSaved tId
+
+let openFile () =
+    let options = createEmpty<OpenDialogOptions>
+    options.properties <- ResizeArray(["openFile"; "multiSelections"]) |> Some
+    options.filters <- Files.fileFilterOpts
+    options.defaultPath <- Some vSettings.CurrentFilePath
+    let readPath (path, tId) = 
+        Node.Exports.fs.readFile(path, (fun err data -> // TODO: find out what this error does
+            loadFileIntoTab tId data
+        ))
+        |> ignore
+        tId // Return the tab id list again to open the last one
+
+    let makeTab path =
+        let tId = createNamedFileTab (Files.baseFilePath path) path
+        Files.setTabFilePath tId path
+        (path, tId)
+
+    electron.remote.dialog.showOpenDialog(options)
+    |> Files.resultUndefined ()
+    |> Result.map (fun x -> x.ToArray())
+    |> Result.map Array.toList
+    |> Result.map Files.updateCurrentPathFromList
+    |> Result.map (List.map (makeTab >> readPath))
+    |> Result.map List.last
+    |> Result.map selectFileTab
+    |> ignore
+
+
+let loadDemo () =
+    Tabs.createFileTab()
+    let tId = Refs.currentFileTabId
+    let sampleFileName = Tests.sampleDir + "karatsuba.s"
+    printfn "Reading sample file: %s" sampleFileName
+    Node.Exports.fs.readFile( sampleFileName, (fun _ data -> // TODO: find out what this error does
+            loadFileIntoTab  tId data
+        ))
+    Tabs.setTabSaved tId
 
 
 
@@ -40,6 +90,11 @@ let ExitIfOK() =
         showQuitMessage callback
     else close()
 
+(****************************************************************************************************
+ *
+ *                                  MENU HELPER FUNCTIONS
+ *
+ ****************************************************************************************************)
        
 
 let menuSeparator = 
@@ -72,13 +127,18 @@ let makeMenu (name:string) (table:MenuItemOptions list) =
         |> U2.Case2 |> Some
     subMenu
 
+(****************************************************************************************************
+ *
+ *                                         MENUS
+ *
+ ****************************************************************************************************)
 let fileMenu =
     makeMenu "File" [
             makeItem "New"      (Some "CmdOrCtrl+N")        createFileTab
             menuSeparator
             makeItem "Save"     (Some "CmdOrCtrl+S")        Files.saveFile
             makeItem "Save As"  (Some "CmdOrCtrl+Shift+S")  Files.saveFileAs
-            makeItem "Open"     (Some "CmdOrCtrl+O")        Files.openFile
+            makeItem "Open"     (Some "CmdOrCtrl+O")        openFile
             menuSeparator
             makeItem "Close"    (Some "Ctrl+W")             deleteCurrentTab
             menuSeparator
@@ -130,7 +190,8 @@ let helpMenu =
             makeItem "VisUAL2 web pages" Core.Option.None (runPage <| visualDocsPage "")
             makeItem "Official ARM documentation" Core.Option.None (runPage "http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.ddi0234b/i1010871.html")
             makeItem "Run Emulator Tests" Core.Option.None Tests.runAllEmulatorTests
-            makeItem "Load Complex Demo Code" Core.Option.None Tests.loadDemo
+            makeItem "Load Complex Demo Code" Core.Option.None loadDemo
+            makeItem "Run dev tools FABLE checks" Core.Option.None Playground.check1
             makeItem "About" Core.option.None ( fun () -> 
                 printfn "Directory is:%s" (Stats.dirOfSettings())
                 electron.remote.dialog.showMessageBox (
