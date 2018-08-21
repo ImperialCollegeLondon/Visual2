@@ -27,7 +27,8 @@ let display runMode =
 
    
 
-
+/// Wrap an action so that it can only happen if simulator is stopped.
+/// Converts unit -> unit into obj. Must be called as fun () -> interlock actionName action 
 let interlock (actionName:string) (action: (Unit -> Unit)) = (
         printf "Interlock: runMode=%A" (display runMode)
         match Refs.runMode with
@@ -35,7 +36,8 @@ let interlock (actionName:string) (action: (Unit -> Unit)) = (
         | ExecutionTop.ParseErrorMode -> action() :> obj
         | _ ->  Browser.window.alert (sprintf "Can't %s while simulator is running" actionName) |> ignore :> obj
     )
- 
+ /// Wrap an action so that it can only happen if simulator is stopped.
+ /// Operates on (Unit->Unit) to make (Unit->Unit)
 let interlock1 (actionName:string) (action: (Unit -> Unit)) = ( fun () -> 
         printf "Interlock: runMode=%A" (display runMode)
         match Refs.runMode with

@@ -25,8 +25,7 @@ open MenuBar
 /// 0 => production. 1 => dev. 2 => debug.
 let setDebugLevel() =
     let argV = 
-        //electron.remote.``process``.argv 
-        ["22";"--debug"]
+        electron.remote.``process``.argv 
         |> Seq.toList 
         |> List.tail
         |> List.map (fun s -> s.ToLower())
