@@ -16,6 +16,10 @@
     --editor-font-size: 16pt;
 }
 
+* {
+    -webkit-user-drag: none; /* disable drag and drop */
+}
+
 /* used to animate app and settings windows */
 @keyframes fadein {
     from {

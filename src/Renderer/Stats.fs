@@ -24,7 +24,7 @@ let mutable sleeping: bool = false
  
 
 let dirOfSettings() = 
-    let settingsF = settings?file() :?> string
+    let settingsF = settings?file()
     printfn "SettingsF=%s" settingsF
     let m = String.regexMatchGroups @"(.*[\\\/])([^\\\/]*$)" settingsF
     match m with
@@ -57,11 +57,18 @@ type LogMessage = {
 
 let logMessage (mess:LogMessage): Unit = failwithf "Not yet implemented"
 
-let activityStats e = 
-    if sleeping then
-        logMessage {LogT=Wake;Time=time()}
-        sleeping <- false
-    activity <- true
+
+let activityStats = { 
+    new EventListenerObject with
+    member x.handleEvent _event =
+        if sleeping then
+            logMessage {LogT=Wake;Time=time()}
+            sleeping <- false
+        activity <- true
+    }
+
+    
+    
 
 let pushLogFile() =
     ()
@@ -77,8 +84,8 @@ let checkActivity() =
     pushLogFile()
     
 
-document.addEventListener("mousemove", U2.Case1 activityStats)
-document.addEventListener("keypress", U2.Case1 activityStats)
+document.addEventListener("mousemove", U2.Case2 activityStats)
+document.addEventListener("keypress", U2.Case2 activityStats)
 
 
 

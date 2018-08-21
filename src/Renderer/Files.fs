@@ -137,10 +137,13 @@ let saveFile () =
             writeCurrentCodeToFile path
             setTabSaved (currentFileTabId)
 // Figure out if any of the tabs are unsaved
+
+
 let unsavedFiles () =
     fileTabList
     |> List.map isTabUnsaved
-    |> List.fold (||) false
+    |> List.exists (fun b -> b)
+
 
 let editorFind () =
     let action = editors.[currentFileTabId]?getAction("actions.find")

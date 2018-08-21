@@ -456,7 +456,7 @@ let makeEditorInfoButtonWithTheme theme (clickable:bool) h v (buttonText:string)
         |> ID domID
         |> STYLE ("margin-left",sprintf "%.0fpx" (editorFontWidthRatio * (float h+2.0) * float (int vSettings.EditorFontSize)))
     dom.addEventListener_click( fun _ ->
-        Browser.console.log (sprintf "Clicking button %s" buttonText) |> ignore
+        Browser.console.log (sprintf "Clicking button %s" buttonText) |> (fun _ -> createObj [])
         )
     deleteContentWidget domID // in some cases we may be updating an existing widget
     makeContentWidget domID dom <| Exact(0,v)

@@ -70,6 +70,7 @@ let disableEditors () =
     Refs.fileTabMenu.classList.add("disabled-click")
     Refs.fileTabMenu.onclick <- (fun _ ->
         Browser.window.alert("Cannot change tabs during execution")
+        createObj [] 
     )
     updateEditor Refs.currentFileTabId true
     Refs.darkenOverlay.classList.remove("invisible")
@@ -78,7 +79,7 @@ let disableEditors () =
 // Enable the editor once execution has completed
 let enableEditors () =
     Refs.fileTabMenu.classList.remove("disabled-click")
-    Refs.fileTabMenu.onclick <- ignore
+    Refs.fileTabMenu.onclick <- (fun _ -> createObj [])
     updateEditor Refs.currentFileTabId false
     Refs.darkenOverlay.classList.add([|"invisible"|])
 
@@ -106,7 +107,7 @@ let editorLineDecorate editor number decoration (rangeOpt : ((int*int) option)) 
     let model = editor?getModel()
     let lineWidth = model?getLineMaxColumn(number)
     let posStart = match rangeOpt with | None -> 1 | Some (n,_) -> n
-    let posEnd = match rangeOpt with | None -> lineWidth :?> int | Some (_,n) -> n
+    let posEnd = match rangeOpt with | None -> lineWidth | Some (_,n) -> n
     let newDecs = lineDecoration editor
                     decorations
                     (monacoRange number posStart number posEnd)

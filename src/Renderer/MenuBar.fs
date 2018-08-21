@@ -17,6 +17,35 @@ open Refs
 open Settings
 open Tabs
 
+let display runMode = 
+    match runMode with 
+    | ExecutionTop.ResetMode -> "ResetMode"
+    | ExecutionTop.FinishedMode _ -> "FinishedMode"
+    | ExecutionTop.ActiveMode _ -> "ActiveMode"
+    | ExecutionTop.ParseErrorMode -> "ParseErrorMode"
+    | ExecutionTop.RunErrorMode _ -> "RunErrorMode"
+
+   
+
+
+let interlock (actionName:string) (action: (Unit -> Unit)) = (
+        printf "Interlock: runMode=%A" (display runMode)
+        match Refs.runMode with
+        | ExecutionTop.ResetMode
+        | ExecutionTop.ParseErrorMode -> action() :> obj
+        | _ ->  Browser.window.alert (sprintf "Can't %s while simulator is running" actionName) |> ignore :> obj
+    )
+ 
+let interlock1 (actionName:string) (action: (Unit -> Unit)) = ( fun () -> 
+        printf "Interlock: runMode=%A" (display runMode)
+        match Refs.runMode with
+        | ExecutionTop.ResetMode 
+        | ExecutionTop.ParseErrorMode -> action()
+        | _ -> Browser.window.alert (sprintf "Can't %s while simulator is running" actionName) |> ignore
+        |> ignore
+        ()
+    )
+
 (****************************************************************************************************
  *
  *                                      MENU OPERATIONS
@@ -136,15 +165,15 @@ let ifDebug lst = if Refs.debugLevel > 1 then lst else []
  ****************************************************************************************************)
 let fileMenu() =
     makeMenu "File" [
-            makeItem "New"      (Some "CmdOrCtrl+N")        createFileTab
+            makeItem "New"      (Some "CmdOrCtrl+N")        (interlock1 "make new file" createFileTab)
             menuSeparator
-            makeItem "Save"     (Some "CmdOrCtrl+S")        Files.saveFile
-            makeItem "Save As"  (Some "CmdOrCtrl+Shift+S")  Files.saveFileAs
-            makeItem "Open"     (Some "CmdOrCtrl+O")        openFile
+            makeItem "Save"     (Some "CmdOrCtrl+S")        (interlock1 "save file" Files.saveFile)
+            makeItem "Save As"  (Some "CmdOrCtrl+Shift+S")  (interlock1 "save file" Files.saveFileAs)
+            makeItem "Open"     (Some "CmdOrCtrl+O")        (interlock1 "open file" openFile)
             menuSeparator
-            makeItem "Close"    (Some "Ctrl+W")             deleteCurrentTab
+            makeItem "Close"    (Some "CmdOrCtrl+W")        (interlock1 "close file" deleteCurrentTab)
             menuSeparator
-            makeItem "Quit"     (Some "Ctrl+Q")             ExitIfOK
+            makeItem "Quit"     (Some "CmdOrCtrl+Q")             ExitIfOK
         ]
 
 /// menu action to create a settings tab
@@ -192,10 +221,10 @@ let helpMenu() =
                 makeItem "UAL Instruction Guide" Core.Option.None (runPage <| visualDocsPage "guide#content")
                 makeItem "VisUAL2 web pages" Core.Option.None (runPage <| visualDocsPage "")
                 makeItem "Official ARM documentation" Core.Option.None (runPage "http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.ddi0234b/i1010871.html")           
-                makeItem "Load Complex Demo Code" Core.Option.None loadDemo
+                makeItem "Load Complex Demo Code" Core.Option.None (interlock1 "load code" loadDemo)
             ] @ ifDevel [
-                makeItem "Run dev tools FABLE checks" Core.Option.None Playground.check1
-                makeItem "Run Emulator Tests" Core.Option.None Tests.runAllEmulatorTests
+                makeItem "Run dev tools FABLE checks" Core.Option.None (interlock1 "FABLE checks" Playground.check1)
+                makeItem "Run Emulator Tests" Core.Option.None (interlock1 "run tests" Tests.runAllEmulatorTests)
             ] @
             [
                 makeItem "About" Core.option.None ( fun () -> 
