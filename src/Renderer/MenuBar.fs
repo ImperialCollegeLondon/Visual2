@@ -60,32 +60,37 @@ let loadFileIntoTab tId (fileData : Node.Buffer.Buffer) =
     editor?setValue(fileData.toString("utf8")) |> ignore
     setTabSaved tId
 
-let openFile () =
-    let options = createEmpty<OpenDialogOptions>
-    options.properties <- ResizeArray(["openFile"; "multiSelections"]) |> Some
-    options.filters <- Files.fileFilterOpts
-    options.defaultPath <- Some vSettings.CurrentFilePath
+
+let openListOfFiles (fLst: string list) =
+    let makeTab path =
+        let tId = createNamedFileTab (Files.baseFilePath path) path
+        Files.setTabFilePath tId path
+        (path, tId)
     let readPath (path, tId) = 
         Node.Exports.fs.readFile(path, (fun err data -> // TODO: find out what this error does
             loadFileIntoTab tId data
         ))
         |> ignore
         tId // Return the tab id list again to open the last one
-
-    let makeTab path =
-        let tId = createNamedFileTab (Files.baseFilePath path) path
-        Files.setTabFilePath tId path
-        (path, tId)
-
-    electron.remote.dialog.showOpenDialog(options)
+    fLst
     |> Files.resultUndefined ()
-    |> Result.map (fun x -> x.ToArray())
-    |> Result.map Array.toList
     |> Result.map Files.updateCurrentPathFromList
     |> Result.map (List.map (makeTab >> readPath))
     |> Result.map List.last
     |> Result.map selectFileTab
     |> ignore
+
+let openFile () =
+    let options = createEmpty<OpenDialogOptions>
+    options.properties <- ResizeArray(["openFile"; "multiSelections"]) |> Some
+    options.filters <- Files.fileFilterOpts
+    options.defaultPath <- Some vSettings.CurrentFilePath
+    electron.remote.dialog.showOpenDialog(options)
+    |> Seq.toList
+    |> openListOfFiles
+    
+
+
 
 
 let loadDemo () =
@@ -231,10 +236,10 @@ let helpMenu() =
                     printfn "Directory is:%s" (Stats.dirOfSettings())
                     electron.remote.dialog.showMessageBox (
                           let opts = createEmpty<ShowMessageBoxOptions>
-                          opts.title <- sprintf "Visual2 ARM Simulator v%s" Refs.appVersion |> Some
-                          opts.message <- "(c) 2018, Imperial College" |> Some
+                          opts.title <-  Core.Option.None
+                          opts.message <- sprintf "Visual2 ARM Simulator v%s" Refs.appVersion |> Some
                           opts.detail <- 
-                                "Acknowledgements: Salman Arif (VisUAL), HLP 2018 class" +
+                                "(c) 2018, Imperial College\n\nAcknowledgements: Salman Arif (VisUAL), HLP 2018 class" +
                                 " (F# reimplementation), with special mention to Thomas Carrotti," +
                                 " Lorenzo Silvestri, and HLP Team 10" |> Some
                           opts

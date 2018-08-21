@@ -18,6 +18,7 @@ open Fable.Import.Browser
 Browser.console.log "Hi from renderer.fs" |> ignore
 
 open Refs
+open MenuBar
 
 /// Hack to provide a constant global variable
 /// set from command line arguments of main process.
@@ -138,6 +139,18 @@ let handlePreventDefault = { new EventListenerObject with
     member x.handleEvent (e: Event) = e.preventDefault()
 }
 
+
+let handleDrop = { new EventListenerObject with
+    member x.handleEvent (e: Event) = 
+        e.preventDefault()
+        let files = (e :?> DragEvent).dataTransfer.files
+        let num  = (files.length |> int)
+        let paths =
+                [0..num-1]
+                |> List.map (fun s-> files.[s]?path)
+        interlock "open files" (fun () -> openListOfFiles paths) |> ignore      
+}
+
 document.addEventListener("monaco-ready", U2.Case2 handleMonacoReady)
 document.addEventListener("dragover", U2.Case2 handlePreventDefault)
-document.addEventListener("drop", U2.Case2 handlePreventDefault)
+document.addEventListener("drop", U2.Case2 handleDrop)
