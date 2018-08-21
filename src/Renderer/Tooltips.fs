@@ -134,11 +134,11 @@ let arrowMarker mId color =
                     !!("markerWidth","5");
                     !!("markerHeight","5");
                     !!("refX","0");
-                    !!("refY","1.5");
+                    !!("refY","2.5");
                     !!("orient","auto");
                     !!("markerUnits","strokeWidth")
                     SVGAttr.Stroke color
-                ] [ path [ D "M0,0 L0,3 L4.5,1.5 z"; SVGAttr.Fill color] [] ]
+                ] [ path [ D "M0,1 L0,4 L4.5,2.5 z"; SVGAttr.Fill color] [] ]
             ]
 
 /// Include all markers used here for SVG diagrams
@@ -149,9 +149,9 @@ let svgMarkerDefs() =
         arrowMarker "arrowHead-red" "red"
         ]
 
-/// Draw arrow from (x1,y1) to (x2,y2) of given color
-let arrow color (x1,y1) (x2,y2) =
-    let head = 1.
+/// Draw arrow from (x1,y1) to (x2,y2) of given color and width
+let arrowV width color (x1,y1) (x2,y2) =
+    let head = width * 5.
     let al = sqrt((x1-x2)**2. + (y1-y2)**2.)
     let headX = head * (x2-x1) / al
     let headY = head * (y2-y1) / al
@@ -161,10 +161,12 @@ let arrow color (x1,y1) (x2,y2) =
             Y1  (fS y1); 
             X2 (fS (x2-headX)); 
             Y2  (fS (y2-headY)); 
-            SVGAttr.StrokeWidth (fS (head/5.));  
+            SVGAttr.StrokeWidth (fS width);  
             SVGAttr.Stroke color; 
             SVGAttr.MarkerEnd (sprintf "url(#arrowHead-%s)" color)
          ] []
+/// draw a normal size arrow
+let arrow color (x1,y1) (x2,y2) = arrowV 0.2 color (x1,y1) (x2,y2)
 
 /// Draw a curve with an arrow at the end
 let arrowCurve pathCmds =
@@ -204,11 +206,20 @@ let svgText alignX alignY txtClass posX posY txt =
     ] [ ofString txt ]
 
 /// Draw text with LHS middle alignment
-let labelText = svgText "left" "middle"
+let labelText = svgText "end" "middle"
 
 /// Draw text with middle bottom alignment
 let colText = svgText "middle" "bottom"
 
+let textLines textOut xPos yPos lineV lines =
+    svgEl "g" [] (
+        lines
+        |> List.indexed
+        |> List.map (fun (i,txt) -> yPos + (float i)*lineV, txt)
+        |> List.map (fun (yP,txt) -> textOut xPos yP txt)
+        )
+
+ 
 /// Draw a set of 32 horizontally aligned boxes with bits inside as a register
 let register boxClass txtClass (boxW,boxH) (posX,posY) (bits:int list) =
     let box xp yp b =
@@ -231,16 +242,16 @@ let makeHtmlFromSVG re =
     ele
 
 /// Generate an SVG diagram for shifts as HTML DOM
-let displayShiftDiagram rn (beforeNum, beforeC) (op2Num, op2C, finalC, writeC, alu) (shiftT: DP.ArmShiftType option) shiftNum =
+let displayShiftDiagram rn (beforeNum, beforeC) (op2Num, (rDest,destNum), op2C, finalC, writeC, alu) (shiftT: DP.ArmShiftType option) shiftNum =
     let boxW,boxH = 2.7, 2.7
-    let posX,posY = 30., 5.
-    let posLabX = 20.
+    let posX,posY = 30., 3.
+    let posLabX = 29.
     let aluW,aluH = 20.,10.
     let posAluX = posX + boxW*16. - aluW/2.
-    let posAluY = posY + 50.
+    let posAluY = posY + 45.
     let sepY = 35.
-    let sepY' = posAluY + aluH/2. - boxH/2. - posY
-    let carryNX = 7
+    let sepY' = posAluY + aluH + 7. - posY
+    let carryNX = 8
     let posCX = posX - (float carryNX)*boxW
     let boxClass = "tooltip-shift-reg-box"
     let carryBoxClass = "tooltip-shift-carry-box"
@@ -296,22 +307,31 @@ let displayShiftDiagram rn (beforeNum, beforeC) (op2Num, op2C, finalC, writeC, a
                 ]
 
     svg
-        [ ViewBox "0 0 120 80"; unbox ("width", "800px") ] (
+        [ ViewBox "0 0 120 70"; unbox ("width", "800px") ] (
         [      
             svgMarkerDefs() // used to define arrow heads
             carryBox posY beforeC
-            carryBox (posY+sepY) op2C
+            carryBox (posY+sepY) (if writeC then op2C else beforeC)
+            textLines (labelText txtClass) (posCX - 2.) (posY - 2. + sepY + boxH/2.) 2. ["Shift";"bit"; "out"]
             carryBox (posY+sepY') finalC
             svgIfTrue (not writeC) [arrow' "red" -carryNX -carryNX]
             svgIfTrue (not (alu && writeC)) [arrow "red" (boxW/2. + posCX, posY+sepY+boxH) (boxW/2. + posCX, posY+sepY')]
             svgIfTrue (alu && writeC) [arrow "red" (posAluX, posAluY+aluH/2.) (posCX+boxW, posY+sepY'+boxH/2.)]
             textInBox (aluW,aluH) boxClass aluTxtClass (posAluX,posAluY) "ALU"
+            svgText "start" "middle" txtClass (posAluX+0.3)(posAluY+aluH/2.) "Cout"
+            arrowV 0.5 "black" (posAluX+aluW/2., posAluY+aluH) (posAluX+aluW/2., posAluY+aluH+6.)
+            arrowV 0.5 "black" (posAluX+aluW/2., posAluY-6.) (posAluX+aluW/2., posAluY)
+            arrowV 0.5 "black" (posAluX+aluW+6., posAluY+aluH/2.) (posAluX+aluW, posAluY+aluH/2.) 
+            svgText "start" "middle" txtClass (posAluX+aluW + 7.) (posAluY+aluH/2.) "Operand 1"
             reg (posX,posY) (getBits (beforeNum |> int))
             reg (posX,posY+sepY) (getBits op2Num)
-            makeLabel (posY + boxH/2.) "In"
-            makeLabel (posY + sepY + boxH/2.) "Op2"
-            makeLabel (posY + sepY' + boxH/2.) "Out"
+            reg (posX, posY+sepY') (getBits destNum)
+            svgIfTrue (rDest <> "") [reg (posX,posY+sepY') (getBits destNum)]
+            makeLabel (posY + boxH/2.) (rn.ToString())
+            makeLabel (posY + sepY + boxH/2.) "Operand 2"
+            makeLabel (posY + sepY' + boxH/2.) (sprintf "ALU out (%s)" rDest)
             colText txtClass (posCX + boxW/2.) (posY - 1.) "C"
+            colText txtClass (posCX - 2.) (posY + sepY' + 0.2 + boxH/2.) "C"
         ] @ arrows)       
     |> makeHtmlFromSVG
 
@@ -480,10 +500,11 @@ let makeShiftTooltip (h,v) (dp:DataPath, dpAfter:DataPath, uFAfter:DP.UFlags) (r
     let before = dp.Regs.[rn]|> uint64 |> int64 |> int32
     let (after,uF) = DP.evalOp2 op2 dp 
     let finalC = bToi dpAfter.Fl.C
+    let final = match uFAfter.RegU with | [rd] -> rd.ToString(), (dpAfter.Regs.[rd] |> int) | _ -> "",0
     let finalFWrite = uFAfter.CU
     let after' = after |> uint64 |> int64 |> int32
     printfn "Making shift tooltip"
-    let diagram = displayShiftDiagram rn (before |> uint32, bToi dp.Fl.C) (after', bToi uF.Ca, finalC, finalFWrite, alu) shiftT (shiftAmt |> int)
+    let diagram = displayShiftDiagram rn (before |> uint32, bToi dp.Fl.C) (after', final, bToi uF.Ca, finalC, finalFWrite, alu) shiftT (shiftAmt |> int)
     makeEditorInfoButtonWithTheme "light" lineTipsClickable h (v+1) "Shift" diagram
     
     
