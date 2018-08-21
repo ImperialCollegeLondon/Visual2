@@ -8,18 +8,12 @@
 /// F# References to static parts of renderer DOM
 module Refs
 open CommonData
-
-open System
 open Fable.Core
 open Fable.Core.JsInterop
 open Fable.Import
 open Fable.Import.Browser
 open Microsoft.FSharp.Collections
 open Node.Exports
-open Elmish.React
-open Fable.Helpers
-open Fable.Helpers.React
-open Fable.Helpers.React.Props
 open EEExtensions
 
 
@@ -27,7 +21,7 @@ open EEExtensions
 //                                  App Version 
 // **********************************************************************************
 
-let appVersion = "0.14"
+let appVersion = "0.14.1"
 
 // **********************************************************************************
 //                               Types used in this module
@@ -460,6 +454,10 @@ let mutable displayedSymbolMap : Map<string, uint32*ExecutionTop.SymbolType> = M
 
 /// Current state of simulator
 let mutable runMode: ExecutionTop.RunMode = ExecutionTop.ResetMode
+
+/// Global debug level set from main process.
+/// 0 => production. 1 => development. 2 => debug parameter.
+let mutable debugLevel = 0
 
 /// Return the text in tab id tId as a string
 let getCode tId =

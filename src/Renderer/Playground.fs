@@ -7,6 +7,11 @@
 
 module Playground
 
+open Fable.Core
+open Fable.Core.JsInterop
+open Fable.Import
+open Fable.Import.Browser
+
 // Check uint32 vs int32
 
 let intLst = [0..31] |> List.map (fun n -> 1 <<< n)
@@ -18,7 +23,8 @@ let checkConvert (n:uint32) =
     let x = n |> int32
     let n' = x |> uint32
     if n <> n' then printfn "Error for n = %x (%d), n |> uint32 = %x (%d), |> uint32 |> int32 = %x (%d)" n n x x n' n'
-    
+
+
 
 let check1() =
     printfn "Check 1 started"
