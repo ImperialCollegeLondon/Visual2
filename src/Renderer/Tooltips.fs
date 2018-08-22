@@ -248,8 +248,8 @@ let displayShiftDiagram rn (beforeNum, beforeC) (op2Num, (rDest,destNum), op2C, 
     let posLabX = 29.
     let aluW,aluH = 20.,10.
     let posAluX = posX + boxW*16. - aluW/2.
-    let posAluY = posY + 45.
-    let sepY = 35.
+    let posAluY = posY + 35.
+    let sepY = 25.
     let sepY' = posAluY + aluH + 7. - posY
     let carryNX = 8
     let posCX = posX - (float carryNX)*boxW
@@ -307,7 +307,7 @@ let displayShiftDiagram rn (beforeNum, beforeC) (op2Num, (rDest,destNum), op2C, 
                 ]
 
     svg
-        [ ViewBox "0 0 120 70"; unbox ("width", "800px") ] (
+        [ ViewBox "0 0 120 70"; unbox ("width", "700px") ] (
         [      
             svgMarkerDefs() // used to define arrow heads
             carryBox posY beforeC

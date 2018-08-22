@@ -19,14 +19,14 @@ let getBit n = (1u <<< n)
 
 
 
-let checkConvert (n:uint32) =
-    let x = n |> int32
-    let n' = x |> uint32
-    if n <> n' then printfn "Error for n = %x (%d), n |> uint32 = %x (%d), |> uint32 |> int32 = %x (%d)" n n x x n' n'
+let checkConvert () =
+    let xs = (1 <<< 31) 
+    let xu = (1u <<< 31)
+    printfn "(1 <<< 31) signed: %x (%d); (1 <<< 31) unsigned: %x (%d)" xs xs xu xu
 
 
 
 let check1() =
     printfn "Check 1 started"
-    checkConvert (getBit 31)
+    checkConvert()
     printfn "Check 1 finished"
