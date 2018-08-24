@@ -7,7 +7,7 @@
 
 /// implement menu functions
 module MenuBar
-
+open EEExtensions
 open Fable.Core
 open Fable.Core.JsInterop
 open Fable.Import
@@ -66,21 +66,24 @@ let loadFileIntoTab tId (fileData : Node.Buffer.Buffer) =
 let openListOfFiles (fLst: string list) =
     let makeTab path =
         let tId = createNamedFileTab (Files.baseFilePath path) path
-        Files.setTabFilePath tId path
+        (fun tId -> Files.setTabFilePath tId path) |> ignore
         (path, tId)
     let readPath (path, tId) = 
         Node.Exports.fs.readFile(path, (fun err data -> // TODO: find out what this error does
             loadFileIntoTab tId data
+            Files.setTabFilePath tId path
         ))
         |> ignore
-        tId // Return the tab id list again to open the last one
+        [tId]
+    if debugLevel > 0 then printfn "File list to open is: %A" fLst
     fLst
     |> Files.resultUndefined ()
     |> Result.map Files.updateCurrentPathFromList
+    |> Result.map (List.map (fun p -> Files.filterBadName false p) >> List.concat)
     |> Result.map (List.map (makeTab >> readPath))
-    |> Result.map List.last
-    |> Result.map selectFileTab
-    |> ignore
+    |> Result.map List.concat
+    |> Result.map (function | tId :: _ ->  selectFileTab tId; () | [] -> ())
+
 
 let openFile () =
     let options = createEmpty<OpenDialogOptions>
@@ -90,6 +93,7 @@ let openFile () =
     electron.remote.dialog.showOpenDialog(options)
     |> Seq.toList
     |> openListOfFiles
+    |> ignore
     
 
 
@@ -97,13 +101,13 @@ let openFile () =
 
 let loadDemo () =
     Tabs.createFileTab()
-    let tId = Refs.currentFileTabId
-    let sampleFileName = Tests.sampleDir + "karatsuba.s"
-    printfn "Reading sample file: %s" sampleFileName
-    Node.Exports.fs.readFile( sampleFileName, (fun _ data -> // TODO: find out what this error does
+    |> fun tId ->
+        let sampleFileName = Tests.sampleDir + "karatsuba.s"
+        printfn "Reading sample file: %s" sampleFileName
+        Node.Exports.fs.readFile( sampleFileName, (fun _ data -> // TODO: find out what this error does
             loadFileIntoTab  tId data
         ))
-    Tabs.setTabSaved tId
+        Tabs.setTabSaved tId
 
 
 
@@ -172,11 +176,11 @@ let ifDebug lst = if Refs.debugLevel > 1 then lst else []
  ****************************************************************************************************)
 let fileMenu() =
     makeMenu "File" [
-            makeItem "New"      (Some "CmdOrCtrl+N")        (interlock1 "make new file" createFileTab)
+            makeItem "New"      (Some "CmdOrCtrl+N")        (interlock1 "make new file tab" (createFileTab >> ignore))
             menuSeparator
             makeItem "Save"     (Some "CmdOrCtrl+S")        (interlock1 "save file" Files.saveFile)
             makeItem "Save As"  (Some "CmdOrCtrl+Shift+S")  (interlock1 "save file" Files.saveFileAs)
-            makeItem "Open"     (Some "CmdOrCtrl+O")        (interlock1 "open file" openFile)
+            makeItem "Open"     (Some "CmdOrCtrl+O")        (interlock1 "open file" (openFile >> ignore))
             menuSeparator
             makeItem "Close"    (Some "CmdOrCtrl+W")        (interlock1 "close file" deleteCurrentTab)
             menuSeparator

@@ -7,7 +7,7 @@
 
 /// integrate emulator code with renderer
 module Integration
-
+open EEExtensions
 open Tabs
 open Views
 open CommonData
@@ -19,6 +19,7 @@ open Editors
 
 open Fable.Core.JsInterop
 open Fable.Import
+open Fable.PowerPack.Keyboard
 
 /// Number of execution steps before checking if button has been pressed
 /// and updating displayed state
@@ -236,9 +237,21 @@ let tryParseAndIndentCode tId =
     | {Errors=[]} as lim -> 
         //Browser.console.log(sprintf "%A" lim)
         let editor = editors.[tId]
-        let newCode = String.concat "\n" lim.Source
-        if Refs.getCode tId <> newCode then 
-            (editor?setValue newCode) |> ignore
+        let trimmed line = String.trimEnd [|'\r';'\n'|] line
+        let newCode = List.map trimmed lim.Source
+        let oldCode = List.map trimmed (Refs.textOfTId tId)
+        if oldCode <> newCode then 
+            if debugLevel > 0 then
+                if oldCode.Length <> newCode.Length then
+                    printfn "Lengths of indented and old code do not match!"
+                else 
+                    let changedLines = 
+                        List.zip oldCode newCode
+                        |> List.indexed
+                        |> List.filter (fun (i,(o,n)) -> o <> n)
+                    printf "Differences: %A" changedLines
+
+            (editor?setValue (String.concat "\n" newCode)) |> ignore
         (lim, lim.Source) |> Some
     | lim -> 
         let processParseError (pe, lineNo, opCode) =

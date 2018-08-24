@@ -460,7 +460,7 @@ let mutable runMode: ExecutionTop.RunMode = ExecutionTop.ResetMode
 let mutable debugLevel = 0
 
 /// Return the text in tab id tId as a string
-let getCode tId =
+let getCode tId :string =
     if tId < 0 then failwithf "No current Editor!"
     let editor = editors.[tId]
     editor?getValue() 

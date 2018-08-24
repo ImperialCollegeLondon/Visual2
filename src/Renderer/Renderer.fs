@@ -115,14 +115,13 @@ let init () =
 
     (Refs.newFileTab).addEventListener_click(fun _ ->
         Browser.console.log "Creating a new file tab" |> ignore
-        MenuBar.interlock "create a new tab" Tabs.createFileTab 
-    )
+        MenuBar.interlock "create a new tab" (fun () -> Tabs.createFileTab() |> ignore))
 
     // create electron menus
     MenuBar.mainMenu()
 
     // Create an empty tab to start with
-    Tabs.createFileTab ()
+    Tabs.createFileTab () |> ignore
     printfn "Ending renderer init"
     vSettings <- checkSettings (getJSONSettings())
     Editors.updateAllEditors false
@@ -147,7 +146,7 @@ let handleDrop = { new EventListenerObject with
         let paths =
                 [0..num-1]
                 |> List.map (fun s-> files.[s]?path)
-        interlock "open files" (fun () -> openListOfFiles paths) |> ignore      
+        interlock "open files" (fun () -> openListOfFiles paths |> ignore) |> ignore      
 }
 
 document.addEventListener("monaco-ready", U2.Case2 handleMonacoReady)

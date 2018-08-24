@@ -44,6 +44,7 @@ let setTabFilePath id path =
  
 let getTabFilePath id =
     let fp = (tabFilePath id)
+    printfn "Tabpath of %d is %s" id fp.innerHTML
     fp.innerHTML
 /// get file name and extension from path
 let baseFilePath (path : string) =
@@ -92,7 +93,24 @@ let updateCurrentPathFromList (res : string list) =
 
 let writeCurrentCodeToFile path = (Refs.writeToFile (getCode currentFileTabId) path)
 
-let saveFileAs () =
+let filterBadName isSave path =
+    path
+    |> (String.split [|'\\';'/'|])
+    |> Array.toList
+    |> function 
+        | [] -> []
+        | pl -> List.last pl |> (fun name -> 
+            if name = "Untitled.s" 
+            then 
+                Browser.window.alert (
+                    if isSave then 
+                        "Can't save 'Untitled.s'- choose another name"
+                    else  "Can't open file 'Untitled.s'. rename file to open it" 
+                [] 
+            else [path])
+     
+
+let rec saveFileAs () =
     // Don't do anything if the user tries to save as the settings tab
     match settingsTab with
     | Some x when x = currentFileTabId -> ()
@@ -112,9 +130,17 @@ let saveFileAs () =
         let resultIter op x =
             Result.map op x |> ignore
             x
+        let filterUntitled res =
+            match res with
+            | Result.Ok path -> 
+                match filterBadName true path with
+                | [] -> Result.Error (saveFileAs(); "")
+                | [path] -> Result.Ok path
+                | _ -> failwithf "What? multiple paths not allowed"
 
         result
         |> resultUndefined ()
+        |> filterUntitled
         |> resultIter writeCurrentCodeToFile
         |> resultIter (setTabFilePath currentFileTabId)
         |> resultIter updateCurrentPath

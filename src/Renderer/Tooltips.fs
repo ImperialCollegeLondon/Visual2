@@ -301,13 +301,13 @@ let displayShiftDiagram rn (beforeNum, beforeC) (op2Num, (rDest,destNum), op2C, 
             | None -> // RRX
                 [
                     svgIfTrue writeC [arrow' "red" 31 (-carryNX)]
-                    svgIfTrue writeC [arrow' "red" (-carryNX) 0]
+                    arrow' "red" (-carryNX) 0
                     arrowSet 0 1 31
 
                 ]
 
     svg
-        [ ViewBox "0 0 120 70"; unbox ("width", "700px") ] (
+        [ ViewBox "0 0 120 59"; unbox ("width", "700px") ] (
         [      
             svgMarkerDefs() // used to define arrow heads
             carryBox posY beforeC
