@@ -105,7 +105,7 @@ let filterBadName isSave path =
                 Browser.window.alert (
                     if isSave then 
                         "Can't save 'Untitled.s'- choose another name"
-                    else  "Can't open file 'Untitled.s'. rename file to open it" 
+                    else  "Can't open file 'Untitled.s'. rename file to open it") 
                 [] 
             else [path])
      
@@ -134,9 +134,10 @@ let rec saveFileAs () =
             match res with
             | Result.Ok path -> 
                 match filterBadName true path with
-                | [] -> Result.Error (saveFileAs(); "")
+                | [] -> Result.Error (saveFileAs(); ())
                 | [path] -> Result.Ok path
                 | _ -> failwithf "What? multiple paths not allowed"
+            | e -> e
 
         result
         |> resultUndefined ()

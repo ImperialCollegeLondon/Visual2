@@ -45,8 +45,9 @@ let editorOptions (readOnly:bool) =
 
 
 let updateEditor tId readOnly =
-    let eo = editorOptions readOnly
-    Refs.editors.[tId]?updateOptions(eo) |> ignore
+    if tId <> -1 then
+        let eo = editorOptions readOnly
+        Refs.editors.[tId]?updateOptions(eo) |> ignore
 
 let setTheme theme = 
     window?monaco?editor?setTheme(theme)
@@ -100,8 +101,9 @@ let removeDecorations _editor _decorations =
 
 // Remove all text decorations associated with an editor
 let removeEditorDecorations tId =
-    List.iter (fun x -> removeDecorations Refs.editors.[tId] x) decorations
-    decorations <- []
+    if tId <> -1 then 
+        List.iter (fun x -> removeDecorations Refs.editors.[tId] x) decorations
+        decorations <- []
 
 let editorLineDecorate editor number decoration (rangeOpt : ((int*int) option)) =
     let model = editor?getModel()
@@ -211,7 +213,6 @@ let toolTipInfo (v: int) (dp: DataPath) ({Cond=cond;InsExec=instruction;InsOpCod
         | Error _ -> ()
         | Ok res -> 
             let TROWS s = 
-                printfn "ROW=%A" s
                 (List.map (fun s -> s |> toDOM |> TD) >> TROW) s
             let memStackInfo (ins: Memory.InstrMemMult) (dir: MemDirection) (dp: DataPath) =
                 let sp = dp.Regs.[ins.Rn] |> int64 |> uint64 |> uint32

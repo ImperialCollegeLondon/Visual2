@@ -354,23 +354,27 @@ let prepareModeForExecution() =
 /// Parses and runs the assembler program in the current tab
 /// Aborts after steps instructions, unless steps is 0
 let runEditorTab steps =
-    prepareModeForExecution()
-    match runMode with
-    | ResetMode
-    | ParseErrorMode _ ->
-        let tId = currentFileTabId
-        removeEditorDecorations tId
-        match tryParseAndIndentCode tId with
-        | Some (lim, _) -> 
-            disableEditors()
-            let ri = lim |> getRunInfoFromImage
-            setCurrentModeActiveFromInfo RunState.Running ri
-            asmStepDisplay steps ri
-        | _ -> ()
-    | ActiveMode (RunState.Paused,ri) -> asmStepDisplay  (steps + ri.StepsDone) ri
-    | ActiveMode _
-    | RunErrorMode _ 
-    | FinishedMode _ -> ()
+    if currentFileTabId = -1 then 
+        Browser.window.alert "No file tab in editor to run!"
+        ()
+    else
+        prepareModeForExecution()
+        match runMode with
+        | ResetMode
+        | ParseErrorMode _ ->
+            let tId = currentFileTabId
+            removeEditorDecorations tId
+            match tryParseAndIndentCode tId with
+            | Some (lim, _) -> 
+                disableEditors()
+                let ri = lim |> getRunInfoFromImage
+                setCurrentModeActiveFromInfo RunState.Running ri
+                asmStepDisplay steps ri
+            | _ -> ()
+        | ActiveMode (RunState.Paused,ri) -> asmStepDisplay  (steps + ri.StepsDone) ri
+        | ActiveMode _
+        | RunErrorMode _ 
+        | FinishedMode _ -> ()
 
 
 /// Top-level simulation execute
