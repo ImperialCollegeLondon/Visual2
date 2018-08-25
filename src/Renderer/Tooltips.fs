@@ -248,8 +248,8 @@ let displayShiftDiagram rn (beforeNum, beforeC) (op2Num, (rDest,destNum), op2C, 
     let posLabX = 29.
     let aluW,aluH = 20.,10.
     let posAluX = posX + boxW*16. - aluW/2.
-    let posAluY = posY + 45.
-    let sepY = 35.
+    let posAluY = posY + 35.
+    let sepY = 25.
     let sepY' = posAluY + aluH + 7. - posY
     let carryNX = 8
     let posCX = posX - (float carryNX)*boxW
@@ -301,13 +301,13 @@ let displayShiftDiagram rn (beforeNum, beforeC) (op2Num, (rDest,destNum), op2C, 
             | None -> // RRX
                 [
                     svgIfTrue writeC [arrow' "red" 31 (-carryNX)]
-                    svgIfTrue writeC [arrow' "red" (-carryNX) 0]
+                    arrow' "red" (-carryNX) 0
                     arrowSet 0 1 31
 
                 ]
 
     svg
-        [ ViewBox "0 0 120 70"; unbox ("width", "800px") ] (
+        [ ViewBox "0 0 120 59"; unbox ("width", "700px") ] (
         [      
             svgMarkerDefs() // used to define arrow heads
             carryBox posY beforeC
@@ -456,7 +456,7 @@ let makeEditorInfoButtonWithTheme theme (clickable:bool) h v (buttonText:string)
         |> ID domID
         |> STYLE ("margin-left",sprintf "%.0fpx" (editorFontWidthRatio * (float h+2.0) * float (int vSettings.EditorFontSize)))
     dom.addEventListener_click( fun _ ->
-        Browser.console.log (sprintf "Clicking button %s" buttonText) |> ignore
+        Browser.console.log (sprintf "Clicking button %s" buttonText) |> (fun _ -> createObj [])
         )
     deleteContentWidget domID // in some cases we may be updating an existing widget
     makeContentWidget domID dom <| Exact(0,v)

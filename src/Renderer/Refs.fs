@@ -21,7 +21,7 @@ open EEExtensions
 //                                  App Version 
 // **********************************************************************************
 
-let appVersion = "0.14.1"
+let appVersion = "0.14.4"
 
 // **********************************************************************************
 //                               Types used in this module
@@ -65,7 +65,7 @@ let INNERHTML html (ele:HTMLElement) = (ele.innerHTML <- html) ; ele
 let STYLE (name,value) (ele:HTMLElement) = ele.style.setProperty(name,value) ; ele
 
 let ID name (ele:HTMLElement) = (ele.id <- name) ; ele
-let CLICKLISTENER listener (ele:HTMLElement) = (ele.addEventListener_click listener) ; ele
+let CLICKLISTENER (listener:unit->unit) (ele:HTMLElement) = (ele.addEventListener_click (fun _ -> listener() |> ignore; createObj []))  ; ele
 
 let DIV = ELEMENT "div"
 
@@ -74,7 +74,7 @@ let BR() = document.createElement "br"
 let FORM classes contents = 
     let form = ELEMENT "form" classes contents
         // disable form submission
-    form.onsubmit <- ( fun _ -> false)
+    form.onsubmit <- ( fun _ -> false :> obj)
     form
 
 let TABLE = ELEMENT "table"
@@ -322,7 +322,7 @@ let setJSONSettings() =
 
 
 let getJSONSettings() = 
-    let json = settings?get("JSON", "undefined") :?> string
+    let json = settings?get("JSON", "undefined") 
     printfn "Getting settings"
     match json = "undefined" with
     | true ->
@@ -460,10 +460,10 @@ let mutable runMode: ExecutionTop.RunMode = ExecutionTop.ResetMode
 let mutable debugLevel = 0
 
 /// Return the text in tab id tId as a string
-let getCode tId =
+let getCode tId :string =
     if tId < 0 then failwithf "No current Editor!"
     let editor = editors.[tId]
-    editor?getValue() :?> string
+    editor?getValue() 
 
 /// Return list of lines in editor tab tId
 let textOfTId tId =

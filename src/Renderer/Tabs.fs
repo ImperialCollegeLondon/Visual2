@@ -211,32 +211,23 @@ let findNamedFile (name:string) =
         path.Split [| '/' ; '\\'|]
         |> Array.toList
         |> List.map String.toLower
-
-    Refs.fileTabList
-    |> List.map (fun id -> (Refs.tabFilePath id).innerText, id)
-    |> List.tryFind (fun (path,_) -> 
-        normalisePath path = normalisePath name)
-    |> Core.Option.map (fun (_,id) -> id)
+    if name = "Untitled.s" || name = "" then Core.Option.None
+    else
+        Refs.fileTabList
+        |> List.map (fun id -> (Refs.tabFilePath id).innerText, id)
+        |> List.tryFind (fun (path,_) -> 
+            normalisePath path = normalisePath name)
+        |> Core.Option.map (fun (_,id) -> id)
     
-let createNamedFileTab fName fPath=
-    let unusedTab = 
-        Refs.fileTabList 
-        |> List.filter (fun tid -> getTabName tid = "Untitled.s")
-    match findNamedFile fPath, unusedTab with
-    | Some id,_ -> 
+let createNamedFileTab fName fPath =
+    match findNamedFile fPath with
+    | Some id -> 
         // Return existing tab id
         printfn "Found tab %A" id
         selectFileTab id
-        id 
-    | _, [tId] ->
-        printfn "Found unused tab %A" tId
-        selectFileTab tId
-        (Refs.fileTabName tId).innerHTML <- fName
-        (Refs.tabFilePath tId).innerHTML <- fPath
-        tId   
-    | Option.None, _ -> 
+        id
+    | Option.None -> 
         let id = createTab fName
-
         let addEditor (fv ) =
             let editor = window?monaco?editor?create(fv, Editors.editorOptions false)   
                     // Whenever the content of this editor changes
@@ -255,7 +246,7 @@ let createNamedFileTab fName fPath=
 
 let createFileTab () = 
     createNamedFileTab "Untitled.s" ""
-    |> selectFileTab // Switch to the tab we just created
+    |> (fun tId -> selectFileTab tId ; tId) // Switch to the tab we just created
 
 let deleteCurrentTab () =
     match Refs.currentFileTabId >= 0 with
