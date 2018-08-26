@@ -36,15 +36,6 @@ let fstOf3 (x,_,_) = x
 let dpAndInfo (dp,_,dpi) = dp,dpi
 
 
-/// Generate the hover error box.
-/// Decorate the line with error indication.
-/// The text generated is full GH markdown.
-let makeHover tId lineNo opc (linkOpt, lines, gLines) =
-    let mLink = Refs.visualDocsPage linkOpt
-    makeErrorInEditor tId lineNo (
-        lines @ 
-        [ sprintf "[more](%s)" mLink ])  gLines   
-
 /// Process an editor line parse error. Generate a hover message and line decoration. Set Parse Error Mode
 let highlightErrorParse ((err:ParseError), lineNo) tId opc = 
     let ML = EEExtensions.String.split [|'\n'|] >> Array.toList
@@ -52,7 +43,7 @@ let highlightErrorParse ((err:ParseError), lineNo) tId opc =
     let (gHover,range) =
         if opc <> "" then
             ErrorDocs.getOpcHover "" opc codeLines.[lineNo-1]
-        else ([||], (1,1))
+        else ([], (1,1))
     let link, hover = 
         match err with
         | ``Invalid syntax`` (wanted, found, page) ->
@@ -72,7 +63,10 @@ let highlightErrorParse ((err:ParseError), lineNo) tId opc =
         | ``Unimplemented instruction`` opcode ->
             "", sprintf "%s is not a valid UAL instruction" opcode |> ML
     let gLink = [ sprintf "[UAL Guide](%s)" (visualDocsPage "list") ]
-    makeHover tId lineNo opc (link, hover, (gHover |> Array.toList) @ gLink)
+    let mLink = [ sprintf "[more](%s)" (Refs.visualDocsPage link) ]
+    let mHover = hover @ ["More: see \u26a0"]
+    makeErrorInEditor tId lineNo mHover  (gHover @ hover @ mLink @ gLink)
+
     setMode ParseErrorMode
 
 /// Make map of all data memory locs
