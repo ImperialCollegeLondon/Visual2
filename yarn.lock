@@ -1365,9 +1365,9 @@ electron-tabs@^0.9.1:
   version "0.9.1"
   resolved "https://registry.yarnpkg.com/electron-tabs/-/electron-tabs-0.9.1.tgz#23ae6199b0c4cec12698ee1e0b7172ced42951e9"
 
-electron@1.8.8:
-  version "1.8.8"
-  resolved "https://registry.yarnpkg.com/electron/-/electron-1.8.8.tgz#a90cddb075291f49576993e6f5c8bb4439301cae"
+electron@2.0.8:
+  version "2.0.8"
+  resolved "https://registry.yarnpkg.com/electron/-/electron-2.0.8.tgz#6ec7113b356e09cc9899797e0d41ebff8163e962"
   dependencies:
     "@types/node" "^8.0.24"
     electron-download "^3.0.1"
