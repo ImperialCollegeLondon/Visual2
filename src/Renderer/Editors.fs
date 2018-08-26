@@ -140,11 +140,14 @@ let highlightGlyph tId number glyphClassName =
 let highlightNextInstruction tId number =
     highlightGlyph tId number "editor-glyph-margin-arrow"
 
-/// Decorate a line with an error indication and set up a hover message
-/// Distinct message lines must be elements of markdownLst
-/// markdownLst: string list - list of markdown paragraphs
-/// tId: int - tab identifier
-/// lineNumber: int - line to decorate, starting at 1
+/// <summary>
+/// Decorate a line with an error indication and set up a hover message.
+/// Distinct message lines must be elements of markdownLst.
+/// markdownLst: string list - list of markdown paragraphs.
+/// tId: int - tab identifier.
+/// lineNumber: int - line to decorate, starting at 1.
+/// hoverLst: hover attached to line.
+/// gHoverLst: hover attached to margin glyph.</summary>
 let makeErrorInEditor tId lineNumber (hoverLst:string list) (gHoverLst: string list) = 
     let makeMarkDown textLst =
         textLst
@@ -159,9 +162,7 @@ let makeErrorInEditor tId lineNumber (hoverLst:string list) (gHoverLst: string l
             "isTrusted" ==> true
             "inlineClassName" ==> "editor-line-error"
             "hoverMessage" ==> makeMarkDown hoverLst
-            //"glyphMarginClassName" ==> "editor-glyph-margin-error"
-            //"glyphMarginHoverMessage" ==> makeMarkDown gHoverLst
-        ])
+         ])
         None
     // decorate the margin
     editorLineDecorate 
@@ -170,9 +171,6 @@ let makeErrorInEditor tId lineNumber (hoverLst:string list) (gHoverLst: string l
         (createObj [
             "isWholeLine" ==> true
             "isTrusted" ==> true
-            //"inlineClassName" ==> "editor-line-error"
-            //"hoverMessage" ==> makeMarkDown hoverLst
-            //"inlineClassName" ==> "editor-line-error"
             "glyphMarginClassName" ==> "editor-glyph-margin-error"
             "glyphMarginHoverMessage" ==> makeMarkDown gHoverLst
             "overviewRuler" ==> createObj [ "position" ==> 4 ]
