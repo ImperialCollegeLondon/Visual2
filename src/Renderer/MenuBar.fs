@@ -157,6 +157,19 @@ let makeRoleItem label accelerator role =
     item.role <- U2.Case1 role |> Some
     item
 
+/// make conditional menu item from condition, name, opt key to trigger, and role
+let makeCondRoleItem cond label accelerator role = 
+    let item = makeItem label accelerator id
+    item.role <- U2.Case1 role |> Some
+    item.visible <- Some cond
+    item
+
+/// make conditional menu item from condition, name, opt key to trigger, and action
+let makeCondItem cond label accelerator action = 
+    let item = makeItem label accelerator action
+    item.visible <- Some cond
+    item
+
 /// Make a new menu from a a list of menu items
 let makeMenu (name:string) (table:MenuItemOptions list) =
     let subMenu = createEmpty<MenuItemOptions>
@@ -167,8 +180,7 @@ let makeMenu (name:string) (table:MenuItemOptions list) =
         |> U2.Case2 |> Some
     subMenu
 
-let ifDevel lst = if Refs.debugLevel > 0 then lst else []
-let ifDebug lst = if Refs.debugLevel > 1 then lst else []
+
 (****************************************************************************************************
  *
  *                                         MENUS
@@ -222,7 +234,7 @@ let viewMenu() =
             makeRoleItem  "Zoom Out"  (Some "CmdOrCtrl+-") MenuItemRole.Zoomout 
             makeRoleItem  "Reset Zoom"  (Some "CmdOrCtrl+0") MenuItemRole.Resetzoom
             menuSeparator
-            makeItem "Toggle Dev Tools" (Some "F12") (electron.remote.getCurrentWebContents()).toggleDevTools
+            makeCondItem (debugLevel > 0) "Toggle Dev Tools" (Some "F12") (electron.remote.getCurrentWebContents()).toggleDevTools
         ]
 
 let helpMenu() =
@@ -233,11 +245,9 @@ let helpMenu() =
                 makeItem "VisUAL2 web pages" Core.Option.None (runPage <| visualDocsPage "")
                 makeItem "Official ARM documentation" Core.Option.None (runPage "http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.ddi0234b/i1010871.html")           
                 makeItem "Load Complex Demo Code" Core.Option.None (interlock1 "load code" loadDemo)
-            ] @ ifDevel [
-                makeItem "Run dev tools FABLE checks" Core.Option.None (interlock1 "FABLE checks" Playground.check1)
-                makeItem "Run Emulator Tests" Core.Option.None (interlock1 "run tests" Tests.runAllEmulatorTests)
-            ] @
-            [
+        
+                makeCondItem (debugLevel > 0) "Run dev tools FABLE checks" Core.Option.None (interlock1 "FABLE checks" Playground.check1)
+                makeCondItem (debugLevel > 0) "Run Emulator Tests" Core.Option.None (interlock1 "run tests" Tests.runAllEmulatorTests)
                 makeItem "About" Core.option.None ( fun () -> 
                     printfn "Directory is:%s" (Stats.dirOfSettings())
                     electron.remote.dialog.showMessageBox (
