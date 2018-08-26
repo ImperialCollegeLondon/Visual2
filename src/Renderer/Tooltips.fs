@@ -497,14 +497,15 @@ open CommonData
 /// Drive the displayShiftDiagram function from a tooltip with correct parameters for given line
 let makeShiftTooltip (h,v) (dp:DataPath, dpAfter:DataPath, uFAfter:DP.UFlags) (rn:RName) (shiftT:DP.ArmShiftType Option, alu:bool) (shiftAmt:uint32) (op2: DP.Op2) =
     let bToi = function |true -> 1 |false -> 0
-    let before = dp.Regs.[rn]|> uint64 |> int64 |> int32
+    let before = dp.Regs.[rn] 
     let (after,uF) = DP.evalOp2 op2 dp 
     let finalC = bToi dpAfter.Fl.C
     let final = match uFAfter.RegU with | [rd] -> rd.ToString(), (dpAfter.Regs.[rd] |> int) | _ -> "",0
     let finalFWrite = uFAfter.CU
-    let after' = after |> uint64 |> int64 |> int32
+    let after' = after |> int32
+    printfn "After': %d,%d" after after'
     printfn "Making shift tooltip"
-    let diagram = displayShiftDiagram rn (before |> uint32, bToi dp.Fl.C) (after', final, bToi uF.Ca, finalC, finalFWrite, alu) shiftT (shiftAmt |> int)
+    let diagram = displayShiftDiagram rn (before, bToi dp.Fl.C) (after', final, bToi uF.Ca, finalC, finalFWrite, alu) shiftT (shiftAmt |> int)
     makeEditorInfoButtonWithTheme "light" lineTipsClickable h (v+1) "Shift" diagram
     
     
