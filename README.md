@@ -207,7 +207,7 @@ Useful shortcuts for specific common target OS:
 ## Dependency Upgrade
 
 * FABLE used is v1.3. FABLE will upgrade to v2.x at some point (2019?) which no doubt will break quite a lot, but the old FABLE will remain available for quite some time. This upgrade will need to be done at some point.
-* Electron used is 1.8.6. Upgrade Electron with care noting that as well as the app running OK, the packaging (electron-packager) must work.
+* Electron used is 2.0.8. Upgrade Electron with care noting that as well as the app running OK, the packaging (electron-packager) must work.
 * F# is v4.1. Update to v4.2 not required but should be painless when needed.
 * Monaco-editor is v0.12, which fixes an annoying markdown display bug. v0.13 does not contain anything more useful AFAIK but the upgrade should be made at some point.
 * Node, Yarn. Versions are baked in by `yarn.lock`. Yarn is currently 1.5.1 but update should be fine.
