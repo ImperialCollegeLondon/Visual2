@@ -336,7 +336,6 @@ let displayShiftDiagram rn (beforeNum, beforeC) (op2Num, (rDest,destNum), op2C, 
     |> makeHtmlFromSVG
 
 
-
 /// Simple SVG picture as demo
 let demoSVG ()  =
     svg 
@@ -351,11 +350,6 @@ let demoSVG ()  =
         rect [X "40.5"; Y "40.5"; SVGAttr.Width "50"; SVGAttr.Height "20"; SVGAttr.Stroke "red"; SVGAttr.Fill "white"; !!("className","tooltip-shift-reg-box")] []
         text [ X "65"; Y "50" ; !!("dominantBaseline","middle"); SVGAttr.TextAnchor "middle"; !!("className","tooltip-shift-reg-txt")] [ ofString "1" ]
       ]
-      
-
-
-
-   
 
 
 // ***********************************************************************************************
@@ -480,7 +474,6 @@ let addFixedToolTips() =
     makeTextTT "bottom" "clock-time" ["tootip-fixed"] "Number of <br> Instructions"
     makeTextTT "bottom" "BR15" ["tootip-fixed"] "R15 (PC) is the Program Counter <br> It cannot be used as a data register"
     makeTextTT "right" "BR14" ["tootip-fixed"] "R14 (LR) is the Link Register <br> It can be used as a data register"
-    makeTextTT "right" "BR13" ["tootip-fixed"] "R13 (SP) is the Stack Pointer. <br> It can be used as a data register"
     makeButtonTT "bottom" "tab-sym" ["tootip-fixed"] "Displays symbols (labels) <br> after execution has started"
     makeButtonTT "bottom" "tab-mem" ["tootip-fixed"] "Displays current data memory contents after execution has started <br> Words are added dynamically when they are written"
     makeButtonTT "bottom" "tab-reg" ["tooltip-fixed"] "Displays current register contents"
@@ -489,8 +482,17 @@ let addFixedToolTips() =
     makeButtonTT "bottom" "rep-dec" ["tooltip-fixed"] "Switch numeric displays to two's complement signed decimal"
     makeButtonTT "bottom" "rep-udec" ["tooltip-fixed"] "Switch numeric displays to unsigned decimal"
 
-    let makeRegTT regID = makeTextTT  "right" ("B"+regID) ["tootip-fixed"] (sprintf "%s is a data register" regID)
-    List.iter (fun n -> makeRegTT  (sprintf "R%d" n)) [0..12]
+    let makeRegTT regID =  
+        let text =
+            match regID with
+            | "R13" ->"""R13 (SP) is the Stack Pointer. <br>
+It can be used as a data register. <br> <br>
+SP is initialised to a value in high <br>  
+memory at the start of simulation by <br>
+Visual2 to facilitate  use of stacks"""
+            | _ -> sprintf "%s is a data register" regID
+        makeTextTT  (if regID="R13" then "left" else "right") ("B"+regID) ["tootip-fixed"] text
+    List.iter (fun n -> makeRegTT  (sprintf "R%d" n)) [0..13]
 
 open CommonData   
 

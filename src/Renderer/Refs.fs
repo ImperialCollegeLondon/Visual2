@@ -487,6 +487,6 @@ let updateRegisters () =
 
 let resetRegs () =
     [0..15]
-    |> List.map (fun x -> setRegister (CommonData.register x) 0u)
+    |> List.map (fun x ->  setRegister (CommonData.register x) (match x with | 13 -> 0xFF000000u | _ -> 0u))
     |> ignore
     

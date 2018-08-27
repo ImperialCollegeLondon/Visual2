@@ -125,10 +125,11 @@ let resetEmulator () =
     setMode ResetMode
     updateMemory()
     updateSymTable()
-    updateRegisters ()
     resetRegs()
     resetFlags()
+    updateRegisters ()
     updateClockTime 0uL
+
 /// Display current execution state in GUI from stored runMode
 let showInfoFromCurrentMode () =
     let isStopped = match runMode with | ActiveMode(Running,_) -> true | _ -> false

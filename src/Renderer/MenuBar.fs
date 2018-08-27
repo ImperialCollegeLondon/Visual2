@@ -253,7 +253,7 @@ let helpMenu() =
                     electron.remote.dialog.showMessageBox (
                           let opts = createEmpty<ShowMessageBoxOptions>
                           opts.title <-  Core.Option.None
-                          opts.message <- sprintf "Visual2 ARM Simulator v%s" Refs.appVersion |> Some
+                          opts.message <- sprintf "VisUAL2 ARM Simulator v%s" Refs.appVersion |> Some
                           opts.detail <- 
                                 "(c) 2018, Imperial College\n\nAcknowledgements: Salman Arif (VisUAL), HLP 2018 class" +
                                 " (F# reimplementation), with special mention to Thomas Carrotti," +
