@@ -240,10 +240,12 @@ let makeOkLitMap() =
             let possibleLiterals K =
                 [0..2..30]
                 |> List.map (fun rot -> rotateLeft K rot, (K,(32 - rot) % 32))
-            [0..255] // workaround FABLE bug with long unsigned int ranges
+            [255..-1..0] // workaround FABLE bug with long unsigned int ranges
             |> List.map (fun x -> int64 x)
             |> List.collect possibleLiterals
-            |> List.map (fun (x, (K, r)) -> (x, (K,r)))
+            |> List.groupBy fst
+            |> List.map (fun (g,lst) -> g, List.sortBy (fun (x,(K,r)) -> r) lst)
+            |> List.map (function | (g, (_,(K,r))::_) -> g,(K,r) | _ -> failwithf "What? Cannot happen!")
             |> Map.ofList
         OkLitMap <- Some map
         map
@@ -254,6 +256,7 @@ let parseOp2 (subMode: InstrNegativeLiteralMode) (symTable : SymbolTable) (args 
         let okMap = makeOkLitMap()
         let mask = 0xFFFFFFFFL
         let num64 = int64 (int num) &&& mask    
+        //printfn "makeimmediate num=%d, mask=%d" num mask
         let substitutes: (int64 * InstrNegativeLiteralMode) list = 
             let norm = num64,NoNegLit
             match subMode, num with
@@ -265,15 +268,15 @@ let parseOp2 (subMode: InstrNegativeLiteralMode) (symTable : SymbolTable) (args 
                 [norm ; ( u , NegatedLit)]
          
         let posLits = 
-            let checkSub (k,sub) =
-                Map.tryFind k okMap
-                |> function Some (k,r)-> [(k,r,sub)] | fNone -> []
+            let checkSub (n,sub) =
+                Map.tryFind n okMap
+                |> function Some (K,r) -> [K,r,sub] | Core.None -> []
             substitutes 
             |> List.collect checkSub
             |> List.sortBy (fun (k,r,sub) -> match sub with | NoNegLit -> 0,r | _ -> 1,r)
 
         //printfn "substitutes=%A" substitutes
-        //printfn "Poslits=%A" posLits
+        // "Poslits=%A" posLits
 
 
         

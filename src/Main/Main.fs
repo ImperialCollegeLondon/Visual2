@@ -89,7 +89,7 @@ let enableHotReload (window:BrowserWindow) =
         fs.watch(path.join(Node.Globals.__dirname, "/app/css"), fun _ _ ->
             window.webContents.reloadIgnoringCache()
         ) |> ignore
-        fs.watch(path.join(Node.Globals.__dirname, "/app"), fun _ _ ->
+        fs.watch(path.join(Node.Globals.__dirname, "/app/index.html"), fun _ _ ->
             window.webContents.reloadIgnoringCache()
         ) |> ignore
 
