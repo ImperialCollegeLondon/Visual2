@@ -232,7 +232,7 @@ module Helpers
             match reg  with
             | R15 -> contents + setPCOffset
             | _ -> contents
-        {cpuData with Regs = Map.add reg adjContents cpuData.Regs }
+        {cpuData with Regs = Map.add reg (adjContents >>> 0) cpuData.Regs }
     
     /// Recursive function for setting multiple registers
     /// Need to check that the lists provided are the same length
@@ -299,7 +299,8 @@ module Helpers
     //     | 0u -> {dp with MM = Map.add (WA addr) value dp.MM}
     //     | _ -> failwithf "Trying to update memory at unaligned address"
 
-    let updateMemData value (addr : uint32) (dp: DataPath) =
+    let updateMemData value (a : uint32) (dp: DataPath) =
+        let addr = a >>> 0
         match validateWA addr with
         | false -> 
             (addr, " Trying to update memory at unaligned address.")
@@ -333,7 +334,8 @@ module Helpers
     //         | _ -> failwithf "Updating byte at instruction address"
     //     updateMem (DataLoc newVal) baseAddr dp
     
-    let updateMemByte (value : byte) (addr : uint32) (dp: DataPath) =
+    let updateMemByte (value : byte) (a : uint32) (dp: DataPath) =
+        let addr = a >>> 0
         let baseAddr = alignAddress addr
         let shft = (int ((addr % word)* 8u))
         let mask = 0xFFu <<< shft |> (~~~)

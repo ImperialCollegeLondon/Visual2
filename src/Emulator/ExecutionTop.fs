@@ -354,7 +354,7 @@ let executeADR (ai:ADRInstr) (dp:DataPath) =
 
 
 let dataPathStep (dp : DataPath, code:CodeMemory<CondInstr*int>) = 
-    let addToPc a dp = {dp with Regs = Map.add R15 ((uint32 a + dp.Regs.[R15]) &&& 0xffffffffu) dp.Regs}
+    let addToPc a dp = {dp with Regs = Map.add R15 ((uint32 a + dp.Regs.[R15] >>> 0) &&& 0xffffffffu) dp.Regs}
     let pc = dp.Regs.[R15]
     let dp' = addToPc 8 dp // +8 during instruction execution so PC reads correct (pipelining)
     let uFl = DP.toUFlags dp'.Fl
