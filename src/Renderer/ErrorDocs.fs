@@ -53,54 +53,57 @@ let getRoot opc =
 
 let makeDPHover2 opc func = 
     sprintf """
-**%s dest, op2;  %s**
+*%s dest, op2;  %s*
 
+**%s R0, R1**
 
-```
-%s R0, R1
-%s R5, #101
-%s R10, #0x5a
-%s R7, #-1
-```
+**%s R5, #101**
+
+**%s R10, #0x5a**
+
+**%s R7, #-1**
+
 """    opc func  opc opc opc opc
 
 let makeCMPHover opc func = 
     sprintf """
-**%s op1, op2;  %s**
+*%s op1, op2;  %s*
 
+**%s R0, R1**
 
-```
-%s R0, R1
-%s R5, #101
-%s R10, #0x5a
-%s R7, #-1
-```
+**%s R5, #101**
+
+**%s R10, #0x5a**
+
+**%s R7, #-1**
 """    opc func  opc opc opc opc
 
 let makeLDRSTRHover opc func = 
     sprintf """
-**%s Rd, EA;  %s**
+*%s Rd, EA;  %s*
 
-```
-%s R0, [R10]
-%s R5, [R9,#100]
-%s R1, [R1], #0x5a
-%s R8, [R13, #-32]!
-%s R3, [R4, R5]
-%s R3, [R4, R5, LSL #2]!
-```
+**%s R0, [R10]**
+
+**%s R5, [R9,#100]**
+
+**%s R1, [R1], #0x5a**
+
+**%s R8, [R13, #-32]!**
+
+**%s R3, [R4, R5]**
+
+**%s R3, [R4, R5, LSL #2]!**
 """    opc func  opc opc opc opc opc opc
 
 let makeLDMSTMHover opc func = 
     sprintf """
-**%s Rs[!], {register-list};  %s**
+*%s Rs[!], {register-list};  %s*
 
+**LDMFD R0!, {R1}**
 
-```
-LDMFD R0!, {R1}
-STMFD R10!, {R2,R14}
-LDMIB R10, {R2-R9,R11}
-```
+**STMFD R10!, {R2,R14}**
+
+**LDMIB R10, {R2-R9,R11}**
 """    opc func
 
 let makeMISCHover opc func = 
@@ -110,36 +113,38 @@ let makeMISCHover opc func =
         | "FILL"  -> "op1 [, op2]; "
         | _ -> failwithf "%s is not a MISC opcode" opc        
     sprintf """
-**%s %s %s**
+*%s %s %s*
 
-```
-DCD op1, ..., opn
-DCB op1, ..., opn
-FILL N
-```
+**DCD op1, ..., opn**
+
+**DCB op1, ..., opn**
+
+**FILL N**
 """  opc initLine func 
 
 let makeEQUHover opc func =
     sprintf """
-**%s op1; %s**
+*%s op1; %s*
 
-```
-X1       EQU 44
-MULTDATA EQU DATA1 + 0x100
-PTR      EQU (X1 - 12) * 4 + X2
-```
+**X1       EQU 44**
+
+**MULTDATA EQU DATA1 + 0x100**
+
+**PTR      EQU (X1 - 12) * 4 + X2**
 """  opc func 
 
 let makeDPHover3 opc func =
     sprintf """
-**%s dest, op1, op2;  %s**
+*%s dest, op1, op2;  %s*
 
-```
-%s R0, R1, R2
-%s R5, R5, #101
-%s R10, R0, #0x5a
-%s R7, R10, #-1
-```
+**%s R0, R1, R2**
+
+**%s R5, R5, #101**
+
+**%s R10, R0, #0x5a**
+
+**%s R7, R10, #-1**
+
 """     opc func  opc opc opc opc
 
 let unimplementedHover opc =
@@ -160,7 +165,7 @@ let getOpcHover mess opc line =
         | LDMSTM -> mess + makeLDMSTMHover opc legend
         | EQU -> mess + makeEQUHover opc legend 
         | UNIMPLEMENTED -> unimplementedHover opc
-        |> (fun s -> [|s|])
+        |> (fun s -> [s])
     let stripComment line = 
         match String.split [|';'|] line |> Array.toList with
         |  ins :: _ -> ins
@@ -176,7 +181,8 @@ let getOpcHover mess opc line =
             | _afterPart :: before -> (before.Length-1)*oLen + List.sumBy String.length before + 1
             | x -> failwithf "What? Unexpected split '%A' can't happen. line = '%s', opc = '%s'." x line opc
     if oStart + oLen - 1 >= line.Length then failwithf "Bad hover range %d, %d in %s" oStart oLen line
-    hoverText, (oStart, oStart + oLen - 1)
+    let lineText = sprintf "```\n%s\n```\n" (stripComment line)
+    ([lineText] @ hoverText), (oStart, oStart + oLen - 1)
 
 
 

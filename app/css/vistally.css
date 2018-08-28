@@ -16,6 +16,10 @@
     --editor-font-size: 16pt;
 }
 
+* {
+    -webkit-user-drag: none; /* disable drag and drop */
+}
+
 /* used to animate app and settings windows */
 @keyframes fadein {
     from {
@@ -116,8 +120,8 @@
     font-size: 15px;
     padding-top:3px;
     padding-bottom:3px;
-    padding-left: 2px;
-    padding-right: 2px;
+    padding-left: 5px;
+    padding-right: 5px;
 }
 
 #clock-time {

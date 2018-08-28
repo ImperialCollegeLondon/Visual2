@@ -18,14 +18,14 @@ open Fable.Import.Browser
 Browser.console.log "Hi from renderer.fs" |> ignore
 
 open Refs
+open MenuBar
 
 /// Hack to provide a constant global variable
 /// set from command line arguments of main process.
 /// 0 => production. 1 => dev. 2 => debug.
 let setDebugLevel() =
     let argV = 
-        //electron.remote.``process``.argv 
-        ["22";"--debug"]
+        electron.remote.``process``.argv 
         |> Seq.toList 
         |> List.tail
         |> List.map (fun s -> s.ToLower())
@@ -37,7 +37,6 @@ let setDebugLevel() =
 
 
 
-    
 
 /// Attach a click event on each of the map elements to a function f
 /// which accepts the map element as an argument
@@ -75,55 +74,54 @@ let init () =
         )) |> ignore
 
 
+
+
     // Actions for the buttons
-    Refs.openFileBtn.addEventListener_click(fun _ ->
-        MenuBar.openFile ()
-    )
-    Refs.saveFileBtn.addEventListener_click(fun _ ->
-        Files.saveFile ()
-    )
+    Refs.openFileBtn.addEventListener_click (fun _ -> MenuBar.interlock "open file" MenuBar.openFile )
+    
+    Refs.saveFileBtn.addEventListener_click (fun _ -> MenuBar.interlock "save file" Files.saveFile) 
+    
     Refs.runSimulationBtn.addEventListener_click(fun _ ->
-        Integration.runCode ()
+        Integration.runCode () :> obj
     )
     stepForwardBtn.addEventListener_click(fun _ ->
-        Integration.stepCode ()
+        Integration.stepCode ()  :> obj
     )
     stepBackBtn.addEventListener_click(fun _ ->
-        Integration.stepCodeBack ()
+        Integration.stepCodeBack () :> obj
     )
 
     resetSimulationBtn.addEventListener_click(fun _ ->
-        Integration.resetEmulator()
+        Integration.resetEmulator() :>  obj
     )
 
     mapClickAttacher repToId Refs.representation (fun rep ->
         Browser.console.log (sprintf "Representation changed to %A" rep) |> ignore
         Views.setRepresentation rep |> ignore
         Views.updateMemory ()
-        Views.updateSymTable ()
+        Views.updateSymTable () :> obj
     )
 
     mapClickAttacher viewToIdTab Refs.viewTab (fun view ->
         Browser.console.log (sprintf "View changed to %A" view) |> ignore
-        Views.setView view
+        Views.setView view :> obj
     )
 
     (Refs.byteViewBtn).addEventListener_click(fun _ ->
         Browser.console.log "Toggling byte view" |> ignore
         Views.toggleByteView ()
-        Views.updateMemory ()
+        Views.updateMemory () :> obj
     )
 
     (Refs.newFileTab).addEventListener_click(fun _ ->
         Browser.console.log "Creating a new file tab" |> ignore
-        Tabs.createFileTab ()
-    )
+        MenuBar.interlock "create a new tab" (fun () -> Tabs.createFileTab() |> ignore))
 
     // create electron menus
     MenuBar.mainMenu()
 
     // Create an empty tab to start with
-    Tabs.createFileTab ()
+    Tabs.createFileTab () |> ignore
     printfn "Ending renderer init"
     vSettings <- checkSettings (getJSONSettings())
     Editors.updateAllEditors false
@@ -131,6 +129,26 @@ let init () =
     Tooltips.addFixedToolTips()
 
 /// top-level function that runs the renderer code
-let handleMonacoReady (_: Event) = init ()
+let handleMonacoReady = { new EventListenerObject with
+    member x.handleEvent (_: Event) = init () 
+}
 
-document.addEventListener("monaco-ready", U2.Case1 handleMonacoReady)
+let handlePreventDefault = { new EventListenerObject with
+    member x.handleEvent (e: Event) = e.preventDefault()
+}
+
+
+let handleDrop = { new EventListenerObject with
+    member x.handleEvent (e: Event) = 
+        e.preventDefault()
+        let files = (e :?> DragEvent).dataTransfer.files
+        let num  = (files.length |> int)
+        let paths =
+                [0..num-1]
+                |> List.map (fun s-> files.[s]?path)
+        interlock "open files" (fun () -> openListOfFiles paths |> ignore) |> ignore      
+}
+
+document.addEventListener("monaco-ready", U2.Case2 handleMonacoReady)
+document.addEventListener("dragover", U2.Case2 handlePreventDefault)
+document.addEventListener("drop", U2.Case2 handleDrop)

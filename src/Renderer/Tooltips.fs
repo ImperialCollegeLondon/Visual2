@@ -248,8 +248,8 @@ let displayShiftDiagram rn (beforeNum, beforeC) (op2Num, (rDest,destNum), op2C, 
     let posLabX = 29.
     let aluW,aluH = 20.,10.
     let posAluX = posX + boxW*16. - aluW/2.
-    let posAluY = posY + 45.
-    let sepY = 35.
+    let posAluY = posY + 35.
+    let sepY = 25.
     let sepY' = posAluY + aluH + 7. - posY
     let carryNX = 8
     let posCX = posX - (float carryNX)*boxW
@@ -301,13 +301,13 @@ let displayShiftDiagram rn (beforeNum, beforeC) (op2Num, (rDest,destNum), op2C, 
             | None -> // RRX
                 [
                     svgIfTrue writeC [arrow' "red" 31 (-carryNX)]
-                    svgIfTrue writeC [arrow' "red" (-carryNX) 0]
+                    arrow' "red" (-carryNX) 0
                     arrowSet 0 1 31
 
                 ]
 
     svg
-        [ ViewBox "0 0 120 70"; unbox ("width", "800px") ] (
+        [ ViewBox "0 0 120 59"; unbox ("width", "700px") ] (
         [      
             svgMarkerDefs() // used to define arrow heads
             carryBox posY beforeC
@@ -336,7 +336,6 @@ let displayShiftDiagram rn (beforeNum, beforeC) (op2Num, (rDest,destNum), op2C, 
     |> makeHtmlFromSVG
 
 
-
 /// Simple SVG picture as demo
 let demoSVG ()  =
     svg 
@@ -351,11 +350,6 @@ let demoSVG ()  =
         rect [X "40.5"; Y "40.5"; SVGAttr.Width "50"; SVGAttr.Height "20"; SVGAttr.Stroke "red"; SVGAttr.Fill "white"; !!("className","tooltip-shift-reg-box")] []
         text [ X "65"; Y "50" ; !!("dominantBaseline","middle"); SVGAttr.TextAnchor "middle"; !!("className","tooltip-shift-reg-txt")] [ ofString "1" ]
       ]
-      
-
-
-
-   
 
 
 // ***********************************************************************************************
@@ -456,7 +450,7 @@ let makeEditorInfoButtonWithTheme theme (clickable:bool) h v (buttonText:string)
         |> ID domID
         |> STYLE ("margin-left",sprintf "%.0fpx" (editorFontWidthRatio * (float h+2.0) * float (int vSettings.EditorFontSize)))
     dom.addEventListener_click( fun _ ->
-        Browser.console.log (sprintf "Clicking button %s" buttonText) |> ignore
+        Browser.console.log (sprintf "Clicking button %s" buttonText) |> (fun _ -> createObj [])
         )
     deleteContentWidget domID // in some cases we may be updating an existing widget
     makeContentWidget domID dom <| Exact(0,v)
@@ -480,7 +474,6 @@ let addFixedToolTips() =
     makeTextTT "bottom" "clock-time" ["tootip-fixed"] "Number of <br> Instructions"
     makeTextTT "bottom" "BR15" ["tootip-fixed"] "R15 (PC) is the Program Counter <br> It cannot be used as a data register"
     makeTextTT "right" "BR14" ["tootip-fixed"] "R14 (LR) is the Link Register <br> It can be used as a data register"
-    makeTextTT "right" "BR13" ["tootip-fixed"] "R13 (SP) is the Stack Pointer. <br> It can be used as a data register"
     makeButtonTT "bottom" "tab-sym" ["tootip-fixed"] "Displays symbols (labels) <br> after execution has started"
     makeButtonTT "bottom" "tab-mem" ["tootip-fixed"] "Displays current data memory contents after execution has started <br> Words are added dynamically when they are written"
     makeButtonTT "bottom" "tab-reg" ["tooltip-fixed"] "Displays current register contents"
@@ -489,22 +482,32 @@ let addFixedToolTips() =
     makeButtonTT "bottom" "rep-dec" ["tooltip-fixed"] "Switch numeric displays to two's complement signed decimal"
     makeButtonTT "bottom" "rep-udec" ["tooltip-fixed"] "Switch numeric displays to unsigned decimal"
 
-    let makeRegTT regID = makeTextTT  "right" ("B"+regID) ["tootip-fixed"] (sprintf "%s is a data register" regID)
-    List.iter (fun n -> makeRegTT  (sprintf "R%d" n)) [0..12]
+    let makeRegTT regID =  
+        let text =
+            match regID with
+            | "R13" ->"""R13 (SP) is the Stack Pointer. <br>
+It can be used as a data register. <br> <br>
+SP is initialised to a value in high <br>  
+memory at the start of simulation by <br>
+Visual2 to facilitate  use of stacks"""
+            | _ -> sprintf "%s is a data register" regID
+        makeTextTT  (if regID="R13" then "left" else "right") ("B"+regID) ["tootip-fixed"] text
+    List.iter (fun n -> makeRegTT  (sprintf "R%d" n)) [0..13]
 
 open CommonData   
 
 /// Drive the displayShiftDiagram function from a tooltip with correct parameters for given line
 let makeShiftTooltip (h,v) (dp:DataPath, dpAfter:DataPath, uFAfter:DP.UFlags) (rn:RName) (shiftT:DP.ArmShiftType Option, alu:bool) (shiftAmt:uint32) (op2: DP.Op2) =
     let bToi = function |true -> 1 |false -> 0
-    let before = dp.Regs.[rn]|> uint64 |> int64 |> int32
+    let before = dp.Regs.[rn] 
     let (after,uF) = DP.evalOp2 op2 dp 
     let finalC = bToi dpAfter.Fl.C
     let final = match uFAfter.RegU with | [rd] -> rd.ToString(), (dpAfter.Regs.[rd] |> int) | _ -> "",0
     let finalFWrite = uFAfter.CU
-    let after' = after |> uint64 |> int64 |> int32
+    let after' = after |> int32
+    printfn "After': %d,%d" after after'
     printfn "Making shift tooltip"
-    let diagram = displayShiftDiagram rn (before |> uint32, bToi dp.Fl.C) (after', final, bToi uF.Ca, finalC, finalFWrite, alu) shiftT (shiftAmt |> int)
+    let diagram = displayShiftDiagram rn (before, bToi dp.Fl.C) (after', final, bToi uF.Ca, finalC, finalFWrite, alu) shiftT (shiftAmt |> int)
     makeEditorInfoButtonWithTheme "light" lineTipsClickable h (v+1) "Shift" diagram
     
     

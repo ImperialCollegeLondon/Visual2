@@ -7,7 +7,7 @@
 
 /// implement menu functions
 module MenuBar
-
+open EEExtensions
 open Fable.Core
 open Fable.Core.JsInterop
 open Fable.Import
@@ -16,6 +16,37 @@ open Node.Base
 open Refs
 open Settings
 open Tabs
+
+let display runMode = 
+    match runMode with 
+    | ExecutionTop.ResetMode -> "ResetMode"
+    | ExecutionTop.FinishedMode _ -> "FinishedMode"
+    | ExecutionTop.ActiveMode _ -> "ActiveMode"
+    | ExecutionTop.ParseErrorMode -> "ParseErrorMode"
+    | ExecutionTop.RunErrorMode _ -> "RunErrorMode"
+
+   
+
+/// Wrap an action so that it can only happen if simulator is stopped.
+/// Converts unit -> unit into obj. Must be called as fun () -> interlock actionName action 
+let interlock (actionName:string) (action: (Unit -> Unit)) = (
+        printf "Interlock: runMode=%A" (display runMode)
+        match Refs.runMode with
+        | ExecutionTop.ResetMode
+        | ExecutionTop.ParseErrorMode -> action() :> obj
+        | _ ->  Browser.window.alert (sprintf "Can't %s while simulator is running" actionName) |> ignore :> obj
+    )
+ /// Wrap an action so that it can only happen if simulator is stopped.
+ /// Operates on (Unit->Unit) to make (Unit->Unit)
+let interlock1 (actionName:string) (action: (Unit -> Unit)) = ( fun () -> 
+        printf "Interlock: runMode=%A" (display runMode)
+        match Refs.runMode with
+        | ExecutionTop.ResetMode 
+        | ExecutionTop.ParseErrorMode -> action()
+        | _ -> Browser.window.alert (sprintf "Can't %s while simulator is running" actionName) |> ignore
+        |> ignore
+        ()
+    )
 
 (****************************************************************************************************
  *
@@ -68,43 +99,52 @@ let loadFileIntoTab tId (fileData : Node.Buffer.Buffer) =
     editor?setValue(fileData.toString("utf8")) |> ignore
     setTabSaved tId
 
+
+let openListOfFiles (fLst: string list) =
+    let makeTab path =
+        let tId = createNamedFileTab (Files.baseFilePath path) path
+        (fun tId -> Files.setTabFilePath tId path) |> ignore
+        (path, tId)
+    let readPath (path, tId) = 
+        Node.Exports.fs.readFile(path, (fun err data -> // TODO: find out what this error does
+            loadFileIntoTab tId data
+            Files.setTabFilePath tId path
+        ))
+        |> ignore
+        [tId]
+    if debugLevel > 0 then printfn "File list to open is: %A" fLst
+    fLst
+    |> Files.resultUndefined ()
+    |> Result.map Files.updateCurrentPathFromList
+    |> Result.map (List.map (fun p -> Files.filterBadName false p) >> List.concat)
+    |> Result.map (List.map (makeTab >> readPath))
+    |> Result.map List.concat
+    |> Result.map (function | tId :: _ ->  selectFileTab tId; () | [] -> ())
+
+
 let openFile () =
     let options = createEmpty<OpenDialogOptions>
     options.properties <- ResizeArray(["openFile"; "multiSelections"]) |> Some
     options.filters <- Files.fileFilterOpts
     options.defaultPath <- Some vSettings.CurrentFilePath
-    let readPath (path, tId) = 
-        Node.Exports.fs.readFile(path, (fun err data -> // TODO: find out what this error does
-            loadFileIntoTab tId data
-        ))
-        |> ignore
-        tId // Return the tab id list again to open the last one
-
-    let makeTab path =
-        let tId = createNamedFileTab (Files.baseFilePath path) path
-        Files.setTabFilePath tId path
-        (path, tId)
-
     electron.remote.dialog.showOpenDialog(options)
-    |> Files.resultUndefined ()
-    |> Result.map (fun x -> x.ToArray())
-    |> Result.map Array.toList
-    |> Result.map Files.updateCurrentPathFromList
-    |> Result.map (List.map (makeTab >> readPath))
-    |> Result.map List.last
-    |> Result.map selectFileTab
+    |> Seq.toList
+    |> openListOfFiles
     |> ignore
+    
+
+
 
 
 let loadDemo () =
     Tabs.createFileTab()
-    let tId = Refs.currentFileTabId
-    let sampleFileName = Tests.sampleDir + "karatsuba.s"
-    printfn "Reading sample file: %s" sampleFileName
-    Node.Exports.fs.readFile( sampleFileName, (fun _ data -> // TODO: find out what this error does
+    |> fun tId ->
+        let sampleFileName = Tests.sampleDir + "karatsuba.s"
+        printfn "Reading sample file: %s" sampleFileName
+        Node.Exports.fs.readFile( sampleFileName, (fun _ data -> // TODO: find out what this error does
             loadFileIntoTab  tId data
         ))
-    Tabs.setTabSaved tId
+        Tabs.setTabSaved tId
 
 
 
@@ -154,6 +194,19 @@ let makeRoleItem label accelerator role =
     item.role <- U2.Case1 role |> Some
     item
 
+/// make conditional menu item from condition, name, opt key to trigger, and role
+let makeCondRoleItem cond label accelerator role = 
+    let item = makeItem label accelerator id
+    item.role <- U2.Case1 role |> Some
+    item.visible <- Some cond
+    item
+
+/// make conditional menu item from condition, name, opt key to trigger, and action
+let makeCondItem cond label accelerator action = 
+    let item = makeItem label accelerator action
+    item.visible <- Some cond
+    item
+
 /// Make a new menu from a a list of menu items
 let makeMenu (name:string) (table:MenuItemOptions list) =
     let subMenu = createEmpty<MenuItemOptions>
@@ -164,8 +217,7 @@ let makeMenu (name:string) (table:MenuItemOptions list) =
         |> U2.Case2 |> Some
     subMenu
 
-let ifDevel lst = if Refs.debugLevel > 0 then lst else []
-let ifDebug lst = if Refs.debugLevel > 1 then lst else []
+
 (****************************************************************************************************
  *
  *                                         MENUS
@@ -173,15 +225,15 @@ let ifDebug lst = if Refs.debugLevel > 1 then lst else []
  ****************************************************************************************************)
 let fileMenu() =
     makeMenu "File" [
-            makeItem "New"      (Some "CmdOrCtrl+N")        createFileTab
+            makeItem "New"      (Some "CmdOrCtrl+N")        (interlock1 "make new file tab" (createFileTab >> ignore))
             menuSeparator
-            makeItem "Save"     (Some "CmdOrCtrl+S")        Files.saveFile
-            makeItem "Save As"  (Some "CmdOrCtrl+Shift+S")  Files.saveFileAs
-            makeItem "Open"     (Some "CmdOrCtrl+O")        openFile
+            makeItem "Save"     (Some "CmdOrCtrl+S")        (interlock1 "save file" Files.saveFile)
+            makeItem "Save As"  (Some "CmdOrCtrl+Shift+S")  (interlock1 "save file" Files.saveFileAs)
+            makeItem "Open"     (Some "CmdOrCtrl+O")        (interlock1 "open file" (openFile >> ignore))
             menuSeparator
-            makeItem "Close"    (Some "Ctrl+W")             deleteCurrentTab
+            makeItem "Close"    (Some "CmdOrCtrl+W")        (interlock1 "close file" deleteCurrentTab)
             menuSeparator
-            makeItem "Quit"     (Some "Ctrl+Q")             ExitIfOK
+            makeItem "Quit"     (Some "CmdOrCtrl+Q")             ExitIfOK
         ]
 
 /// menu action to create a settings tab
@@ -220,7 +272,7 @@ let viewMenu() =
             makeRoleItem  "Zoom Out"  (Some "CmdOrCtrl+-") MenuItemRole.Zoomout 
             makeRoleItem  "Reset Zoom"  (Some "CmdOrCtrl+0") MenuItemRole.Resetzoom
             menuSeparator
-            makeItem "Toggle Dev Tools" (Some "F12") (electron.remote.getCurrentWebContents()).toggleDevTools
+            makeCondItem (debugLevel > 0) "Toggle Dev Tools" (Some "F12") (electron.remote.getCurrentWebContents()).toggleDevTools
         ]
 
 let helpMenu() =
@@ -230,20 +282,18 @@ let helpMenu() =
                 makeItem "UAL Instruction Guide" Core.Option.None (runPage <| visualDocsPage "guide#content")
                 makeItem "VisUAL2 web pages" Core.Option.None (runPage <| visualDocsPage "")
                 makeItem "Official ARM documentation" Core.Option.None (runPage "http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.ddi0234b/i1010871.html")           
-                makeItem "Load Complex Demo Code" Core.Option.None loadDemo
-            ] @ ifDevel [
-                makeItem "Run dev tools FABLE checks" Core.Option.None Playground.check1
-                makeItem "Run Emulator Tests" Core.Option.None Tests.runAllEmulatorTests
-            ] @
-            [
+                makeItem "Load Complex Demo Code" Core.Option.None (interlock1 "load code" loadDemo)
+        
+                makeCondItem (debugLevel > 0) "Run dev tools FABLE checks" Core.Option.None (interlock1 "FABLE checks" Playground.check1)
+                makeCondItem (debugLevel > 0) "Run Emulator Tests" Core.Option.None (interlock1 "run tests" Tests.runAllEmulatorTests)
                 makeItem "About" Core.option.None ( fun () -> 
                     printfn "Directory is:%s" (Stats.dirOfSettings())
                     electron.remote.dialog.showMessageBox (
                           let opts = createEmpty<ShowMessageBoxOptions>
-                          opts.title <- sprintf "Visual2 ARM Simulator v%s" Refs.appVersion |> Some
-                          opts.message <- "(c) 2018, Imperial College" |> Some
+                          opts.title <-  Core.Option.None
+                          opts.message <- sprintf "VisUAL2 ARM Simulator v%s" Refs.appVersion |> Some
                           opts.detail <- 
-                                "Acknowledgements: Salman Arif (VisUAL), HLP 2018 class" +
+                                "(c) 2018, Imperial College\n\nAcknowledgements: Salman Arif (VisUAL), HLP 2018 class" +
                                 " (F# reimplementation), with special mention to Thomas Carrotti," +
                                 " Lorenzo Silvestri, and HLP Team 10" |> Some
                           opts

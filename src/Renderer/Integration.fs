@@ -7,7 +7,7 @@
 
 /// integrate emulator code with renderer
 module Integration
-
+open EEExtensions
 open Tabs
 open Views
 open CommonData
@@ -19,6 +19,7 @@ open Editors
 
 open Fable.Core.JsInterop
 open Fable.Import
+open Fable.PowerPack.Keyboard
 
 /// Number of execution steps before checking if button has been pressed
 /// and updating displayed state
@@ -35,15 +36,6 @@ let fstOf3 (x,_,_) = x
 let dpAndInfo (dp,_,dpi) = dp,dpi
 
 
-/// Generate the hover error box.
-/// Decorate the line with error indication.
-/// The text generated is full GH markdown.
-let makeHover tId lineNo opc (linkOpt, lines, gLines) =
-    let mLink = Refs.visualDocsPage linkOpt
-    makeErrorInEditor tId lineNo (
-        lines @ 
-        [ sprintf "[more](%s)" mLink ])  gLines   
-
 /// Process an editor line parse error. Generate a hover message and line decoration. Set Parse Error Mode
 let highlightErrorParse ((err:ParseError), lineNo) tId opc = 
     let ML = EEExtensions.String.split [|'\n'|] >> Array.toList
@@ -51,7 +43,7 @@ let highlightErrorParse ((err:ParseError), lineNo) tId opc =
     let (gHover,range) =
         if opc <> "" then
             ErrorDocs.getOpcHover "" opc codeLines.[lineNo-1]
-        else ([||], (1,1))
+        else ([], (1,1))
     let link, hover = 
         match err with
         | ``Invalid syntax`` (wanted, found, page) ->
@@ -71,7 +63,10 @@ let highlightErrorParse ((err:ParseError), lineNo) tId opc =
         | ``Unimplemented instruction`` opcode ->
             "", sprintf "%s is not a valid UAL instruction" opcode |> ML
     let gLink = [ sprintf "[UAL Guide](%s)" (visualDocsPage "list") ]
-    makeHover tId lineNo opc (link, hover, (gHover |> Array.toList) @ gLink)
+    let mLink = [ sprintf "[more](%s)" (Refs.visualDocsPage link) ]
+    let mHover = hover @ ["More: see \u26a0"]
+    makeErrorInEditor tId lineNo mHover  (gHover @ hover @ mLink @ gLink)
+
     setMode ParseErrorMode
 
 /// Make map of all data memory locs
@@ -130,10 +125,11 @@ let resetEmulator () =
     setMode ResetMode
     updateMemory()
     updateSymTable()
-    updateRegisters ()
     resetRegs()
     resetFlags()
+    updateRegisters ()
     updateClockTime 0uL
+
 /// Display current execution state in GUI from stored runMode
 let showInfoFromCurrentMode () =
     let isStopped = match runMode with | ActiveMode(Running,_) -> true | _ -> false
@@ -236,9 +232,21 @@ let tryParseAndIndentCode tId =
     | {Errors=[]} as lim -> 
         //Browser.console.log(sprintf "%A" lim)
         let editor = editors.[tId]
-        let newCode = String.concat "\n" lim.Source
-        if Refs.getCode tId <> newCode then 
-            (editor?setValue newCode) |> ignore
+        let trimmed line = String.trimEnd [|'\r';'\n'|] line
+        let newCode = List.map trimmed lim.Source
+        let oldCode = List.map trimmed (Refs.textOfTId tId)
+        if oldCode <> newCode then 
+            if debugLevel > 0 then
+                if oldCode.Length <> newCode.Length then
+                    printfn "Lengths of indented and old code do not match!"
+                else 
+                    let changedLines = 
+                        List.zip oldCode newCode
+                        |> List.indexed
+                        |> List.filter (fun (i,(o,n)) -> o <> n)
+                    printf "Differences: %A" changedLines
+
+            (editor?setValue (String.concat "\n" newCode)) |> ignore
         (lim, lim.Source) |> Some
     | lim -> 
         let processParseError (pe, lineNo, opCode) =
@@ -344,23 +352,27 @@ let prepareModeForExecution() =
 /// Parses and runs the assembler program in the current tab
 /// Aborts after steps instructions, unless steps is 0
 let runEditorTab steps =
-    prepareModeForExecution()
-    match runMode with
-    | ResetMode
-    | ParseErrorMode _ ->
-        let tId = currentFileTabId
-        removeEditorDecorations tId
-        match tryParseAndIndentCode tId with
-        | Some (lim, _) -> 
-            disableEditors()
-            let ri = lim |> getRunInfoFromImage
-            setCurrentModeActiveFromInfo RunState.Running ri
-            asmStepDisplay steps ri
-        | _ -> ()
-    | ActiveMode (RunState.Paused,ri) -> asmStepDisplay  (steps + ri.StepsDone) ri
-    | ActiveMode _
-    | RunErrorMode _ 
-    | FinishedMode _ -> ()
+    if currentFileTabId = -1 then 
+        Browser.window.alert "No file tab in editor to run!"
+        ()
+    else
+        prepareModeForExecution()
+        match runMode with
+        | ResetMode
+        | ParseErrorMode _ ->
+            let tId = currentFileTabId
+            removeEditorDecorations tId
+            match tryParseAndIndentCode tId with
+            | Some (lim, _) -> 
+                disableEditors()
+                let ri = lim |> getRunInfoFromImage
+                setCurrentModeActiveFromInfo RunState.Running ri
+                asmStepDisplay steps ri
+            | _ -> ()
+        | ActiveMode (RunState.Paused,ri) -> asmStepDisplay  (steps + ri.StepsDone) ri
+        | ActiveMode _
+        | RunErrorMode _ 
+        | FinishedMode _ -> ()
 
 
 /// Top-level simulation execute

@@ -45,8 +45,9 @@ let editorOptions (readOnly:bool) =
 
 
 let updateEditor tId readOnly =
-    let eo = editorOptions readOnly
-    Refs.editors.[tId]?updateOptions(eo) |> ignore
+    if tId <> -1 then
+        let eo = editorOptions readOnly
+        Refs.editors.[tId]?updateOptions(eo) |> ignore
 
 let setTheme theme = 
     window?monaco?editor?setTheme(theme)
@@ -70,6 +71,7 @@ let disableEditors () =
     Refs.fileTabMenu.classList.add("disabled-click")
     Refs.fileTabMenu.onclick <- (fun _ ->
         Browser.window.alert("Cannot change tabs during execution")
+        createObj [] 
     )
     updateEditor Refs.currentFileTabId true
     Refs.darkenOverlay.classList.remove("invisible")
@@ -78,7 +80,7 @@ let disableEditors () =
 // Enable the editor once execution has completed
 let enableEditors () =
     Refs.fileTabMenu.classList.remove("disabled-click")
-    Refs.fileTabMenu.onclick <- ignore
+    Refs.fileTabMenu.onclick <- (fun _ -> createObj [])
     updateEditor Refs.currentFileTabId false
     Refs.darkenOverlay.classList.add([|"invisible"|])
 
@@ -99,14 +101,15 @@ let removeDecorations _editor _decorations =
 
 // Remove all text decorations associated with an editor
 let removeEditorDecorations tId =
-    List.iter (fun x -> removeDecorations Refs.editors.[tId] x) decorations
-    decorations <- []
+    if tId <> -1 then 
+        List.iter (fun x -> removeDecorations Refs.editors.[tId] x) decorations
+        decorations <- []
 
 let editorLineDecorate editor number decoration (rangeOpt : ((int*int) option)) =
     let model = editor?getModel()
     let lineWidth = model?getLineMaxColumn(number)
     let posStart = match rangeOpt with | None -> 1 | Some (n,_) -> n
-    let posEnd = match rangeOpt with | None -> lineWidth :?> int | Some (_,n) -> n
+    let posEnd = match rangeOpt with | None -> lineWidth | Some (_,n) -> n
     let newDecs = lineDecoration editor
                     decorations
                     (monacoRange number posStart number posEnd)
@@ -137,11 +140,14 @@ let highlightGlyph tId number glyphClassName =
 let highlightNextInstruction tId number =
     highlightGlyph tId number "editor-glyph-margin-arrow"
 
-/// Decorate a line with an error indication and set up a hover message
-/// Distinct message lines must be elements of markdownLst
-/// markdownLst: string list - list of markdown paragraphs
-/// tId: int - tab identifier
-/// lineNumber: int - line to decorate, starting at 1
+/// <summary>
+/// Decorate a line with an error indication and set up a hover message.
+/// Distinct message lines must be elements of markdownLst.
+/// markdownLst: string list - list of markdown paragraphs.
+/// tId: int - tab identifier.
+/// lineNumber: int - line to decorate, starting at 1.
+/// hoverLst: hover attached to line.
+/// gHoverLst: hover attached to margin glyph.</summary>
 let makeErrorInEditor tId lineNumber (hoverLst:string list) (gHoverLst: string list) = 
     let makeMarkDown textLst =
         textLst
@@ -156,9 +162,7 @@ let makeErrorInEditor tId lineNumber (hoverLst:string list) (gHoverLst: string l
             "isTrusted" ==> true
             "inlineClassName" ==> "editor-line-error"
             "hoverMessage" ==> makeMarkDown hoverLst
-            //"glyphMarginClassName" ==> "editor-glyph-margin-error"
-            //"glyphMarginHoverMessage" ==> makeMarkDown gHoverLst
-        ])
+         ])
         None
     // decorate the margin
     editorLineDecorate 
@@ -167,9 +171,6 @@ let makeErrorInEditor tId lineNumber (hoverLst:string list) (gHoverLst: string l
         (createObj [
             "isWholeLine" ==> true
             "isTrusted" ==> true
-            //"inlineClassName" ==> "editor-line-error"
-            //"hoverMessage" ==> makeMarkDown hoverLst
-            //"inlineClassName" ==> "editor-line-error"
             "glyphMarginClassName" ==> "editor-glyph-margin-error"
             "glyphMarginHoverMessage" ==> makeMarkDown gHoverLst
             "overviewRuler" ==> createObj [ "position" ==> 4 ]
@@ -212,8 +213,8 @@ let toolTipInfo (v: int) (dp: DataPath) ({Cond=cond;InsExec=instruction;InsOpCod
             let TROWS s = 
                 (List.map (fun s -> s |> toDOM |> TD) >> TROW) s
             let memStackInfo (ins: Memory.InstrMemMult) (dir: MemDirection) (dp: DataPath) =
-                let sp = dp.Regs.[ins.Rn] |> int64 |> uint64 |> uint32
-                let offLst,increment = Memory.offsetList (sp |> int64 |> int32) ins.suff ins.rList ins.WB (dir=MemRead)
+                let sp = dp.Regs.[ins.Rn] 
+                let offLst,increment = Memory.offsetList (sp |> int32) ins.suff ins.rList ins.WB (dir=MemRead)
                 let locs = List.zip ins.rList offLst
                 let makeRegRow (rn:RName ,ol:uint32) =
                     [ 

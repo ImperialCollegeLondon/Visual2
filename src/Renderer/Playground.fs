@@ -12,21 +12,14 @@ open Fable.Core.JsInterop
 open Fable.Import
 open Fable.Import.Browser
 
-// Check uint32 vs int32
+let rand (s:int32) = (s*101001+1234759)
 
-let intLst = [0..31] |> List.map (fun n -> 1 <<< n)
-let getBit n = (1u <<< n)
+let rec rnds s n = match n with | 0 -> [] | n -> rand s :: rnds (rand s) (n-1)
 
-
-
-let checkConvert (n:uint32) =
-    let x = n |> int32
-    let n' = x |> uint32
-    if n <> n' then printfn "Error for n = %x (%d), n |> uint32 = %x (%d), |> uint32 |> int32 = %x (%d)" n n x x n' n'
-
-
+let z = (10000001u*100000001u*1000000001u*100000001u &&& 0x1u)
 
 let check1() =
-    printfn "Check 1 started"
-    checkConvert (getBit 31)
-    printfn "Check 1 finished"
+    printfn "%A" (rnds 0 50)
+    printfn "\n\nz=%d" z
+
+
