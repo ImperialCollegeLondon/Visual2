@@ -210,7 +210,6 @@ let toolTipInfo (v: int) (dp: DataPath) ({Cond=cond;InsExec=instruction;InsOpCod
         | Error _ -> ()
         | Ok res -> 
             let TROWS s = 
-                printfn "ROW=%A" s
                 (List.map (fun s -> s |> toDOM |> TD) >> TROW) s
             let memStackInfo (ins: Memory.InstrMemMult) (dir: MemDirection) (dp: DataPath) =
                 let sp = dp.Regs.[ins.Rn] |> int64 |> uint64 |> uint32

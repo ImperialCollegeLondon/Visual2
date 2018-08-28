@@ -301,6 +301,9 @@ module Helpers
 
     let updateMemData value (a : uint32) (dp: DataPath) =
         let addr = a >>> 0
+        match value with
+        | Data.Dat d -> if d > 0xFFFFFFFFu then failwithf "What? Bad data value %A" d
+        | _ -> ()
         match validateWA addr with
         | false -> 
             (addr, " Trying to update memory at unaligned address.")
@@ -343,6 +346,8 @@ module Helpers
             match Map.containsKey (WA baseAddr) dp.MM with
             | true -> dp.MM.[WA baseAddr]
             | false -> Dat 0u // Uninitialised memory is zeroed
+        if (value |> uint32) &&& 0xFFFFFF00u <> 0u then   
+            failwithf "Bad byte value:%d" (value |> uint32)
         match oldVal with
         | Dat x -> 
             let newVal = (x &&& mask) ||| ((uint32 value) <<< shft)

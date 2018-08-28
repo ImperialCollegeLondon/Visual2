@@ -23,6 +23,43 @@ open Tabs
  *
  ****************************************************************************************************)
 
+
+ // Popup windows
+
+let makePrefsWindow() = 
+    let url = "prefs.html"
+    let mutable prefsWindow = Core.Option.None: BrowserWindow option
+
+    // Register click on the About menu
+
+    let options = createEmpty<BrowserWindowOptions>
+    let webPrefs = createEmpty<WebPreferences>
+    webPrefs?nativeWindowOpen <- Some true
+    options?toolbar <- Some false
+    options.resizable <- Some false
+    options.show <- Some true
+    options.height <- Some 600.
+    options.width <- Some 400.
+    options.modal <- Some true
+    options.parent <- Some (electron.remote.getCurrentWindow())
+    options.webPreferences <- Some webPrefs
+  
+
+    let prefs = electron.remote.BrowserWindow.Create(options)
+    // For to remove the menu of the window
+    prefs.setMenu(unbox null)
+
+    prefs.on("closed", unbox(fun () ->
+        // Dereference the about window object.
+        prefsWindow <- Option.None
+    )) |> ignore
+
+    prefs.loadURL(Node.Exports.path.join("file://", Node.Globals.__dirname, url))
+
+    prefsWindow <- prefs |> Some
+
+
+
  /// Load the node Buffer into the specified tab
 let loadFileIntoTab tId (fileData : Node.Buffer.Buffer) =
     if currentFileTabId = tId then
@@ -170,7 +207,8 @@ let editMenu() =
         menuSeparator
         makeItem "Increase Font Size" (Some "CmdOrCtrl+.") (fun () -> Settings.alterFontSize 2)
         makeItem "Decrease Font Size" (Some "CmdOrCtrl+,") (fun () -> Settings.alterFontSize -2)
-        makeItem  "Preferences"  Option.None optCreateSettingsTab
+        makeItem  "Preferences"  Core.Option.None optCreateSettingsTab
+        makeItem "Test prefs" Core.Option.None makePrefsWindow
     ]
 
 let viewMenu() = 

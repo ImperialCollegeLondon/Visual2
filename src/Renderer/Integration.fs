@@ -255,7 +255,10 @@ let getRunInfoFromImage (lim:LoadImage) =
 
     let getData map mm : Map<WAddr,Data> =
         let dLocs = map |> Map.toList
-        List.fold (fun mem -> fun (a, x) -> Map.add (WA a) (Dat x) mem) mm dLocs
+        List.fold (fun mem -> fun (a, x) -> 
+            if a > 0xFFFFFFFFu then failwithf "What? invalid address in memory image location: %d: %d" a x
+            if x > 0xFFFFFFFFu then failwithf "What? invalid data value in memory image locatio: %d: %d" a x
+            Map.add (WA a) (Dat x) mem) mm dLocs
 
     let dp = {
                 Fl = getFlags()
