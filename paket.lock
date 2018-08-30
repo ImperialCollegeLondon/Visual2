@@ -5,7 +5,7 @@ NUGET
       FSharp.Core (>= 4.0.0.1) - restriction: >= net45
       FSharp.Core (>= 4.3.2) - restriction: && (< net45) (>= netstandard2.0)
       System.Configuration.ConfigurationManager (>= 4.4) - restriction: && (< net45) (>= netstandard2.0)
-    dotnet-fable (2.0.0-beta-001) - clitool: true
+    dotnet-fable (2.0.0-beta-002) - clitool: true
       Dotnet.ProjInfo (>= 0.9) - restriction: >= netcoreapp2.0
       FSharp.Compiler.Service (>= 23.0.3) - restriction: >= netcoreapp2.0
       FSharp.Core (>= 4.3.4) - restriction: >= netcoreapp2.0
@@ -74,7 +74,7 @@ NUGET
       Microsoft.NETCore.Targets (>= 1.1) - restriction: && (< monoandroid) (< monotouch) (< net46) (>= netstandard1.3) (< xamarinios) (< xamarinmac) (< xamarintvos) (< xamarinwatchos)
       System.Runtime (>= 4.3) - restriction: && (< monoandroid) (< monotouch) (< net46) (>= netstandard1.3) (< xamarinios) (< xamarinmac) (< xamarintvos) (< xamarinwatchos)
     Microsoft.Win32.Registry (4.5) - restriction: >= netcoreapp2.0
-      System.Memory (>= 4.5) - restriction: || (&& (< net46) (< netcoreapp2.1) (>= netstandard2.0)) (>= netcoreapp2.0)
+      System.Memory (>= 4.5) - restriction: || (&& (< net46) (< netcoreapp2.1) (>= netstandard2.0)) (>= netcoreapp2.0) (>= uap10.1)
       System.Security.AccessControl (>= 4.5) - restriction: || (>= monoandroid) (>= monotouch) (&& (< net46) (>= netstandard2.0)) (>= net461) (>= netcoreapp2.0) (>= netcoreapp2.1) (>= xamarinios) (>= xamarinmac) (>= xamarintvos) (>= xamarinwatchos)
       System.Security.Principal.Windows (>= 4.5) - restriction: || (>= monoandroid) (>= monotouch) (&& (< net46) (>= netstandard2.0)) (>= net461) (>= netcoreapp2.0) (>= netcoreapp2.1) (>= xamarinios) (>= xamarinmac) (>= xamarintvos) (>= xamarinwatchos)
     Mono.Cecil (0.10) - restriction: || (>= net461) (>= netstandard2.0)
@@ -241,7 +241,7 @@ NUGET
       System.Reflection.Primitives (>= 4.3) - restriction: && (< monoandroid) (< monotouch) (< net45) (>= netstandard1.0) (< wp8) (< xamarinios) (< xamarinmac) (< xamarintvos) (< xamarinwatchos)
       System.Runtime (>= 4.3) - restriction: && (< monoandroid) (< monotouch) (< net45) (>= netstandard1.0) (< wp8) (< xamarinios) (< xamarinmac) (< xamarintvos) (< xamarinwatchos)
     System.Reflection.Metadata (1.6) - restriction: || (&& (< net46) (>= netstandard2.0)) (>= netcoreapp2.0) (&& (< netstandard1.3) (>= netstandard2.0))
-      System.Collections.Immutable (>= 1.5) - restriction: || (>= net45) (&& (< netcoreapp2.1) (>= netstandard2.0)) (&& (>= netstandard1.1) (< netstandard2.0) (< win8) (< wpa81)) (&& (< netstandard1.1) (>= portable-net45+win8+wpa81) (< win8)) (&& (< netstandard1.1) (>= win8)) (&& (< netstandard2.0) (>= wpa81))
+      System.Collections.Immutable (>= 1.5) - restriction: || (>= net45) (&& (< netcoreapp2.1) (>= netstandard2.0)) (&& (>= netstandard1.1) (< netstandard2.0) (< win8) (< wpa81)) (&& (< netstandard1.1) (>= portable-net45+win8+wpa81) (< win8)) (&& (< netstandard1.1) (>= win8)) (&& (< netstandard2.0) (< uap10.1) (>= wpa81))
     System.Reflection.Primitives (4.3) - restriction: || (&& (< net45) (< netstandard1.2) (>= netstandard2.0) (< win8)) (&& (< net45) (>= netstandard2.0) (< win8) (< wpa81)) (&& (>= netcoreapp1.1) (>= netstandard2.0)) (>= netcoreapp2.0) (&& (>= netstandard2.0) (< portable-net45+win8+wpa81))
       Microsoft.NETCore.Platforms (>= 1.1) - restriction: || (&& (< monoandroid) (< monotouch) (< net45) (>= netstandard1.0) (< win8) (< wp8) (< wpa81) (< xamarinios) (< xamarinmac) (< xamarintvos) (< xamarinwatchos)) (< portable-net45+win8+wp8+wpa81)
       Microsoft.NETCore.Targets (>= 1.1) - restriction: || (&& (< monoandroid) (< monotouch) (< net45) (>= netstandard1.0) (< win8) (< wp8) (< wpa81) (< xamarinios) (< xamarinmac) (< xamarintvos) (< xamarinwatchos)) (< portable-net45+win8+wp8+wpa81)
@@ -367,4 +367,4 @@ NUGET
       FSharp.Core (>= 4.5) - restriction: >= netstandard2.0
 GITHUB
   remote: fable-compiler/Fable
-    src/dotnet/Fable.JS/Interfaces.fs (f74edfd51bdc157d143f3d9ce6badc049d740fd9)
+    src/dotnet/Fable.JS/Interfaces.fs (325c94de038a0bdd22220e416c809db7a3237ba2)
