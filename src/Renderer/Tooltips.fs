@@ -411,10 +411,10 @@ let tippyTheme() =
 
 /// <summary> Tooltip generator using tippy.js https://atomiks.github.io/tippyjs/ </summary>
 /// <param name="theme"> Tippy theme as defined in CSS: dark, light, etc</param>
-/// <param name = "placement"> Tippy placement (top, bottom, etc) </param>
-/// <param name = "clickable"> true => click to display, false => hover to display </param>
-/// <param name = "button"> true => delay tooltip and make it close on click </param>
-/// <param name = "domID"> ID of DOM element to which tooltip is attached </param>
+/// <param name="placement"> Tippy placement (top, bottom, etc) </param>
+/// <param name="clickable"> true => click to display, false => hover to display </param>
+/// <param name="button"> true => delay tooltip and make it close on click </param>
+/// <param name="domID"> ID of DOM element to which tooltip is attached </param>
 let makeTooltip (theme:string) (placement:string) (clickable:bool) (button:bool) (domID:string) (tooltip: HTMLElement) =
     tippy( "#"+domID, createObj <| 
         [ 
@@ -433,11 +433,11 @@ let makeTooltip (theme:string) (placement:string) (clickable:bool) (button:bool)
 /// <summary>
 /// Make an info button with associated hover tooltip.
 /// </summary>
-/// <param name = "h"> horizontal char position for LH edge of button in editor </param>
-/// <param name = "v"> line number in editor buffer on which to place button (starting from 0 = top)</param>
-/// <param name = "buttonText"> label on button</param>
-/// <param name = "toolTipDOM"> DOM to display inside tooltip box </param>
-let makeEditorInfoButtonWithTheme theme (clickable:bool) h v (buttonText:string) (toolTipDOM:HTMLElement) = 
+/// <param name="h"> horizontal char position for LH edge of button in editor </param>
+/// <param name="v"> line number in editor buffer on which to place button (starting from 0 = top)</param>
+/// <param name="buttonText"> label on button</param>
+/// <param name="toolTipDOM"> DOM to display inside tooltip box </param>
+let makeEditorInfoButtonWithTheme theme (clickable:bool) (h,v,orientation) (buttonText:string) (toolTipDOM:HTMLElement) = 
     /// Ratio of char width / char size for editor buffer font.
     /// TODO: work this out properly from a test
     let editorFontWidthRatio = 0.6 // works OK for Fira Code Mono
@@ -454,10 +454,10 @@ let makeEditorInfoButtonWithTheme theme (clickable:bool) h v (buttonText:string)
         )
     deleteContentWidget domID // in some cases we may be updating an existing widget
     makeContentWidget domID dom <| Exact(0,v)
-    makeTooltip theme "bottom" clickable false domID tooltip
+    makeTooltip theme orientation clickable false domID tooltip
 
 /// Make an editor tooltip info button with correct theme
-let makeEditorInfoButton clickable h v = makeEditorInfoButtonWithTheme (tippyTheme()) clickable h v
+let makeEditorInfoButton clickable (h,v,orientation) = makeEditorInfoButtonWithTheme (tippyTheme()) clickable (h,v,orientation)
 
 /// Add all the static tooltip information on the editor
 let addFixedToolTips() =
@@ -497,7 +497,7 @@ Visual2 to facilitate  use of stacks"""
 open CommonData   
 
 /// Drive the displayShiftDiagram function from a tooltip with correct parameters for given line
-let makeShiftTooltip (h,v) (dp:DataPath, dpAfter:DataPath, uFAfter:DP.UFlags) (rn:RName) (shiftT:DP.ArmShiftType Option, alu:bool) (shiftAmt:uint32) (op2: DP.Op2) =
+let makeShiftTooltip (h,v,orientation) (dp:DataPath, dpAfter:DataPath, uFAfter:DP.UFlags) (rn:RName) (shiftT:DP.ArmShiftType Option, alu:bool) (shiftAmt:uint32) (op2: DP.Op2) =
     let bToi = function |true -> 1 |false -> 0
     let before = dp.Regs.[rn] 
     let (after,uF) = DP.evalOp2 op2 dp 
@@ -508,7 +508,7 @@ let makeShiftTooltip (h,v) (dp:DataPath, dpAfter:DataPath, uFAfter:DP.UFlags) (r
     printfn "After': %d,%d" after after'
     printfn "Making shift tooltip"
     let diagram = displayShiftDiagram rn (before, bToi dp.Fl.C) (after', final, bToi uF.Ca, finalC, finalFWrite, alu) shiftT (shiftAmt |> int)
-    makeEditorInfoButtonWithTheme "light" lineTipsClickable h (v+1) "Shift" diagram
+    makeEditorInfoButtonWithTheme "light" lineTipsClickable (h,(v+1),orientation) "Shift" diagram
     
     
 

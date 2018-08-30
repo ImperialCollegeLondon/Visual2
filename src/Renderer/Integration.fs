@@ -161,14 +161,14 @@ let highlightCurrentAndNextIns classname pInfo tId  =
         | Some (condInstr, lineNo) -> 
             highlightLine tId lineNo classname 
             Editors.revealLineInWindow tId lineNo
-            Editors.toolTipInfo (lineNo-1) dp condInstr
+            Editors.toolTipInfo (lineNo-1,"top") dp condInstr
         | Option.None
         | Some _ -> failwithf "What? Current PC value (%x) is not an instruction: this should be impossible!" dp.Regs.[R15]
     let pc = (fst pInfo.dpCurrent).Regs.[R15]
     match Map.tryFind (WA pc) pInfo.IMem with
     | Some (condInstr, lineNo) -> 
         highlightNextInstruction tId lineNo
-        Editors.toolTipInfo (lineNo-1) (fst pInfo.dpCurrent) condInstr
+        Editors.toolTipInfo (lineNo-1,"bottom") (fst pInfo.dpCurrent) condInstr
     | _ -> ()
     
 /// Update GUI after a runtime error. Highlight error line (and make it visible).

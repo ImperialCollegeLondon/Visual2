@@ -203,7 +203,7 @@ let findCodeEnd  (lineCol:int) =
 
 /// Make execution tooltip info for the given instruction and line v, dp before instruction dp.
 /// Does nothing if opcode is not documented with execution tooltip
-let toolTipInfo (v: int) (dp: DataPath) ({Cond=cond;InsExec=instruction;InsOpCode=opc}: ParseTop.CondInstr) =
+let toolTipInfo (v: int,orientation: string) (dp: DataPath) ({Cond=cond;InsExec=instruction;InsOpCode=opc}: ParseTop.CondInstr) =
     match Helpers.condExecute cond dp, instruction with
     | false,_ -> ()
     | true, ParseTop.IMEM ins -> 
@@ -260,7 +260,7 @@ let toolTipInfo (v: int) (dp: DataPath) ({Cond=cond;InsExec=instruction;InsOpCod
         
             let makeTip memInfo =
                 let (hOffset, label), tipDom = memInfo dp
-                makeEditorInfoButton Tooltips.lineTipsClickable hOffset (v+1) label tipDom
+                makeEditorInfoButton Tooltips.lineTipsClickable (hOffset,(v+1),orientation)  label tipDom
             match ins with
             | Memory.LDR ins -> makeTip <| memPointerInfo ins MemRead
             | Memory.STR ins -> makeTip <| memPointerInfo ins MemWrite
@@ -269,7 +269,7 @@ let toolTipInfo (v: int) (dp: DataPath) ({Cond=cond;InsExec=instruction;InsOpCod
             | _ -> ()
     | true, ParseTop.IDP (exec,op2) -> 
         let alu = ExecutionTop.isArithmeticOpCode opc
-        let pos = findCodeEnd v,v
+        let pos = findCodeEnd v,v,orientation
         match exec dp with
         | Error _ -> ()
         |Ok (dp',uF') ->
