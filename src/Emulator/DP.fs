@@ -35,7 +35,7 @@ type InstrNegativeLiteralMode =
     | NoNegLit
 
 /// deal with bug in FABLE uint32 handling
-let trimUint32 u = ((int64 u) &&& ((1L <<< 32) - 1L)) |> uint32
+let trimUint32 u = u >>> 0
 
 // ///////////// flexible op2 definition and evaluation //////////
 
@@ -187,9 +187,8 @@ let execAdr
 // ///////////// simulator functions /////////////////////////////
 
 let simMathWithCarry a b cIn =
-    let mask32 = ((1L <<< 32) - 1L)
     let bit n (x:int64) = (x >>> n) &&& 1L
-    let unsignedTrueRes = (int64 a &&& mask32) + (int64 b &&& mask32) + (int64 (int cIn))
+    let unsignedTrueRes = (int64 (a>>>0)) + (int64 (b>>>0)) + (int64 (int cIn))
     let res = trimUint32 (uint32 unsignedTrueRes)
     let signedTrueRes = (int64 (int a)) + (int64 (int b)) + int64 cIn
     let overflow = bit 31 signedTrueRes <> bit 32 signedTrueRes
