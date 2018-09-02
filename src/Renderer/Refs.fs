@@ -21,7 +21,7 @@ open EEExtensions
 //                                  App Version 
 // **********************************************************************************
 
-let appVersion = "0.14.4"
+let appVersion = "1.00.0"
 
 // **********************************************************************************
 //                               Types used in this module
@@ -332,7 +332,6 @@ let getJSONSettings() =
     | false -> 
         try
             let vs = (Fable.Import.JS.JSON.parse json) :?> VSettings
-            printfn "Found saved settings: %A" vs
             vs
         with
         | e -> 

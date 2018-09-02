@@ -16,36 +16,60 @@ let rand (s:int32) = (s*101001+1234759)
 
 let rec rnds s n = match n with | 0 -> [] | n -> rand s :: rnds (rand s) (n-1)
 
-let z = (10000001u*100000001u*1000000001u*100000001u &&& 0x1u)
+let z = -1L |> uint32
+
+let prop1 = (-1 |> uint64 = 0xFFFFFFFFuL )
+let prop2 = (0xFFFFFFFFu |> int64 = 0xFFFFFFFFL)
+let prop3 = (-1L |> uint64 = 0xFFFFFFFFFFFFFFFFuL)
+let prop4 = (0xFFFFFFFFFFFFFFFFuL |> int64 = -1L)
+let prop5 = (-1L |> int32 = -1)
+let prop6 = (-1L |> uint32 = 0xFFFFFFFFu)
+let prop7 = (-1L |> int32 = -1)
+let prop8' = 0xFFFFFFFFFFFFFFFFuL |> int32
+let prop8 = prop8' = -1
+let prop9' = 0xFFFFFFFFFFFFFFFFuL |> uint32
+let prop9 = prop9' = 0xFFFFFFFFu
+let prop10 = (0xFFFFFFFF + 0xFFFFFFFF = 0xFFFFFFFE)
+let prop11 = -1L + -1L = -2L
+let prop12 = 
+    let x = (0x80000000u) ||| 0u
+    x = (x >>> 0)
+
+let inline equals name a b =
+    match a = b with
+    | true -> printfn "%s: OK" name
+    | false -> printfn "%s: expected %A, actual %A" name a b
+
+
+
+let inline binOpCheck name op lh rh =
+    equals (sprintf "%s: " name) ((op lh rh) >>> 0) (op lh rh) 
 
 let x = -1
 let xl = -1L
 let ul = 0xFFFFFFFFFFFFFFFFuL
 
-let prop1 = x |> uint64
-let prop2 = (0xFFFFFFFFu |> int64 = 0xFFFFFFFFL)
-let prop3 = (xl |> uint64 = 0xFFFFFFFFFFFFFFFFuL)
-let prop4 = (ul |> int64 = -1L)
-let prop5 = (xl |> int32 = -1)
-let prop6 = (xl |> uint32 = 0xFFFFFFFFu)
-let prop7 = (xl |> int32 = -1)
-let prop8 = ul |> int32
-let prop9 = ul |> uint32
+
 
 let check1() =
-    printfn "Negative int32 sign extended to uint64=%x,%f" xl (prop1 |> double)
-    printfn "Large uint32 zero extended to int64=%A" prop2
-    printfn "Negative int64 unchanged as bits to uint64=%A" prop3
-    printfn "Large uint64 unchanged as bits to int64=%A" prop4
-    printfn "Negative int64 unchanged to int32 = %A" prop5
-    printfn "Negative int64 unchanged as lower order bits to uint32 = %A" prop6
-    printfn "Negative int64 unchanged to int32 = %A" prop7
-    printfn "Large uint64 unchanged as lower order bits to int32 = %x,%f" prop8 (prop8 |> double)
-    printfn "Large uint64 unchanged as lower order bits to uint32 = %x,%f" prop9 (prop9 |> double)
-    printfn "large hex constant %x" 0xFFFFFFFFFFFFFFFFuL
-    printfn "large uint32 hex constant: %x" 0xFFFFFFFFuL
+
+    binOpCheck "|||" (|||) 0x80000000u 0u
+    binOpCheck "&&&" (&&&) 0x80000000u 0xffffffffu
+    binOpCheck "^^^" (^^^) 0x80000000u 0u
+    binOpCheck "<<<" (<<<) 0xf0000000u 2
+    binOpCheck ">>>" (>>>) 0xf0000000u 0
+    binOpCheck "~~~" (fun a b -> ~~~a) 0x70000000u ()
+    binOpCheck "||| signed" (|||) 0x80000000 0
+    binOpCheck "&&& signed" (&&&) 0x80000000 -1
+    binOpCheck "^^^ signed" (^^^) 0x80000000 0
+    binOpCheck "~~~ signed " (fun a b -> ~~~a) 0x70000000 ()
+    binOpCheck "<<< signed " (<<<) 0xf0000000 2
+    binOpCheck ">>> signed " (>>>) 0xf0000000 2
+    equals "~~~ char" (~~~0x0fy) 0xf0y
+    equals "hex unsigned: " 0x80000000u (0x80000000u >>> 0)
+    equals "+ result equals"  true ((0x8000000u + 0x4000003u) = 0xc000003u)
+    ()
 
 
-
-
+   
 
