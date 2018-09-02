@@ -31,19 +31,37 @@ let prop9' = 0xFFFFFFFFFFFFFFFFuL |> uint32
 let prop9 = prop9' = 0xFFFFFFFFu
 let prop10 = (0xFFFFFFFF + 0xFFFFFFFF = 0xFFFFFFFE)
 let prop11 = -1L + -1L = -2L
+let prop12 = 
+    let x = (0x80000000u) ||| 0u
+    x = (x >>> 0)
+
+let inline equals name a b =
+    match a = b with
+    | true -> printfn "%s: OK" name
+    | false -> printfn "%s: expected %A, actual %A" name a b
+
+
+
+let inline binOpCheck name op lh rh =
+    equals (sprintf "%s: " name) ((op lh rh) >>> 0) (op lh rh) 
 
 let check1() =
-    printfn "Negative int32 sign extended to uint64=%A" prop1
-    printfn "Large uint32 zero extended to int64=%A" prop2
-    printfn "Negative int64 unchanged as bits to uint64=%A" prop3
-    printfn "Large uint64 unchanged as bits to int64=%A" prop4
-    printfn "Negative int64 unchanged to int32 = %A" prop5
-    printfn "Negative int64 unchanged as lower order bits to uint32 = %A" prop6
-    printfn "Negative int64 unchanged to int32 = %A" prop7
-    printfn "Large uint64 unchanged as lower order bits to int32 = %A %x" prop8 prop8'
-    printfn "Large uint64 unchanged as lower order bits to uint32 = %A %x" prop9 prop9'
-    printfn "Integer compare works with overflow"
-    printfn "prop10=%A, prop11=%A" prop10 prop11
+    binOpCheck "|||" (|||) 0x80000000u 0u
+    binOpCheck "&&&" (&&&) 0x80000000u 0xffffffffu
+    binOpCheck "^^^" (^^^) 0x80000000u 0u
+    binOpCheck "<<<" (<<<) 0xf0000000u 2
+    binOpCheck ">>>" (>>>) 0xf0000000u 0
+    binOpCheck "~~~" (fun a b -> ~~~a) 0x70000000u ()
+    binOpCheck "||| signed" (|||) 0x80000000 0
+    binOpCheck "&&& signed" (&&&) 0x80000000 -1
+    binOpCheck "^^^ signed" (^^^) 0x80000000 0
+    binOpCheck "~~~ signed " (fun a b -> ~~~a) 0x70000000 ()
+    binOpCheck "<<< signed " (<<<) 0xf0000000 2
+    binOpCheck ">>> signed " (>>>) 0xf0000000 2
+    equals "~~~ char" (~~~0x0fy) 0xf0y
+    equals "hex unsigned: " 0x80000000u (0x80000000u >>> 0)
+    equals "+ result equals"  true ((0x8000000u + 0x4000003u) = 0xc000003u)
+    ()
 
    
 

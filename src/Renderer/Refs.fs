@@ -332,7 +332,6 @@ let getJSONSettings() =
     | false -> 
         try
             let vs = (Fable.Import.JS.JSON.parse json) :?> VSettings
-            printfn "Found saved settings: %A" vs
             vs
         with
         | e -> 
