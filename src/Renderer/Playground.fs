@@ -48,26 +48,11 @@ let inline binOpCheck name op lh rh =
 let x = -1
 let xl = -1L
 let ul = 0xFFFFFFFFFFFFFFFFuL
-
+let mOne = 0xFFFFFFFFu
 
 
 let check1() =
-
-    binOpCheck "|||" (|||) 0x80000000u 0u
-    binOpCheck "&&&" (&&&) 0x80000000u 0xffffffffu
-    binOpCheck "^^^" (^^^) 0x80000000u 0u
-    binOpCheck "<<<" (<<<) 0xf0000000u 2
-    binOpCheck ">>>" (>>>) 0xf0000000u 0
-    binOpCheck "~~~" (fun a b -> ~~~a) 0x70000000u ()
-    binOpCheck "||| signed" (|||) 0x80000000 0
-    binOpCheck "&&& signed" (&&&) 0x80000000 -1
-    binOpCheck "^^^ signed" (^^^) 0x80000000 0
-    binOpCheck "~~~ signed " (fun a b -> ~~~a) 0x70000000 ()
-    binOpCheck "<<< signed " (<<<) 0xf0000000 2
-    binOpCheck ">>> signed " (>>>) 0xf0000000 2
-    equals "~~~ char" (~~~0x0fy) 0xf0y
-    equals "hex unsigned: " 0x80000000u (0x80000000u >>> 0)
-    equals "+ result equals"  true ((0x8000000u + 0x4000003u) = 0xc000003u)
+    Stats.readOnlineInfo Stats.Startup
     ()
 
 

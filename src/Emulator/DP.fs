@@ -251,6 +251,11 @@ let makeOkLitMap() =
         OkLitMap <- Some map
         map
 
+let makeLitShift shiftStr reg shiftType (n:uint32) = 
+    match n with
+    | n when n < 32u  && n >= 0u -> Ok (Op2.RegisterWithShift(reg,shiftType,n))
+    | _ -> makeDPE "Valid numeric shift value in range #0 - #31" shiftStr
+
 let parseOp2 (subMode: InstrNegativeLiteralMode) (symTable : SymbolTable) (args : string list) =
     /// make ARM literal from uint32
     let makeImmediate (num:uint32) =
@@ -284,12 +289,13 @@ let parseOp2 (subMode: InstrNegativeLiteralMode) (symTable : SymbolTable) (args 
                     (sprintf "invalid literal=%d" num)
         | (K,rot,sub) :: _ ->  Result.Ok (NumberLiteral(K,rot,sub))
 
+
     /// apply shift expression to register
     let parseShiftExpression (str : string) reg =
         let getShiftType str = match Map.tryFind str (Map.ofList ["LSL", LSL; "LSR", LSR; "ASR", ASR; "ROR",ROR]) with
                                 | Some s -> Ok s
                                 | None -> makeDPE "Valid shift code LSL,LSR,ASR,ROR" str
-        let makeImmShift shiftType n = RegisterWithShift (reg, shiftType, n)
+
         let makeRegShift shiftType r = RegisterWithRegisterShift (reg, shiftType, r)
 
         if str.ToUpper() = "RRX" then
@@ -299,7 +305,7 @@ let parseOp2 (subMode: InstrNegativeLiteralMode) (symTable : SymbolTable) (args 
             | Ok shiftType, imm when imm.StartsWith("#") -> 
                 imm.Substring(1) 
                 |> parseNumberExpression symTable 
-                |> Result.map (makeImmShift shiftType)
+                |> Result.bind (makeLitShift imm reg shiftType)
             | Ok shiftType, reg when isRegister reg-> 
                 parseRegister reg 
                 |> Result.bind (
@@ -380,14 +386,16 @@ let makeArithmeticInstr subMode opType symTable operands updateFlags =
 let makeShiftInstr shiftType symTable operands updateFlags =
     match operands with
     | [dst ; src ; shiftBy] ->
-
         match parseRegister dst, parseRegister src with
         | Ok dst', Ok src' ->
             let op2 =
-                let makeLitShift n = RegisterWithShift (src', shiftType, n)
+                let makeLitShift' (n:uint32) = 
+                    match n with
+                    | n when n < 32u  && n >= 0u-> Ok (Op2.RegisterWithShift(src',shiftType,n))
+                    | _ -> makeDPE "Valid numeric shift value in range #0 - #31" shiftBy
                 let makeRegShift r = RegisterWithRegisterShift (src', shiftType, r)
                 match shiftBy with
-                | cons when cons.StartsWith("#") -> cons.Substring(1) |> parseNumberExpression symTable |> Result.map makeLitShift
+                | cons when cons.StartsWith("#") -> cons.Substring(1) |> parseNumberExpression symTable |> Result.bind (makeLitShift cons src' shiftType)
                 | reg when isRegister reg -> parseRegister reg |> Result.map makeRegShift
                 | reg when isValidNumericExpression symTable reg ->
                       makeFormatError "Numbers in instruction operands require '#' prefix (#22, #-1)" reg "flexop2"

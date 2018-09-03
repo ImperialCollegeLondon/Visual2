@@ -81,7 +81,8 @@ let init () =
     
     Refs.saveFileBtn.addEventListener_click (fun _ -> MenuBar.interlock "save file" Files.saveFile) 
     
-    Refs.runSimulationBtn.addEventListener_click(fun _ ->
+    Refs.runSimulationBtn.addEventListener_click (fun _ ->
+        Stats.readOnlineInfo Stats.RunningCode
         Integration.runCode () :> obj
     )
     stepForwardBtn.addEventListener_click(fun _ ->
@@ -127,6 +128,8 @@ let init () =
     Editors.updateAllEditors false
 
     Tooltips.addFixedToolTips()
+
+    Stats.readOnlineInfo Stats.Startup
 
 /// top-level function that runs the renderer code
 let handleMonacoReady = { new EventListenerObject with

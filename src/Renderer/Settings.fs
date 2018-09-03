@@ -52,6 +52,7 @@ let getFormSettings() =
             EditorRenderWhitespace = getS editorRenderWhitespace
             CurrentFilePath = vSettings.CurrentFilePath
             RegisteredKey = vSettings.RegisteredKey
+            OnlineFetchText = vSettings.OnlineFetchText
         }
     let vs1 = checkSettings vs
     printfn "Checked settings are: %A" vs1

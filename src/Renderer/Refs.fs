@@ -21,7 +21,7 @@ open EEExtensions
 //                                  App Version 
 // **********************************************************************************
 
-let appVersion = "1.00.0"
+let appVersion = "1.01.0"
 
 // **********************************************************************************
 //                               Types used in this module
@@ -49,6 +49,7 @@ type VSettings = {
     EditorRenderWhitespace: string
     CurrentFilePath: string
     RegisteredKey: string
+    OnlineFetchText: string
     }
 
 // ***********************************************************************************************
@@ -267,6 +268,7 @@ let mutable vSettings = {
     EditorRenderWhitespace = "none"
     CurrentFilePath = Fable.Import.Node.Exports.os.homedir()
     RegisteredKey = ""
+    OnlineFetchText = ""
     }
 
 let themes =  [
@@ -457,6 +459,10 @@ let mutable runMode: ExecutionTop.RunMode = ExecutionTop.ResetMode
 /// Global debug level set from main process.
 /// 0 => production. 1 => development. 2 => debug parameter.
 let mutable debugLevel = 0
+
+
+/// Online data matched time
+let mutable lastOnlineFetchTime: Result<System.DateTime,System.DateTime> = Result.Error System.DateTime.Now
 
 /// Return the text in tab id tId as a string
 let getCode tId :string =
