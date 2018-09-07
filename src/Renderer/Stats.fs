@@ -17,9 +17,7 @@ open Refs
 
 open Fable.PowerPack
 open Fable.PowerPack.Fetch
-open Fable.PowerPack.Keyboard
-open Fable.PowerPack.Keyboard
-open Fable.PowerPack.Keyboard
+
 open System
 
 let logFileName = "Visual2eventLog.txt"
@@ -127,8 +125,8 @@ let (|MatchVersion|_|) txt =
        | Some [ToI aMajor; ToI aMinor; ToI aDebug;_], Some [ToI major ; ToI minor; ToI debug;_] ->
             match major > aMajor, minor > aMinor, debug > aDebug with
             | true, _, _ -> (infoBox <| sprintf "There is a new major release of Visual2 (%s) with additional features, you may wish to upgrade." txt) |> Some
-            | _, true, _ -> (infoBox <| sprintf "There is a new minor release of Visual2 (%s) with new features and bug fixes, you should upgrade." txt) |> Some
-            | _, _, true -> (infoBox <| sprintf "There is a new release of Visual2 (%s) with important bug fixes, you should upgrade." txt) |> Some
+            | _, true, _ -> (infoBox <| sprintf "There is a new minor release of Visual2 (%s) with new features, you should upgrade." txt) |> Some
+            | _, _, true -> (infoBox <| sprintf "There is a new release of Visual2 (%s) with bug fixes, you may wish to upgrade." txt) |> Some
             | _ -> None
        | _, None -> None
        | _, x -> None
@@ -196,6 +194,7 @@ let readOnlineInfo (ve: VisualEvent) =
                  else 
                      if debugLevel > 0 then printfn "can't read internet data"
                      Refs.lastOnlineFetchTime <- Error System.DateTime.Now
+                     checkActions vSettings.OnlineFetchText
                      Error "can't read internet data"
             )
         |> Promise.bindResult (fun res -> res.text())
