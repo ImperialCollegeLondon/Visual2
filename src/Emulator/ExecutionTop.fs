@@ -82,7 +82,7 @@ type SymbolInfo = {
 type LoadImage = {
     LoadP: LoadPos
     Mem: DataMemory
-    Code: CodeMemory<CondInstr * int option>
+    Code: CodeMemory<CondInstr * int>
     Errors: (ParseError * int * string) list
     SymInf: SymbolInfo
     Indent: int
@@ -240,7 +240,7 @@ let loadLine (lim:LoadImage) ((line,lineNum) : string * int) =
             | 4u, Some 0u -> 
                     match pa.PInstr with
                     | Ok pai -> 
-                        lim.Mem, Map.add (WA lp.PosI) ({Cond=pa.PCond;InsExec=pai;InsOpCode= pa.POpCode} , Some lineNum) lim.Code
+                        lim.Mem, Map.add (WA lp.PosI) ({Cond=pa.PCond;InsExec=pai;InsOpCode= pa.POpCode} , lineNum) lim.Code
                     | _ -> lim.Mem, lim.Code
             | i, d -> failwithf "What? Unexpected sizes (I=%d ; D=%A) in parse load" i d
 
