@@ -138,7 +138,7 @@ let highlightGlyph tId number glyphClassName =
         None
 
 let highlightNextInstruction tId number =
-    highlightGlyph tId number "editor-glyph-margin-arrow"
+    if number > 0 then highlightGlyph tId number "editor-glyph-margin-arrow"
 
 /// <summary>
 /// Decorate a line with an error indication and set up a hover message.
