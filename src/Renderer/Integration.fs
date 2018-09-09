@@ -57,7 +57,11 @@ let highlightErrorParse ((err:ParseError), lineNo) tId opc =
         | ``Unimplemented parse`` ->
             "", ML "Unimplemented parse: this is an unexpected error, please inform project maintainers"
         | ``Undefined symbol`` syms ->
-            "", ML <| "This line contains an expression with assembler labels '" + syms + "' that have not been defined"
+            let symsMsg = 
+                match syms with
+                | [sym,msg] -> sprintf ": %s" msg
+                | lst -> List.map snd  lst |> String.concat "\n" |> sprintf "s:\n%s"
+            "", ML <| "This line contains an expression with undefined symbol" + symsMsg
         | ``Invalid opCode`` (root, cond, suffix) ->
             "", sprintf "This opcode: %A%A%A is not valid" root cond suffix |> ML
         | ``Unimplemented instruction`` opcode ->

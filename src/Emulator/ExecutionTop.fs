@@ -74,7 +74,7 @@ type AnnotatedSymbolTable = Map<string, uint32*SymbolType>
 type SymbolInfo = {
     SymTab: SymbolTable ; 
     SymTypeTab: Map<string,SymbolType>;
-    Refs: (string * int) list ; 
+    Refs: (string * int * string) list ; 
     Defs: (string * SymbolType * int) list; 
     Unresolved: (string * SymbolType * int) list
     }
@@ -216,9 +216,8 @@ let loadLine (lim:LoadImage) ((line,lineNum) : string * int) =
                 | Error ( ``Undefined symbol`` syms) ->
                     { si with
                         Refs =
-                            (syms.Split([|','|])
-                            |> Array.toList 
-                            |> List.map (fun s -> (s , lineNum)))
+                            (syms
+                            |> List.map (fun (s,msg) -> (s , lineNum, msg)))
                             @ si.Refs
                     }
                 | _ -> si)

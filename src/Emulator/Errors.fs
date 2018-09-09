@@ -58,7 +58,7 @@ module Errors
         | ``Invalid instruction`` of reason: string
         | ``Label required`` of reason: string
         | ``Unimplemented parse``
-        | ``Undefined symbol`` of symbolText: string
+        | ``Undefined symbol`` of symList: (string * string) list 
         | ``Invalid opCode`` of root: string option * condition: string option * suffix: string
         | ``Unimplemented instruction`` of opCode: string
 

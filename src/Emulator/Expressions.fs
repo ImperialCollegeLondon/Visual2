@@ -51,11 +51,11 @@ module Expressions
 
     /// Evaluate exp against the symbol table syms
     /// Returns a list of all errors or the result
-    let rec eval syms exp : Result<uint32, ErrCode> =
+    let rec eval (syms: Map<string,uint32>) exp : Result<uint32, ErrCode> =
         let joinErrors a b =
             match a,b with
             | ``Undefined symbol`` a' , ``Undefined symbol`` b' ->
-                ``Undefined symbol`` ( a' + "," + b') |> Error
+                ``Undefined symbol`` ( a' @ b') |> Error
             | ``Undefined symbol`` _ , a'
             | a', _  ->  a' |> Error
         let doBinary op x y = 
@@ -64,14 +64,20 @@ module Expressions
             | Error a, Error b -> joinErrors a b
             | Error a, _ -> a |> Error
             | _, Error b -> b |> Error
+        let getSymError x =
+            let x' = String.toUpper x
+            let symLst = syms |> Map.toList |> List.map fst
+            match List.tryFind (fun sym -> x' = String.toUpper sym) symLst with
+            | Some sym ->    x, sprintf "'%s' which has different case from label '%s'" x sym
+            | None -> x, sprintf "'%s' which is not defined as a label" x
         match exp with
         | BinOp (op, x, y) -> doBinary op x y
         | Literal x -> x |> Ok
         | Label x ->
             match (Map.containsKey x syms) with
                 | true -> syms.[x] |> Ok
-                | false -> 
-                    (``Undefined symbol``  x) |> Error
+                | false -> ``Undefined symbol`` [getSymError x] |> Error
+                    
                   
 
 
