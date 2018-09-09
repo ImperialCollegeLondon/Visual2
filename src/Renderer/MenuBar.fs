@@ -260,7 +260,6 @@ let editMenu() =
         makeItem "Increase Font Size" (Some "CmdOrCtrl+.") (fun () -> Settings.alterFontSize 2)
         makeItem "Decrease Font Size" (Some "CmdOrCtrl+,") (fun () -> Settings.alterFontSize -2)
         makeItem  "Preferences"  Core.Option.None optCreateSettingsTab
-        makeItem "Test prefs" Core.Option.None makePrefsWindow
     ]
 
 let viewMenu() = 
@@ -272,7 +271,7 @@ let viewMenu() =
             makeRoleItem  "Zoom Out"  (Some "CmdOrCtrl+-") MenuItemRole.Zoomout 
             makeRoleItem  "Reset Zoom"  (Some "CmdOrCtrl+0") MenuItemRole.Resetzoom
             menuSeparator
-            makeCondItem (debugLevel > 0) "Toggle Dev Tools" (Some "F12") (electron.remote.getCurrentWebContents()).toggleDevTools
+            makeCondItem (debugLevel > 0) "Toggle Dev Tools" (Some devToolsKey) (electron.remote.getCurrentWebContents()).toggleDevTools
         ]
 
 let helpMenu() =
