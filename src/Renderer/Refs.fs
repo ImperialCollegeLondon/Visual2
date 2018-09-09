@@ -397,9 +397,12 @@ let runPage url () =
     options.backgroundColor <- None
     options.icon <- Some (U2.Case2  "app/visual.ico")
     let window = rem.BrowserWindow.Create(options)
-    window.setMenuBarVisibility false
+    window.setMenuBarVisibility true
     window.loadURL url
     window.show()
+
+let runExtPage url () =
+    electron.shell.openExternal url |> ignore
 
 
 let writeToFile str path =

@@ -66,7 +66,7 @@ let highlightErrorParse ((err:ParseError), lineNo) tId opc =
             "", sprintf "This opcode: %A%A%A is not valid" root cond suffix |> ML
         | ``Unimplemented instruction`` opcode ->
             "", sprintf "%s is not a valid UAL instruction" opcode |> ML
-    let gLink = [ sprintf "[UAL Guide](%s)" (visualDocsPage "list") ]
+    let gLink = []
     let mLink = [ sprintf "[more](%s)" (Refs.visualDocsPage link) ]
     let mHover = hover @ ["More: see \u26a0"]
     makeErrorInEditor tId lineNo mHover  (gHover @ hover @ mLink @ gLink)
