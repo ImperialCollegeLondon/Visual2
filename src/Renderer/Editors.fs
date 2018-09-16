@@ -240,15 +240,15 @@ let toolTipInfo (v: int,orientation: string) (dp: DataPath) ({Cond=cond;InsExec=
             let memPointerInfo (ins: Memory.InstrMemSingle) (dir: MemDirection) (dp: DataPath) =
                 let baseAddrU = dp.Regs.[ins.Rb]
                 let baseAddr = int32 baseAddrU
-                let offset = (ins.MAddr dp baseAddr |> uint32) - baseAddrU
-                let ea = match ins.MemMode with | Memory.PreIndex | Memory.NoIndex -> (baseAddrU + offset) | _ -> baseAddrU
+                let offset = (ins.MAddr dp baseAddr |> uint32) - baseAddrU |> int32
+                let ea = match ins.MemMode with | Memory.PreIndex | Memory.NoIndex -> (baseAddrU + uint32 offset) | _ -> baseAddrU
                 let mData = (match ins.MemSize with | MWord -> Memory.getDataMemWord | MByte -> Memory.getDataMemByte) ea dp
+                let isIncr = match ins.MemMode with | Memory.NoIndex ->  false | _ -> true
                 (findCodeEnd v, "Pointer"), TABLE [] [
                     TROWS [sprintf "Base (%s)" (ins.Rb.ToString()) ; sprintf "0x%08X" baseAddrU]
                     TROWS ["Address";  ea |> sprintf "0x%08X"]
-                    TROWS ["Offset";  offset |> sprintf "0x%08X"]
-                    TROWS ["Increment"; match ins.MemMode with | Memory.NoIndex ->  0u | _ -> offset
-                                            |> sprintf "%d"]
+                    TROWS <| if isIncr then [] else ["Offset";  (offset |> sprintf "%+d")]
+                    TROWS ["Increment"; (if isIncr then  offset else 0) |> (fun n -> sprintf "%+d" n)]
                     TROWS ["Data"; match ins.LSType with 
                                    | LOAD -> match mData with | Ok dat -> dat | _ -> 0u
                                    | STORE -> dp.Regs.[ins.Rd] 

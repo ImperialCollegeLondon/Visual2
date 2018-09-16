@@ -143,10 +143,10 @@ let createMainWindow () =
             unbox ( fun _ ->
                 window.webContents.send "resizeWindow")) |> ignore
 
-        window.webContents.on("new-window", unbox (fun e url ->
+        window.webContents.on("new-window",  (fun e x ->
+            printfn "Opening new window! %A %A" e x
             e?preventDefault();
-            printfn "Opening new window!"
-            electron.shell.openExternal(url);
+            electron.shell.openExternal x |> ignore
         )) |> ignore
         
         electron.ipcMain?on ("doClose", unbox (fun () ->

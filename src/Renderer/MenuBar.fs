@@ -28,7 +28,8 @@ let display runMode =
    
 
 /// Wrap an action so that it can only happen if simulator is stopped.
-/// Converts unit -> unit into obj. Must be called as fun () -> interlock actionName action 
+/// Converts unit -> unit into obj. Must be called as fun () -> interlock actionName action.
+/// Suitable for use as JS callback.
 let interlock (actionName:string) (action: (Unit -> Unit)) = (
         if debugLevel > 0 then printf "Interlock : runMode=%A" (display runMode)
         let actIfConfirmed buttonNum =
@@ -42,9 +43,9 @@ let interlock (actionName:string) (action: (Unit -> Unit)) = (
         | _ ->  showMessage actIfConfirmed (sprintf "Can't %s while simulator is running" actionName) "" ["Cancel"; (sprintf "Reset and %s" actionName)] :> obj       
     )
  /// Wrap an action so that it can only happen if simulator is stopped.
- /// Operates on (Unit->Unit) to make (Unit->Unit)
-let interlock1 (actionName:string) (action: (Unit -> Unit)) = ( fun () -> 
-    if debugLevel > 0 then printf "Interlock1: runMode=%A" (display runMode)
+ /// Operates on (Unit->Unit) to make (Unit->Unit).
+ /// Suitable for use as action in menu.
+let interlockAction (actionName:string) (action: (Unit -> Unit)) = ( fun () -> 
     interlock actionName action |> ignore
     )
 
@@ -225,23 +226,18 @@ let makeMenu (name:string) (table:MenuItemOptions list) =
  ****************************************************************************************************)
 let fileMenu() =
     makeMenu "File" [
-            makeItem "New"      (Some "CmdOrCtrl+N")        (interlock1 "make new file tab" (createFileTab >> ignore))
+            makeItem "New"      (Some "CmdOrCtrl+N")        (interlockAction "make new file tab" (createFileTab >> ignore))
             menuSeparator
-            makeItem "Save"     (Some "CmdOrCtrl+S")        (interlock1 "save file" Files.saveFile)
-            makeItem "Save As"  (Some "CmdOrCtrl+Shift+S")  (interlock1 "save file" Files.saveFileAs)
-            makeItem "Open"     (Some "CmdOrCtrl+O")        (interlock1 "open file" (openFile >> ignore))
+            makeItem "Save"     (Some "CmdOrCtrl+S")        (interlockAction "save file" Files.saveFile)
+            makeItem "Save As"  (Some "CmdOrCtrl+Shift+S")  (interlockAction "save file" Files.saveFileAs)
+            makeItem "Open"     (Some "CmdOrCtrl+O")        (interlockAction "open file" (openFile >> ignore))
             menuSeparator
-            makeItem "Close"    (Some "CmdOrCtrl+W")        (interlock1 "close file" deleteCurrentTab)
+            makeItem "Close"    (Some "CmdOrCtrl+W")        (interlockAction "close file" deleteCurrentTab)
             menuSeparator
             makeItem "Quit"     (Some "CmdOrCtrl+Q")             ExitIfOK
         ]
 
-/// menu action to create a settings tab
-let optCreateSettingsTab() =
-    match runMode with
-    | ExecutionTop.ResetMode 
-    | ExecutionTop.ParseErrorMode -> createSettingsTab ()
-    | _ -> Browser.window.alert "Can't change preferences while simulator is running" |> ignore
+
 
 let editMenu() = 
     makeMenu "Edit" [
@@ -259,7 +255,7 @@ let editMenu() =
         menuSeparator
         makeItem "Increase Font Size" (Some "CmdOrCtrl+.") (fun () -> Settings.alterFontSize 2)
         makeItem "Decrease Font Size" (Some "CmdOrCtrl+,") (fun () -> Settings.alterFontSize -2)
-        makeItem  "Preferences"  Core.Option.None optCreateSettingsTab
+        makeItem  "Preferences"  Core.Option.None (interlockAction "show preferences tab" createSettingsTab)
     ]
 
 let viewMenu() = 
@@ -280,10 +276,10 @@ let helpMenu() =
                 makeItem "UAL Instruction Guide" Core.Option.None (runExtPage <| visualDocsPage "guide#content")
                 makeItem "VisUAL2 web pages" Core.Option.None (runExtPage <| visualDocsPage "")
                 makeItem "Official ARM documentation" Core.Option.None (runExtPage "http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.ddi0234b/i1010871.html")           
-                makeItem "Load Complex Demo Code" Core.Option.None (interlock1 "load code" loadDemo)
+                makeItem "Load Complex Demo Code" Core.Option.None (interlockAction "load code" loadDemo)
         
-                makeCondItem (debugLevel > 0) "Run dev tools FABLE checks" Core.Option.None (interlock1 "FABLE checks" Playground.check1)
-                makeCondItem (debugLevel > 0) "Run Emulator Tests" Core.Option.None (interlock1 "run tests" Tests.runAllEmulatorTests)
+                makeCondItem (debugLevel > 0) "Run dev tools FABLE checks" Core.Option.None (interlockAction "FABLE checks" Playground.check1)
+                makeCondItem (debugLevel > 0) "Run Emulator Tests" Core.Option.None (interlockAction "run tests" Tests.runAllEmulatorTests)
                 makeItem "About" Core.option.None ( fun () -> 
                     printfn "Directory is:%s" (Stats.dirOfSettings())
                     electron.remote.dialog.showMessageBox (
