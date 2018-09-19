@@ -5,10 +5,10 @@ NUGET
       FSharp.Core (>= 4.0.0.1) - restriction: >= net45
       FSharp.Core (>= 4.3.2) - restriction: && (< net45) (>= netstandard2.0)
       System.Configuration.ConfigurationManager (>= 4.4) - restriction: && (< net45) (>= netstandard2.0)
-    dotnet-fable (2.0.0-beta-004) - clitool: true
+    dotnet-fable (2.0.0-beta-005) - clitool: true
       Dotnet.ProjInfo (>= 0.9) - restriction: >= netcoreapp2.0
-      FSharp.Compiler.Service (>= 23.0.3) - restriction: >= netcoreapp2.0
-      FSharp.Core (>= 4.3.4) - restriction: >= netcoreapp2.0
+      FSharp.Compiler.Service (>= 25.0.1) - restriction: >= netcoreapp2.0
+      FSharp.Core (>= 4.5.2) - restriction: >= netcoreapp2.0
       Microsoft.NETCore.App (>= 2.0) - restriction: >= netcoreapp2.0
       Newtonsoft.Json (>= 11.0.2) - restriction: >= netcoreapp2.0
     Dotnet.ProjInfo (0.9) - restriction: >= netcoreapp2.0
@@ -55,13 +55,13 @@ NUGET
       FSharp.Core (>= 4.3.4) - restriction: && (< net452) (>= netstandard1.6)
       NETStandard.Library (>= 1.6.1) - restriction: && (< net452) (>= netstandard1.6)
       System.ValueTuple (>= 4.5) - restriction: && (< net452) (>= netstandard1.6)
-    FSharp.Compiler.Service (23.0.3) - restriction: >= netcoreapp2.0
+    FSharp.Compiler.Service (25.0.1) - restriction: >= netcoreapp2.0
       FSharp.Core (>= 4.1.18) - restriction: || (>= net45) (>= netstandard2.0)
-      System.Collections.Immutable (>= 1.3.1) - restriction: || (>= net45) (>= netstandard2.0)
+      System.Collections.Immutable (>= 1.5) - restriction: || (>= net45) (>= netstandard2.0)
       System.Diagnostics.Process (>= 4.1) - restriction: && (< net45) (>= netstandard2.0)
       System.Diagnostics.TraceSource (>= 4.0) - restriction: && (< net45) (>= netstandard2.0)
       System.Reflection.Emit (>= 4.3) - restriction: && (< net45) (>= netstandard2.0)
-      System.Reflection.Metadata (>= 1.4.2) - restriction: || (>= net45) (>= netstandard2.0)
+      System.Reflection.Metadata (>= 1.6) - restriction: || (>= net45) (>= netstandard2.0)
       System.Reflection.TypeExtensions (>= 4.3) - restriction: && (< net45) (>= netstandard2.0)
       System.Runtime.Loader (>= 4.0) - restriction: && (< net45) (>= netstandard2.0)
       System.Security.Cryptography.Algorithms (>= 4.3) - restriction: && (< net45) (>= netstandard2.0)
@@ -367,4 +367,4 @@ NUGET
       FSharp.Core (>= 4.5) - restriction: >= netstandard2.0
 GITHUB
   remote: fable-compiler/Fable
-    src/dotnet/Fable.Repl/Interfaces.fs (1f5f62d24691997de3a339893395779e2d9684f3)
+    src/dotnet/Fable.Repl/Interfaces.fs (0455d29630eae4c9e89b7ea3e2eab94acb5f2910)
