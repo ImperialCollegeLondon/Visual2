@@ -123,6 +123,7 @@ let (|MatchVersion|_|) txt =
        match  appVer, parseVer txt with
        | None,_ -> failwithf "What? Can't parse app version= %s!" Refs.appVersion
        | Some [ToI aMajor; ToI aMinor; ToI aDebug;_], Some [ToI major ; ToI minor; ToI debug;_] ->
+            printfn "Web latest version = %d.%d.%d" major minor debug
             match major > aMajor, minor > aMinor, debug > aDebug with
             | true, _, _ -> (infoBox <| sprintf "There is a new major release of Visual2 (%s) with additional features, you may wish to upgrade." txt) |> Some
             | _, true, _ -> (infoBox <| sprintf "There is a new minor release of Visual2 (%s) with new features, you should upgrade." txt) |> Some
@@ -183,8 +184,8 @@ let readOnlineInfo (ve: VisualEvent) =
         //new IHttpRequestHeaders
         //hdrs?append("pragma","no-cache") |> ignore
         //hdrs?append("cache-control","no-cache") |> ignore
-        fetch "http://intranet.ee.ic.ac.uk/t.clarke/tom/info.txt" [ 
-            Cache RequestCache.Nostore  
+        fetch ("http://intranet.ee.ic.ac.uk/t.clarke/tom/info.txt?" + DateTime.Now.Ticks.ToString())  [ 
+            Cache RequestCache.Nostore
             ]
         |> Promise.map (
             fun res ->
