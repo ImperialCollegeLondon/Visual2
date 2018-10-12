@@ -88,10 +88,10 @@ let updateCurrentPath p =
     if dir.Length > 1 then
         let path = path.join (dir.[0..dir.Length-2] |> List.toArray)
         printfn "Made path=%A" path
-        if (fs.statSync (U2.Case1 path)).isDirectory() then
-            printf "Changing current path from %A to %A" vSettings.CurrentFilePath path
-            vSettings <- {vSettings with CurrentFilePath = path}
-            Refs.setJSONSettings()
+        let path' = checkPath p
+        printf "Changing current path from %A to %A" vSettings.CurrentFilePath path'
+        vSettings <- {vSettings with CurrentFilePath = path'}
+        Refs.setJSONSettings()
     p
 
 

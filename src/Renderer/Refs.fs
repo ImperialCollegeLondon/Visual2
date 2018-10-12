@@ -279,14 +279,18 @@ let themes =  [
               ]
 let minFontSize = 6L
 let maxFontSize = 60L
+let checkPath (p:string) = 
+    try
+        let stat = fs.statSync (U2.Case1 p)          
+        match (stat.isDirectory()) with
+        | true -> p
+        | false -> os.homedir()
+    with
+        | e -> os.homedir()
 
 
 let checkSettings (vs: VSettings) = 
     let vso = vSettings
-    let checkPath (p:string) = 
-        match (fs.statSync (U2.Case1 p)).isDirectory() with
-        | true -> p
-        | false -> os.homedir()
     try
         let checkNum (n:string) (min:int64) (max:int64) (def:string) = 
             match int64 n with
