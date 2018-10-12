@@ -350,7 +350,7 @@ let prepareModeForExecution() =
     | ActiveMode (_,ri) ->
         if currentFileTabProgramIsChanged ri then
             Browser.window.alert "Resetting emulator for new execution" |> ignore
-            setMode ResetMode
+            resetEmulator()
     | _ -> ()
 
 /// Parses and runs the assembler program in the current tab
