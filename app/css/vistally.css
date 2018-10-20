@@ -303,8 +303,19 @@
 }
 
 .editor-glyph-margin-pointer:after {
+    font-weight:bold;
     content: "\027ff"
 }
+
+.button-back:before {
+    content: "\25c0"
+}
+
+.button-forward:after {
+    content: "\25ba"
+}
+
+
 
 #status-bar {
     width: 200px;
