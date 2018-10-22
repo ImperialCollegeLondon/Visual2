@@ -66,10 +66,15 @@ let highlightErrorParse ((err:ParseError), lineNo) tId opc =
             "", sprintf "This opcode: %A%A%A is not valid" root cond suffix |> ML
         | ``Unimplemented instruction`` opcode ->
             "", sprintf "%s is not a valid UAL instruction" opcode |> ML
+        | ``Duplicate symbol`` (sym, lines) ->
+            let lineMsg = String.concat ", " (List.map (sprintf "%d") lines)
+            "", ML (sprintf "%s: duplicate labels on lines: %s\nDuplicate label names are not allowed" sym lineMsg)
     let gLink = []
     let mLink = [ sprintf "[more](%s)" (Refs.visualDocsPage link) ]
     let mHover = hover @ ["More: see \u26a0"]
-    makeErrorInEditor tId lineNo mHover  (gHover @ hover @ mLink @ gLink)
+    match err with
+    | ``Duplicate symbol`` (sym, lines) -> makeErrorInEditor tId lineNo  hover  hover
+    | _ -> makeErrorInEditor tId lineNo mHover  (gHover @ hover @ mLink @ gLink)
 
     setMode ParseErrorMode
 

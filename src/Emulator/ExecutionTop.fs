@@ -73,9 +73,9 @@ type AnnotatedSymbolTable = Map<string, uint32*SymbolType>
 
 type SymbolInfo = {
     SymTab: SymbolTable ; 
-    SymTypeTab: Map<string,SymbolType>;
-    Refs: (string * int * string) list ; 
-    Defs: (string * SymbolType * int) list; 
+    SymTypeTab: Map<string,SymbolType>
+    Refs: (string * int * string) list 
+    Defs: (string * (SymbolType * int) * int) list
     Unresolved: (string * SymbolType * int) list
     }
 
@@ -202,11 +202,11 @@ let loadLine (lim:LoadImage) ((line,lineNum) : string * int) =
             let si = lim.SymInf
             match pa.PLabel with
             | Some (lab, Ok addr) -> 
-                { si with 
-                    Defs = addSymbol lab labType si.Defs
-                    SymTab = Map.add lab addr si.SymTab
-                    SymTypeTab = Map.add lab labType si.SymTypeTab
-                }
+                    { si with 
+                        Defs = addSymbol lab (labType,lineNum) si.Defs
+                        SymTab = Map.add lab addr si.SymTab
+                        SymTypeTab = Map.add lab labType si.SymTypeTab
+                    }
             | None -> si
             | Some (lab, Error _) -> 
                 { si with Unresolved = addSymbol lab labType si.Unresolved }
@@ -315,7 +315,20 @@ let invariantOfLine =
 
 let mutable programCache: Map<string list,LoadImage> = Map.empty
 
+let makeDupSymParseErrors (sym, defLst) =
+    let lNos dLst = dLst |> List.map (fun (_,(_,lineNo),_) -> lineNo)
+    let eLines = lNos defLst
+    defLst 
+    |> lNos
+    |> List.map (fun lineNo -> ``Duplicate symbol`` (sym, eLines), lineNo, "")
+
 let reLoadProgram (lines: string list) =
+    let findDuplicateSymbols (lim: LoadImage) =
+        let symDefs = lim.SymInf.Defs
+        let symGrps = List.groupBy (fun (sym, (_typ,_lineNo),_sVal) -> sym) symDefs
+        symGrps
+        |> List.filter (fun (sym, defLst) -> defLst.Length > 1)
+        |> List.collect makeDupSymParseErrors
     let reLoadProgram' (lines: string list) =
         let addCodeMarkers (lim: LoadImage) =
             match lim.LoadP.PosD with
@@ -343,7 +356,7 @@ let reLoadProgram (lines: string list) =
             |> next
             |> addCodeMarkers
         let src = indentProgram final lines
-        let lim = {final with Source=src ; EditorText = lines}
+        let lim = {final with Source=src ; EditorText = lines; Errors = (findDuplicateSymbols final) @ final.Errors}
         lim
     cacheLastN 10 reLoadProgram' lines
 

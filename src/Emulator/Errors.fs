@@ -61,6 +61,7 @@ module Errors
         | ``Undefined symbol`` of symList: (string * string) list 
         | ``Invalid opCode`` of root: string option * condition: string option * suffix: string
         | ``Unimplemented instruction`` of opCode: string
+        | ``Duplicate symbol`` of sym: string * lines: int list
 
     type ParseError = ErrCode
 
