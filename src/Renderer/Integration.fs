@@ -337,6 +337,7 @@ let rec asmStepDisplay steps ri =
             let ri' = asmStep steps ri
             setCurrentModeActiveFromInfo Paused ri'
             displayState ri' running
+            highlightCurrentAndNextIns "editor-line-highlight" ri' currentFileTabId
         else
             let ri' = asmStep (stepsMax+ri.StepsDone - 1L) ri
             setCurrentModeActiveFromInfo RunState.Running ri'
@@ -345,7 +346,10 @@ let rec asmStepDisplay steps ri =
             | PSRunning -> 
                  Browser.window.setTimeout( (fun () -> 
                         asmStepDisplay steps ri'), 0, []) |> ignore
-            | _ -> displayState ri' true
+            | _ -> 
+                displayState ri' true
+                highlightCurrentAndNextIns "editor-line-highlight" ri' currentFileTabId
+
 
 /// If program has changed reset execution    
 let prepareModeForExecution() =
