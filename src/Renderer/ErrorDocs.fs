@@ -155,7 +155,7 @@ let makeDPHover3 (opc,sfts) func =
 """     opc func  opc opc opc opc (makeShiftModes sfts)
 
 let unimplementedHover opc =
-    sprintf " '%s': This opcode is not recognised" opc
+    sprintf " '%s': There is a problem with this instruction" opc
 
 
 let getOpcHover mess opc line =
