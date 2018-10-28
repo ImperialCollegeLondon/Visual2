@@ -97,6 +97,9 @@ type Step = {
 
 type ProgState = | PSExit | PSRunning | PSError of ExecuteError
 
+type TestBenchState = NoTest | CustomTest of int
+
+
 type RunInfo = {
     dpInit: DataPath
     IMem: CodeMemory<CondInstr * int>
@@ -108,15 +111,18 @@ type RunInfo = {
     Source: string list
     EditorText: string list
     History: Step list
+    TestState: TestBenchState
     }
 
+
 type RunState = | Running | Paused | Stopping
+
 type RunMode = 
     | ResetMode
     | ParseErrorMode
-    | RunErrorMode of RunInfo
-    | ActiveMode of RunState * RunInfo
-    | FinishedMode of RunInfo
+    | RunErrorMode of RunInfo 
+    | ActiveMode of RunState * RunInfo 
+    | FinishedMode of RunInfo 
 
 
 
