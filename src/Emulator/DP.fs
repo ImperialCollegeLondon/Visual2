@@ -258,7 +258,8 @@ let makeLitShift shiftStr reg shiftType (n:uint32) =
 
 let parseOp2 (subMode: InstrNegativeLiteralMode) (symTable : SymbolTable) (args : string list) =
     /// make ARM literal from uint32
-    let makeImmediate (num:uint32) =
+    let makeImmediate (num':uint32) =
+        let num = num' >>> 0
         let okMap = makeOkLitMap()  
         //printfn "makeimmediate num=%d, mask=%d" num mask
         let substitutes: (uint32 * InstrNegativeLiteralMode) list = 
