@@ -433,12 +433,14 @@ let initialFlags =  { N=false ; Z=false; C=false; V=false}
 let mutable currentFileTabId = -1 // By default no tab is open
 /// List of all in use file tabs
 let mutable fileTabList : int list = []
+/// tab containing current testbench specification (if testbench is loaded)
+let mutable testbenchTab: int option = None
 /// Map tabIds to the editors which are contained in them
 let mutable editors : Map<int, obj> = Map.ofList []
 /// Map of content widgets currently on editor, indexed by id
 let mutable currentTabWidgets: Map<string,obj> = Map.empty
 /// id of tab containing settings form, if this exists
-let mutable settingsTab : int option = Microsoft.FSharp.Core.option.None
+let mutable settingsTab : int option = None
 /// The current number representation being used
 let mutable currentRep = Hex
 /// indicates what the current DOM symbols display representation is

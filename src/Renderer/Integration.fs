@@ -276,7 +276,6 @@ let getRunInfoFromImage (lim:LoadImage) =
             if a > 0xFFFFFFFFu then failwithf "What? invalid address in memory image location: %d: %d" a x
             if x > 0xFFFFFFFFu then failwithf "What? invalid data value in memory image locatio: %d: %d" a x
             Map.add (WA a) (Dat x) mem) mm dLocs
-
     let dp = {
                 Fl = getFlags()
                 Regs = getRegs()
@@ -295,6 +294,7 @@ let getRunInfoFromImage (lim:LoadImage) =
         Source = lim.Source
         EditorText = lim.EditorText
         History = []
+        TestState = NoTest
     }
 
 /// Execution Step number at which GUI was last updated

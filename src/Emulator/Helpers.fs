@@ -125,7 +125,7 @@ module Helpers
         | Expressions.RegexPrefix "0[bB][0-1]+" (num, rst)
         | Expressions.RegexPrefix "[0-9]+" (num, rst) -> 
             try
-                (uint32 (num.ToLower()), rst) |> Some
+                ((uint32 (num.ToLower())) >>> 0, rst) |> Some
             with
                 | e -> failwithf "Exception in Expr: uint32(%A)" num
         | Expressions.RegexPrefix "&[0-9a-fA-F]+" (num, rst) -> 
