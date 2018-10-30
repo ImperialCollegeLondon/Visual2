@@ -194,11 +194,12 @@ let getOpcHover mess opc line =
         |>  List.rev
     let oStart = 
         match splitLine  with
-            | _afterPart :: before -> (before.Length-1)*oLen + List.sumBy String.length before + 1
+            | _afterPart :: before -> List.sumBy String.length before + 1
             | x -> failwithf "What? Unexpected split '%A' can't happen. line = '%s', opc = '%s'." x line opc
-    if oStart + oLen - 1 >= line.Length then failwithf "Bad hover range %d, %d in %s" oStart oLen line
     let lineText = sprintf "```\n%s\n```\n" (stripComment line)
-    ([lineText] @ hoverText), (oStart, oStart + oLen - 1)
+    if oStart + oLen - 1 >= line.Length then 
+        ([lineText] @ hoverText), (1, lineText.Length)
+    else  ([lineText] @ hoverText), (oStart, oStart + oLen - 1)
 
 
 

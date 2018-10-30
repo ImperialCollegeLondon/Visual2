@@ -113,14 +113,14 @@ module Misc
             makeInstructionError ("Invalid operands: '" + ls.Operands + "'. DCB must have a number of parameters divisible by 4")
             |> makeDataDirective (Some 0u)
         | "FILL", RESOLVEALL [op] -> makeFILL [op,0u]
-        | "FILL", RESOLVEALL ops  -> makeFILL ops
+        | "FILL", RESOLVEALL ops when ops <> [] -> makeFILL ops
         | "FILL", _ -> makeDataDirective None <| makeInstructionError ("Invalid operands for FILL: unresolved symbols")
         | "ADR", RegMatch (Ok rn) :: RESOLVEALL [addr] ->
             match checkAddrOffset (int addr - int la) with
             | Ok _ ->  {pa with PInstr = ADR {AReg=rn ; AVal=addr} |> Ok }
             | Error e -> {pa with PInstr = Error e}
-        | "ADR", ops -> {pa with PInstr = makeInstructionError <| "Invalid operands" + ls.Operands + "Invalid operands for ADR instruction"}
-        | "EQU", [PARSE op] -> makeEQU op
+        | "ADR", _ops -> {pa with PInstr = makeInstructionError <| "Invalid operands" + ls.Operands + "Invalid operands for ADR instruction"}
+        | "EQU", [PARSE op] when opLst <> [] -> makeEQU op
         | "EQU", x -> {pa with PInstr = makeInstructionError (sprintf "'%A' is an invalid expression for EQU" x)}
         | _, ops -> makeInstructionError ("Invalid instruction: '" + ls.OpCode + " " + ls.Operands + "'") |> makeDataDirective (Some 0u)
         | _ -> failwithf "What? unrecognised Misc opcode %s" opCode
