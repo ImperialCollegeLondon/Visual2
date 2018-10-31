@@ -30,7 +30,7 @@ let opCodeData = [
     "STR","load memory word or byte at address 'EA' into Rd. Optionally update Rb.", LDRSTR
     "LDM","load multiple registers from memory", LDMSTM
     "STM","store multiple registers to memory", LDMSTM
-    "FILL", "allocate op1 data bytes. Op1 must be divisible by 4. Fill words with 0 or op2", MISC
+    "FILL", "allocate op1 data bytes. Op1 must be divisible by 4. Fill words with 0.", MISC
     "DCD","allocate data words as specified by op1,...opn",MISC
     "DCB","allocate data bytes as specified by op1,...,opn. The number of operand must be divisible by 4",MISC
     "EQU","define label on this line to equal op1. Op1 may contain: labels,numbers, +,-,*,/", EQU
@@ -117,7 +117,7 @@ let makeMISCHover opc func =
     let initLine =
         match opc with
         | "DCD" | "DCB" -> "op1, ..., opn; "
-        | "FILL"  -> "op1 [, op2]; "
+        | "FILL"  -> "op1 ; "
         | _ -> failwithf "%s is not a MISC opcode" opc        
     sprintf """
 *%s %s %s*
