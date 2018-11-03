@@ -180,8 +180,8 @@ module Memory
                 let (|MIMM|_|) immTxt =
                     let memImmBounds =
                         match mSize with
-                        | MWord -> 4088 + 8, -4096 + 8
-                        | MByte -> 1023 + 8, -1024 + 8
+                        | MWord -> 4092, -4092
+                        | MByte -> 1023, -1023
                     match memImmBounds,immTxt with
                     | _, IMM(n,txt) when mSize = MWord && (n % 4u <> 0u) -> 
                         (makeParseError "immediate word offset divisible by 4" ("offset="+ n.ToString()) "ea", txt) |> Some
