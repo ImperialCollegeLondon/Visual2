@@ -375,7 +375,7 @@ let register rNum = getHtml <| sprintf "R%i" rNum
 
 let visualDocsPage name = 
     match EEExtensions.String.split [|'#'|] name |> Array.toList with
-    | [""] -> @"https://tomcl.github.io/visual2.github.io/"
+    | [""] -> @"https://tomcl.github.io/visual2.github.io/guide.html#content"
     | [ page ] ->sprintf  "https://tomcl.github.io/visual2.github.io/%s.html#content" page
     | [ page; tag ] -> sprintf @"https://tomcl.github.io/visual2.github.io/%s.html#%s" page tag
     | _ -> failwithf "What? Split must return non-empty list!"
