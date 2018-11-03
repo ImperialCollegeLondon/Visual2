@@ -184,15 +184,15 @@ module Memory
                         | MByte -> 1023, -1023
                     match memImmBounds,immTxt with
                     | _, IMM(n,txt) when mSize = MWord && (n % 4u <> 0u) -> 
-                        (makeParseError "immediate word offset divisible by 4" ("offset="+ n.ToString()) "ea", txt) |> Some
+                        (makeParseError "immediate word offset divisible by 4" ("offset="+ (int32 n).ToString()) "ea", txt) |> Some
                     | (bMax,bMin), IMM (n,txt) when int n <= bMax && int n >= bMin -> (Ok n, txt)  |> Some
                     | (bMax,bMin), IMM (n,txt) -> 
-                        (makeParseError (sprintf "immediate offset in range %d..%d" bMax bMin) ("offset="+ n.ToString()) "ea", txt) |> Some
+                        (makeParseError (sprintf "immediate offset in range %d..%d" bMax bMin) ("offset="+ (int32 n).ToString()) "ea", txt) |> Some
                     | _, LITERALNUMB(_,txt) -> (makeFormatError "Numeric offset in LDR/STR must have # prefix (#1000)" immTxt "ea", txt) |> Some
                     | _ -> None
                 let (|SHIFTIMM|_|) = function
                     | IMM (n,txt) when int n > 0 && int n < 32 -> (Ok n,txt) |> Some
-                    | IMM (n,txt) -> (makeParseError "Scaled register shift must be within range 1..31" ("shift="+n.ToString()) "ea", txt) |> Some
+                    | IMM (n,txt) -> (makeParseError "Scaled register shift must be within range 1..31" ("shift="+(int32 n).ToString()) "ea", txt) |> Some
                     | _ -> None
                 let makeScaled (rx:RName) (shift:ScaledShiftCode) sftAmt =
                     fun (dp: DataPath)  ->
