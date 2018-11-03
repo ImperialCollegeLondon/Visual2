@@ -183,10 +183,12 @@ module Memory
                         | MWord -> 4088 + 8, -4096 + 8
                         | MByte -> 1023 + 8, -1024 + 8
                     match memImmBounds,immTxt with
+                    | _, IMM(n,txt) when mSize = MWord && (n % 4u <> 0u) -> 
+                        (makeParseError "immediate word offset divisible by 4" ("offset="+ n.ToString()) "ea", txt) |> Some
                     | (bMax,bMin), IMM (n,txt) when int n <= bMax && int n >= bMin -> (Ok n, txt)  |> Some
                     | (bMax,bMin), IMM (n,txt) -> 
-                        (makeParseError (sprintf "immediate offset in range %d..%d" bMax bMin) ("offset="+ n.ToString()) "ea", immTxt) |> Some
-                    | _, LITERALNUMB(_) -> (makeFormatError "Numeric offset in LDR/STR must have # prefix (#1000)" immTxt "ea", immTxt) |> Some
+                        (makeParseError (sprintf "immediate offset in range %d..%d" bMax bMin) ("offset="+ n.ToString()) "ea", txt) |> Some
+                    | _, LITERALNUMB(_,txt) -> (makeFormatError "Numeric offset in LDR/STR must have # prefix (#1000)" immTxt "ea", txt) |> Some
                     | _ -> None
                 let (|SHIFTIMM|_|) = function
                     | IMM (n,txt) when int n > 0 && int n < 32 -> (Ok n,txt) |> Some
