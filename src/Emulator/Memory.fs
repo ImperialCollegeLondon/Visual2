@@ -160,6 +160,22 @@ module Memory
                 | "!" -> Some true
                 | "" -> Some false
                 | _ -> None
+            
+            let (|IMMEXPR|_|) txt =
+                match removeWs txt with
+                | REMOVEPREFIX "#" (Expr(ast,txt)) ->
+                    match eval ls.SymTab ast with
+                    | Ok uint32 -> Some(uint32,txt)
+                    | _ -> None
+                | _ -> None
+
+            let (|ImmExprUnresolved|_|) txt  =
+                match removeWs txt with
+                | REMOVEPREFIX "#" (Expr(ast,txt)) ->
+                    match eval ls.SymTab ast with
+                    | Error e  -> Some e
+                    | _ -> None
+                | _ -> None
 
             /// matches the offset part of an addressing mode
             /// removes initial whitespace
@@ -183,11 +199,12 @@ module Memory
                         | MWord -> 4092, -4092
                         | MByte -> 1023, -1023
                     match memImmBounds,immTxt with
-                    | _, IMM(n,txt) when mSize = MWord && (n % 4u <> 0u) -> 
+                    | _, IMMEXPR(n,txt) when mSize = MWord && (n % 4u <> 0u) -> 
                         (makeParseError "immediate word offset divisible by 4" ("offset="+ (int32 n).ToString()) "ea", txt) |> Some
-                    | (bMax,bMin), IMM (n,txt) when int n <= bMax && int n >= bMin -> (Ok n, txt)  |> Some
-                    | (bMax,bMin), IMM (n,txt) -> 
+                    | (bMax,bMin), IMMEXPR (n,txt) when int n <= bMax && int n >= bMin -> (Ok n, txt)  |> Some
+                    | (bMax,bMin), IMMEXPR (n,txt) -> 
                         (makeParseError (sprintf "immediate offset in range %d..%d" bMax bMin) ("offset="+ (int32 n).ToString()) "ea", txt) |> Some
+                    | _, ImmExprUnresolved e -> Some(Error e, txt)
                     | _, LITERALNUMB(_,txt) -> (makeFormatError "Numeric offset in LDR/STR must have # prefix (#1000)" immTxt "ea", txt) |> Some
                     | _ -> None
                 let (|SHIFTIMM|_|) = function
@@ -230,8 +247,8 @@ module Memory
                         | true, PostIndex -> makeParseError "Valid addressing mode" (" '!' is not valid in post-increment addressing:'" + txt + "'") "ea"
                         | _, it -> Ok it 
                     match mode,spf with
-                    | Error e, _ -> Error e
                     | _, Error e -> Error e
+                    | Error e,_ -> Error e
                     | Ok mode', Ok spf' ->
                         Ok {
                             LSType = lsType
@@ -378,8 +395,9 @@ module Memory
             | NoIndex 
             | PreIndex -> uint32 addr
             | PostIndex -> rbv
+        //printfn "Executing Rb=%A(%x) addr = %x  ef = %x" ins.Rb dp.Regs.[ins.Rb] addr ef
         dp
-        |> updateReg (uint32 (if ins.MemMode = NoIndex then rbv else addr &&& 0xFFFFFFFFu)) ins.Rb
+        |> updateReg (uint32 (if ins.MemMode = NoIndex then (match ins.Rb with | R15 -> rbv - 4u | _ -> rbv) else addr >>> 0)) ins.Rb
         |> (fun dp -> 
                 match ins.LSType with
                 | LOAD -> 

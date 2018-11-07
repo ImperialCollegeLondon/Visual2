@@ -238,7 +238,9 @@ let toolTipInfo (v: int,orientation: string) (dp: DataPath) ({Cond=cond;InsExec=
              
 
             let memPointerInfo (ins: Memory.InstrMemSingle) (dir: MemDirection) (dp: DataPath) =
-                let baseAddrU = dp.Regs.[ins.Rb]
+                let baseAddrU = 
+                    let rb = dp.Regs.[ins.Rb]
+                    match ins.Rb with | R15 -> rb+8u | _ -> rb
                 let baseAddr = int32 baseAddrU
                 let offset = (ins.MAddr dp baseAddr |> uint32) - baseAddrU |> int32
                 let ea = match ins.MemMode with | Memory.PreIndex | Memory.NoIndex -> (baseAddrU + uint32 offset) | _ -> baseAddrU
