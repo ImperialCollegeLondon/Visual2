@@ -21,7 +21,7 @@ The rest of the README gives a project and code overview.
 
 This project is loosely based on a starter template from https://github.com/filangel/arm-monaco.
 
-The target language is `F#`, which is transpiled to `Javascript` (`js`) thanks to [Fable](https://fable.io) v1.x. [Electron](https://electronjs.org/) is then used to convert the developed web-app to a cross-platform native application, providing access to platform-level commands (i.e. file-system, path, multiple processes), which are unavailable to (vanilla) browser web-apps.
+The target language is `F#`, which is transpiled to `Javascript` (`js`) thanks to [Fable](https://fable.io) v2.x. [Electron](https://electronjs.org/) is then used to convert the developed web-app to a cross-platform native application, providing access to platform-level commands (i.e. file-system, path, multiple processes), which are unavailable to (vanilla) browser web-apps.
 
 [Webpack](https://webpack.js.org/) is the module bundler, responsible for the Javascript concatenation and automated building process.
 
@@ -31,7 +31,7 @@ Finally, [Monaco Editor](https://microsoft.github.io/monaco-editor/) is  a self-
 
 This GUI seeks to reimplement in F# the [VisUAL implementation](https://salmanarif.bitbucket.io/visual/) while making many improvements and changes.  The code in this project is designed to be platform-independent with minimal hassle, as was VisUAL, and is distributed as separate binaries for each of the main desktop platforms generated from this project with `yarn pack-all`.
 
-Whereas VisUAL uses Java to achieve platform-independence this project uses Javascipt/HTML. However, in order to make code maintainable nearly all of the source is written in F#.
+Whereas VisUAL uses Java to achieve platform-independence this project uses Javascript/HTML. However, in order to make code maintainable nearly all of the source is written in F#.
 
 The project uses automated tests for its ARM emulator that are constructed using the (open) [VisualRandomTestGen](https://github.com/ImperialCollegeLondon/VisualRandomTestGen) project. See testing in the wiki.
 
@@ -161,7 +161,7 @@ For Mac users, download and install [Mono](http://www.mono-project.com/download/
 
 5. Fetch the required `npm` packages by executing `yarn install`. This project consistently uses `yarn` Node package manager instead of the older and less competent `npm`.
 
-6. On macOS or linux ensure you have [paket installed](https://fsprojects.github.io/Paket/installation.html). Run `setup.bat` (on Windows) or `sh setup.sh` (on linux or macOS). This downloads and updates the submodules, and installs their packages individually (necessary because of the submodule structure), then restores the global packages. On other systems run the statements in this file (modified if needed for your system) individually. If MSB error occur while running the script (on macOS) and were using Mono installed by brew previously, run `brew uninstall mono` and refer to step 2 for install Mono correctly).
+6. On macOS or linux ensure you have [paket installed](https://fsprojects.github.io/Paket/installation.html). Run `setup.bat` (on Windows) or `sh setup.sh` (on linux or macOS). This downloads and updates the submodules, and installs their packages individually (necessary because of the submodule structure), then restores the global packages. On other systems run the statements in this file (modified if needed for your system) individually. If MSB error occur while running the script (on macOS) and you were using Mono installed by brew previously, run `brew uninstall mono` and refer to step 2 for install Mono correctly).
 
 7. Goto step 10 if all you want to do is to generate uptodate binaries.
 
@@ -171,7 +171,7 @@ For Mac users, download and install [Mono](http://www.mono-project.com/download/
 
 10. Run `yarn pack-win, yarn pack-linux, yarn pack-osx` at any time to create a set of system-specific self-contained binaries in `./dist/os-name/*` and a zip in `./dist`. Each binary distribution consists of a portable directory with all dependencies, so use the appropriate one of these if you just want to run Visual2 and do not need to develop code.  Note that some host-target combinations will not correctly generate.
 
-11. To see console debug printout etc from the running Visual2 app press F12 to toggle electron dev tools on and note that any F# printout and errors will be displayed under the console tab.
+11. To see console debug printout etc from the running Visual2 app press `Ctrl-Shift-I` to toggle electron dev tools on and note that any F# printout and errors will be displayed under the console tab.
 
 12. See the [Wiki](https://github.com/ImperialCollegeLondon/Visual2/wiki) for more information.
 
@@ -206,7 +206,7 @@ Useful shortcuts for specific common target OS:
 
 ## Dependency Upgrade
 
-* FABLE used is v1.3. FABLE will upgrade to v2.x at some point (2019?) which no doubt will break quite a lot, but the old FABLE will remain available for quite some time. This upgrade will need to be done at some point.
+* FABLE used is v2.x.
 * Electron used is 2.0.8. Upgrade Electron with care noting that as well as the app running OK, the packaging (electron-packager) must work.
 * F# is v4.1. Update to v4.2 not required but should be painless when needed.
 * Monaco-editor is v0.12, which fixes an annoying markdown display bug. v0.13 does not contain anything more useful AFAIK but the upgrade should be made at some point.
