@@ -113,7 +113,7 @@ module Helpers
     let (|REMOVEPREFIX|_|) (prefix:string) (txt:string) =
         let trimTxt = trim txt
         if EEExtensions.String.startsWith prefix trimTxt then
-            Some trimTxt.[prefix.Length..trimTxt.Length]
+            Some trimTxt.[prefix.Length..trimTxt.Length-1]
         else None
        
             
