@@ -108,7 +108,9 @@ module Expressions
                         |> Literal
                     (litNum, rst) |> Some
                 with
-                    | _ -> failwithf "Exception in Expr: uint32(%A)" num
+                    | _ -> 
+                        printfn "Exception in Expr: uint32(%A)" num
+                        None
             | RegexPrefix "&[0-9a-fA-F]+" (num, rst) -> 
                 ("0x" + (removeWs num).[1..] |> uint32 |> Literal, rst) |> Some
             | _ -> None
