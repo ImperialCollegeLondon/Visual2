@@ -69,6 +69,9 @@ let highlightErrorParse ((err:ParseError), lineNo) tId opc =
         | ``Duplicate symbol`` (sym, lines) ->
             let lineMsg = String.concat ", " (List.map (sprintf "%d") lines)
             "", ML (sprintf "%s: duplicate labels on lines: %s\nDuplicate label names are not allowed" sym lineMsg)
+        | ``Literal more than 32 bits`` lit 
+        | ``Literal is not a valid number`` lit -> "", sprintf "%s is not a valid literal" lit |> ML
+
     let gLink = []
     let mLink = [ sprintf "[more](%s)" (Refs.visualDocsPage link) ]
     let mHover = hover @ ["More: see \u26a0"]

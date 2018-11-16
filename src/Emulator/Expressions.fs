@@ -79,8 +79,15 @@ module Expressions
                 | false -> ``Undefined symbol`` [getSymError x] |> Error
                     
                   
-
-
+    let to32BitLiteral chars =
+        try 
+            chars
+            |> int64
+            |> function
+               | n when n > (1L <<< 32) || n < (-1L <<< 31) -> Error (``Literal more than 32 bits`` chars)
+               | n -> Ok (uint32 n)
+        with
+            | e -> Error (``Literal is not a valid number`` chars)
 
 
 

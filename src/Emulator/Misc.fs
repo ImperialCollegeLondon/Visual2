@@ -114,7 +114,7 @@ module Misc
             |> fun pa -> { pa with PLabel = Option.map (fun lab -> lab , op) ls.Label}
        
         let pa = copyDefault ls Cal
-        match opCode, opLst with
+        match opCode.ToUpper(), opLst with
         | "DCD", RESOLVEALL ops -> makeDataDirective (Some (opNum*4u)) (makeDataInstr DCD) 
         | "DCB", RESOLVEALL ops when ops.Length % 4 = 0 -> makeDataDirective (Some opNum) (makeDataInstr DCB) 
         | "DCB", _ -> 

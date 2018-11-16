@@ -62,6 +62,8 @@ module Errors
         | ``Invalid opCode`` of root: string option * condition: string option * suffix: string
         | ``Unimplemented instruction`` of opCode: string
         | ``Duplicate symbol`` of sym: string * lines: int list
+        | ``Literal more than 32 bits`` of literal: string
+        | ``Literal is not a valid number`` of literal: string
 
     type ParseError = ErrCode
 
