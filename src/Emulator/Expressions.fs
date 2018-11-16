@@ -60,7 +60,7 @@ module Expressions
             | a', _  ->  a' |> Error
         let doBinary op x y = 
             match (eval syms x), (eval syms y) with
-            | Ok resX, Ok resY -> op resX resY |> Ok
+            | Ok resX, Ok resY -> ((op resX resY) >>> 0) |> Ok
             | Error a, Error b -> joinErrors a b
             | Error a, _ -> a |> Error
             | _, Error b -> b |> Error
@@ -111,7 +111,11 @@ module Expressions
                         num
                         |> String.replace "_" ""
                         |> String.toLower
-                        |> uint32
+                        |> int64
+                        |> function // check that literal constants are within 32 bit range under FABLE
+                           | n when n > ((1L <<< 32)-1L)  -> 
+                                failwithf "Literal more than 32 bits"
+                           | n -> uint32 n
                         |> Literal
                     (litNum, rst) |> Some
                 with

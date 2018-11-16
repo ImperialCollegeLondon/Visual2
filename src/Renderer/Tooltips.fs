@@ -473,7 +473,7 @@ let addFixedToolTips() =
     makeTextTT "bottom" "clock-symbol" ["tootip-fixed"] "Execution time"
     makeTextTT "bottom" "clock-time" ["tootip-fixed"] "Number of <br> Instructions"
     makeTextTT "bottom" "BR15" ["tootip-fixed"] "R15 (PC) is the Program Counter <br> It cannot be used as a data register"
-    makeTextTT "right" "BR14" ["tootip-fixed"] "R14 (LR) is the Link Register <br> It can be used as a data register"
+    makeTextTT "left" "BR14" ["tootip-fixed"] "R14 (LR) is the Link Register <br> It can be used as a data register"
     makeButtonTT "bottom" "tab-sym" ["tootip-fixed"] "Displays symbols (labels) <br> after execution has started"
     makeButtonTT "bottom" "tab-mem" ["tootip-fixed"] "Displays current data memory contents after execution has started <br> Words are added dynamically when they are written"
     makeButtonTT "bottom" "tab-reg" ["tooltip-fixed"] "Displays current register contents"

@@ -1,6 +1,7 @@
 
 :root {
-    --dashboard-width-init: 350px; /* normal viewer width */
+    --dashboard-width-init-other: 350px; /* normal viewer width */
+    --dashboard-width-init-registers: 350px; /* normal viewer width for registers view. NB reducing this mucks up tooltips */
     --dashboard-width-binrep: 500px; /* wider viewer width needed for binary */
     /* dashboard-width depends on viewer content and is set from F# when view 
        representation is changed */

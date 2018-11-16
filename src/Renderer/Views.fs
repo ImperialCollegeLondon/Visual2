@@ -27,6 +27,15 @@ let nameSquash maxW name =
         let lp = maxW - (fp + 3)
         name.[0..fp-1] + "..." + name.[nameLen - lp .. nameLen - 1]
 
+let calcDashboardWidth() =
+    let w = 
+        match currentRep, currentView with
+        | Bin,_ -> "--dashboard-width-binrep"
+        | _, Registers  ->   "--dashboard-width-init-registers"
+        | _ -> "--dashboard-width-init-other"
+        |> getCustomCSS
+    printf "Setting width to %s" w
+    w |> setDashboardWidth
 
 
 let setRepresentation rep =
@@ -41,13 +50,7 @@ let setRepresentation rep =
     // Reassign currentRep, new mutability required
     // keep constants defining GUI sizes in CSS
     currentRep <- rep
-    let w = 
-        match rep with
-        | Bin -> "--dashboard-width-binrep"
-        | _ ->   "--dashboard-width-init"
-        |> getCustomCSS
-    printf "Setting width to %s" w
-    w |> setDashboardWidth
+    calcDashboardWidth()
     updateRegisters()
 
 
@@ -277,6 +280,7 @@ let setView view =
 
     // new mutability again, update the variable
     currentView <- view
+    calcDashboardWidth()
     updateMemory()
 
 
