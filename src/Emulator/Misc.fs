@@ -47,21 +47,29 @@ module Misc
         List.fold folder (Ok []) lst
         |> Result.map List.rev
 
-    let parseExprList symTab lst =
-        List.map (parseEvalNumericExpression symTab) lst
-        |> mergeResults
 
+    let parseNumExpr ls s  =
+            Ok ((),s)
+            |> ResExpr (fun _ e -> e)
+            |> ResCheckDone 
+            |> Result.bind ( fun exp ->
+                eval ls.SymTab exp)             
+
+    let parseExprList symTab lst =
+        List.map (parseNumExpr symTab) lst
+        |> mergeResults
    
+  
 
     let parse (ls: LineData) : Parse<Instr>  =
         let (WA la) = ls.LoadAddr // address this instruction is loaded into memory
         let opLst = commaSplit ls.Operands
-        let resolvedOpLst = parseExprList ls.SymTab opLst
-        let (|PARSE|_|) op = parseEvalNumericExpression ls.SymTab op |> Some
-        let (|RESOLVEALL|_|) lst = match parseExprList ls.SymTab lst with | Ok ops -> Some ops | _ -> None
+        let resolvedOpLst = parseExprList ls opLst
+        let (|PARSE|_|) op = parseNumExpr ls op |> Some
+        let (|RESOLVEALL|_|) lst = match parseExprList ls lst with | Ok ops -> Some ops | _ -> None
         let opCode = ls.OpCode
         let offsetError wb b1 b2 ofs = 
-            makeParseError (sprintf "Valid %s offset in range %d..%d" wb b1 b2) (sprintf "Offset of %d" ofs) ""
+            makeParseError (sprintf "Valid %s offset in range %d..%d. Use 'LDR Rx, =SYMBOL' when offset is larger than this" wb b1 b2) (sprintf "Offset of %d" ofs) ""
         let checkAddrOffset (ofs:int) =
             match ofs-8 with
             | x when x % 4 <> 0 && (x > 264 || x < -248) -> offsetError "byte" -248 264 (ofs-8)
@@ -106,21 +114,20 @@ module Misc
             |> fun pa -> { pa with PLabel = Option.map (fun lab -> lab , op) ls.Label}
        
         let pa = copyDefault ls Cal
-        match opCode, opLst with
+        match opCode.ToUpper(), opLst with
         | "DCD", RESOLVEALL ops -> makeDataDirective (Some (opNum*4u)) (makeDataInstr DCD) 
         | "DCB", RESOLVEALL ops when ops.Length % 4 = 0 -> makeDataDirective (Some opNum) (makeDataInstr DCB) 
         | "DCB", _ -> 
             makeInstructionError ("Invalid operands: '" + ls.Operands + "'. DCB must have a number of parameters divisible by 4")
             |> makeDataDirective (Some 0u)
         | "FILL", RESOLVEALL [op] -> makeFILL [op,0u]
-        | "FILL", RESOLVEALL ops  -> makeFILL ops
         | "FILL", _ -> makeDataDirective None <| makeInstructionError ("Invalid operands for FILL: unresolved symbols")
-        | "ADR", RegMatch (Ok rn) :: RESOLVEALL [addr] ->
+        | "ADR", RegMatch (Ok rn) :: [ PARSE (Ok addr)] ->
             match checkAddrOffset (int addr - int la) with
             | Ok _ ->  {pa with PInstr = ADR {AReg=rn ; AVal=addr} |> Ok }
             | Error e -> {pa with PInstr = Error e}
-        | "ADR", ops -> {pa with PInstr = makeInstructionError <| "Invalid operands" + ls.Operands + "Invalid operands for ADR instruction"}
-        | "EQU", [PARSE op] -> makeEQU op
+        | "ADR", _ops -> {pa with PInstr = makeInstructionError <| "Invalid operands: '" + ls.Operands + "'. ADR must have a register followed by a numeric expression operand."}
+        | "EQU", [PARSE op] when opLst <> [] -> makeEQU op
         | "EQU", x -> {pa with PInstr = makeInstructionError (sprintf "'%A' is an invalid expression for EQU" x)}
         | _, ops -> makeInstructionError ("Invalid instruction: '" + ls.OpCode + " " + ls.Operands + "'") |> makeDataDirective (Some 0u)
         | _ -> failwithf "What? unrecognised Misc opcode %s" opCode

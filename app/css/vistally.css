@@ -1,6 +1,7 @@
 
 :root {
-    --dashboard-width-init: 350px; /* normal viewer width */
+    --dashboard-width-init-other: 350px; /* normal viewer width */
+    --dashboard-width-init-registers: 350px; /* normal viewer width for registers view. NB reducing this mucks up tooltips */
     --dashboard-width-binrep: 500px; /* wider viewer width needed for binary */
     /* dashboard-width depends on viewer content and is set from F# when view 
        representation is changed */
@@ -303,8 +304,19 @@
 }
 
 .editor-glyph-margin-pointer:after {
+    font-weight:bold;
     content: "\027ff"
 }
+
+.button-back:before {
+    content: "\25c0"
+}
+
+.button-forward:after {
+    content: "\25ba"
+}
+
+
 
 #status-bar {
     width: 200px;

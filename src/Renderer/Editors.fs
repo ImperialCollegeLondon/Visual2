@@ -138,7 +138,7 @@ let highlightGlyph tId number glyphClassName =
         None
 
 let highlightNextInstruction tId number =
-    highlightGlyph tId number "editor-glyph-margin-arrow"
+    if number > 0 then highlightGlyph tId number "editor-glyph-margin-arrow"
 
 /// <summary>
 /// Decorate a line with an error indication and set up a hover message.
@@ -203,7 +203,7 @@ let findCodeEnd  (lineCol:int) =
 
 /// Make execution tooltip info for the given instruction and line v, dp before instruction dp.
 /// Does nothing if opcode is not documented with execution tooltip
-let toolTipInfo (v: int) (dp: DataPath) ({Cond=cond;InsExec=instruction;InsOpCode=opc}: ParseTop.CondInstr) =
+let toolTipInfo (v: int,orientation: string) (dp: DataPath) ({Cond=cond;InsExec=instruction;InsOpCode=opc}: ParseTop.CondInstr) =
     match Helpers.condExecute cond dp, instruction with
     | false,_ -> ()
     | true, ParseTop.IMEM ins -> 
@@ -238,17 +238,19 @@ let toolTipInfo (v: int) (dp: DataPath) ({Cond=cond;InsExec=instruction;InsOpCod
              
 
             let memPointerInfo (ins: Memory.InstrMemSingle) (dir: MemDirection) (dp: DataPath) =
-                let baseAddrU = dp.Regs.[ins.Rb]
+                let baseAddrU = 
+                    let rb = dp.Regs.[ins.Rb]
+                    match ins.Rb with | R15 -> rb+8u | _ -> rb
                 let baseAddr = int32 baseAddrU
-                let offset = (ins.MAddr dp baseAddr |> uint32) - baseAddrU
-                let ea = match ins.MemMode with | Memory.PreIndex | Memory.NoIndex -> (baseAddrU + offset) | _ -> baseAddrU
+                let offset = (ins.MAddr dp baseAddr |> uint32) - baseAddrU |> int32
+                let ea = match ins.MemMode with | Memory.PreIndex | Memory.NoIndex -> (baseAddrU + uint32 offset) | _ -> baseAddrU
                 let mData = (match ins.MemSize with | MWord -> Memory.getDataMemWord | MByte -> Memory.getDataMemByte) ea dp
+                let isIncr = match ins.MemMode with | Memory.NoIndex ->  false | _ -> true
                 (findCodeEnd v, "Pointer"), TABLE [] [
                     TROWS [sprintf "Base (%s)" (ins.Rb.ToString()) ; sprintf "0x%08X" baseAddrU]
                     TROWS ["Address";  ea |> sprintf "0x%08X"]
-                    TROWS ["Offset";  offset |> sprintf "0x%08X"]
-                    TROWS ["Increment"; match ins.MemMode with | Memory.NoIndex ->  0u | _ -> offset
-                                            |> sprintf "%d"]
+                    TROWS <| if isIncr then [] else ["Offset";  (offset |> sprintf "%+d")]
+                    TROWS ["Increment"; (if isIncr then  offset else 0) |> (fun n -> sprintf "%+d" n)]
                     TROWS ["Data"; match ins.LSType with 
                                    | LOAD -> match mData with | Ok dat -> dat | _ -> 0u
                                    | STORE -> dp.Regs.[ins.Rd] 
@@ -260,7 +262,7 @@ let toolTipInfo (v: int) (dp: DataPath) ({Cond=cond;InsExec=instruction;InsOpCod
         
             let makeTip memInfo =
                 let (hOffset, label), tipDom = memInfo dp
-                makeEditorInfoButton Tooltips.lineTipsClickable hOffset (v+1) label tipDom
+                makeEditorInfoButton Tooltips.lineTipsClickable (hOffset,(v+1),orientation)  label tipDom
             match ins with
             | Memory.LDR ins -> makeTip <| memPointerInfo ins MemRead
             | Memory.STR ins -> makeTip <| memPointerInfo ins MemWrite
@@ -269,7 +271,7 @@ let toolTipInfo (v: int) (dp: DataPath) ({Cond=cond;InsExec=instruction;InsOpCod
             | _ -> ()
     | true, ParseTop.IDP (exec,op2) -> 
         let alu = ExecutionTop.isArithmeticOpCode opc
-        let pos = findCodeEnd v,v
+        let pos = findCodeEnd v,v,orientation
         match exec dp with
         | Error _ -> ()
         |Ok (dp',uF') ->

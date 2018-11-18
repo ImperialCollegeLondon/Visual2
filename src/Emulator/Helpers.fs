@@ -44,6 +44,7 @@ module Helpers
        then Some (m.Groups.[1].Value, m.Groups.[2].Value)
        else None
 
+
     /// makes a reg
     let makeReg r = regNames.[r]
     /// Takes a number and converts it into a reg string
@@ -112,7 +113,7 @@ module Helpers
     let (|REMOVEPREFIX|_|) (prefix:string) (txt:string) =
         let trimTxt = trim txt
         if EEExtensions.String.startsWith prefix trimTxt then
-            Some trimTxt.[prefix.Length..trimTxt.Length]
+            Some trimTxt.[prefix.Length..trimTxt.Length-1]
         else None
        
             
@@ -124,7 +125,7 @@ module Helpers
         | Expressions.RegexPrefix "0[bB][0-1]+" (num, rst)
         | Expressions.RegexPrefix "[0-9]+" (num, rst) -> 
             try
-                (uint32 (num.ToLower()), rst) |> Some
+                ((uint32 (num.ToLower())) >>> 0, rst) |> Some
             with
                 | e -> failwithf "Exception in Expr: uint32(%A)" num
         | Expressions.RegexPrefix "&[0-9a-fA-F]+" (num, rst) -> 

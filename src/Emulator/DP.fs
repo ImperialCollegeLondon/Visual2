@@ -35,7 +35,7 @@ type InstrNegativeLiteralMode =
     | NoNegLit
 
 /// deal with bug in FABLE uint32 handling
-let trimUint32 u = ((int64 u) &&& ((1L <<< 32) - 1L)) |> uint32
+let trimUint32 u = u >>> 0
 
 // ///////////// flexible op2 definition and evaluation //////////
 
@@ -44,7 +44,7 @@ type ArmShiftType = LSL | ASR | LSR | ROR
 
 /// ARM flexible operand 2
 type Op2 =
-    | NumberLiteral of K: int64 * Rot: int * Sub: InstrNegativeLiteralMode
+    | NumberLiteral of K: uint32 * Rot: int * Sub: InstrNegativeLiteralMode
     | RegisterWithShift of RName * ArmShiftType * uint32
     | RegisterWithRRX of RName
     | RegisterWithRegisterShift of RName * ArmShiftType * RName
@@ -106,7 +106,7 @@ let evalOp2 op2 d =
         // carry is always unchanged if no shift happens
         newVal, if shiftBy <> 0u then {Ca=carryBit;CaU=true}  else toUCarry d.Fl.C
 
-    let evalNumberLiteral (l:int64) rot sub oldC =
+    let evalNumberLiteral (l:uint32) rot sub oldC =
         let u, carry = evalShift (uint32 l) ROR rot
         match sub with
         | NoNegLit -> u
@@ -187,9 +187,8 @@ let execAdr
 // ///////////// simulator functions /////////////////////////////
 
 let simMathWithCarry a b cIn =
-    let mask32 = ((1L <<< 32) - 1L)
     let bit n (x:int64) = (x >>> n) &&& 1L
-    let unsignedTrueRes = (int64 a &&& mask32) + (int64 b &&& mask32) + (int64 (int cIn))
+    let unsignedTrueRes = (int64 (a>>>0)) + (int64 (b>>>0)) + (int64 (int cIn))
     let res = trimUint32 (uint32 unsignedTrueRes)
     let signedTrueRes = (int64 (int a)) + (int64 (int b)) + int64 cIn
     let overflow = bit 31 signedTrueRes <> bit 32 signedTrueRes
@@ -233,39 +232,43 @@ let makeOkLitMap() =
     | Some map -> map
     | None -> 
         let map = 
-            let mask = ((1L <<< 32) - 1L)
-            let rotateLeft (value:int64) amt = 
-                ((value >>> (32 - amt)) ||| (value <<< amt)) &&& mask
+            let rotateLeft (value:uint32) amt =        
+                let x1 = ((value >>> (32 - amt)) ||| (value <<< amt))
+                let x2 = x1 >>> 0
+                //if x1 <> x2 then printfn "Literal bitwise op error: %X : %X" x1 x2
+                x2
 
-            let possibleLiterals K =
+            let possibleLiterals (k:int32) =
+                let K = uint32 k
                 [0..2..30]
-                |> List.map (fun rot -> rotateLeft K rot, (K,(32 - rot) % 32))
-            [255..-1..0] // workaround FABLE bug with long unsigned int ranges
-            |> List.map (fun x -> int64 x)
+                |> List.map (fun rot -> rotateLeft K rot, (K, (32 - rot) % 32))
+            [255..-1..0] 
             |> List.collect possibleLiterals
             |> List.groupBy fst
             |> List.map (fun (g,lst) -> g, List.sortBy (fun (x,(K,r)) -> r) lst)
-            |> List.map (function | (g, (_,(K,r))::_) -> g,(K,r) | _ -> failwithf "What? Cannot happen!")
+            |> List.map (function | (g, (_,(K,r))::_) -> (g), (K,r) | _ -> failwithf "What? Cannot happen!")
             |> Map.ofList
         OkLitMap <- Some map
         map
 
+let makeLitShift shiftStr reg shiftType (n:uint32) = 
+    match n with
+    | n when n < 32u  && n >= 0u -> Ok (Op2.RegisterWithShift(reg,shiftType,n))
+    | _ -> makeDPE "Valid numeric shift value in range #0 - #31" shiftStr
+
 let parseOp2 (subMode: InstrNegativeLiteralMode) (symTable : SymbolTable) (args : string list) =
     /// make ARM literal from uint32
-    let makeImmediate (num:int64) =
-        let okMap = makeOkLitMap()
-        let mask = 0xFFFFFFFFL
-        let num64 = int64 (int num) &&& mask    
+    let makeImmediate (num':uint32) =
+        let num = num' >>> 0
+        let okMap = makeOkLitMap()  
         //printfn "makeimmediate num=%d, mask=%d" num mask
-        let substitutes: (int64 * InstrNegativeLiteralMode) list = 
-            let norm = num64,NoNegLit
+        let substitutes: (uint32 * InstrNegativeLiteralMode) list = 
+            let norm = num,NoNegLit
             match subMode, num with
-            | InvertedLit, _ -> [norm ; ((~~~num) &&& mask , InvertedLit)]
+            | InvertedLit, _ -> [norm ; (~~~num >>> 0 , InvertedLit)]
             | NoNegLit, _
-            | NegatedLit, 0L -> [norm]
-            | NegatedLit, _  -> 
-                let u = ( (1L <<< 32) - num64) &&& mask
-                [norm ; ( u , NegatedLit)]
+            | NegatedLit, 0u -> [norm]
+            | NegatedLit, _  -> [norm ; ( ~~~num + 1u >>> 0 , NegatedLit)]
          
         let posLits = 
             let checkSub (n,sub) =
@@ -280,19 +283,20 @@ let parseOp2 (subMode: InstrNegativeLiteralMode) (symTable : SymbolTable) (args 
 
 
         
-        let isZeroNegated = List.exists (function (0L,_,sub) -> sub = NegatedLit | _ -> false) posLits
+        //let isZeroNegated = List.exists (function (0L,_,sub) -> sub = NegatedLit | _ -> false) posLits
 
         match posLits  with
         | [] -> makeDPE "Valid ARM immediate value. Immediates are formed as 32-bit numbers: N ROR (2M), 0 <= N <= 256, 0 <= M <= 15" 
                     (sprintf "invalid literal=%d" num)
         | (K,rot,sub) :: _ ->  Result.Ok (NumberLiteral(K,rot,sub))
 
+
     /// apply shift expression to register
     let parseShiftExpression (str : string) reg =
         let getShiftType str = match Map.tryFind str (Map.ofList ["LSL", LSL; "LSR", LSR; "ASR", ASR; "ROR",ROR]) with
                                 | Some s -> Ok s
                                 | None -> makeDPE "Valid shift code LSL,LSR,ASR,ROR" str
-        let makeImmShift shiftType n = RegisterWithShift (reg, shiftType, n)
+
         let makeRegShift shiftType r = RegisterWithRegisterShift (reg, shiftType, r)
 
         if str.ToUpper() = "RRX" then
@@ -302,7 +306,7 @@ let parseOp2 (subMode: InstrNegativeLiteralMode) (symTable : SymbolTable) (args 
             | Ok shiftType, imm when imm.StartsWith("#") -> 
                 imm.Substring(1) 
                 |> parseNumberExpression symTable 
-                |> Result.map (makeImmShift shiftType)
+                |> Result.bind (makeLitShift imm reg shiftType)
             | Ok shiftType, reg when isRegister reg-> 
                 parseRegister reg 
                 |> Result.bind (
@@ -317,7 +321,6 @@ let parseOp2 (subMode: InstrNegativeLiteralMode) (symTable : SymbolTable) (args 
     | [imm] when imm.StartsWith("#") -> 
         imm.Substring(1) 
         |> parseNumberExpression symTable 
-        |> Result.map (fun (n:uint32) -> int64 n)
         |> Result.bind makeImmediate
     | [reg] when isRegister reg -> 
         parseRegister reg 
@@ -355,7 +358,7 @@ let makeThreeOpInstr subMode fn symTable operands =
 
 
 /// return a ready-to-execute comparison function from the given operands
-let makeComparisonInstr subMode compType symTable operands updateFlags =
+let makeComparisonInstr subMode compType symTable operands _updateFlags =
     makeTwoOpInstr subMode (execComparison compType) symTable operands
 
 /// return a ready-to-execute move function from the given operands
@@ -384,14 +387,16 @@ let makeArithmeticInstr subMode opType symTable operands updateFlags =
 let makeShiftInstr shiftType symTable operands updateFlags =
     match operands with
     | [dst ; src ; shiftBy] ->
-
         match parseRegister dst, parseRegister src with
         | Ok dst', Ok src' ->
             let op2 =
-                let makeLitShift n = RegisterWithShift (src', shiftType, n)
+                let makeLitShift' (n:uint32) = 
+                    match n with
+                    | n when n < 32u  && n >= 0u-> Ok (Op2.RegisterWithShift(src',shiftType,n))
+                    | _ -> makeDPE "Valid numeric shift value in range #0 - #31" shiftBy
                 let makeRegShift r = RegisterWithRegisterShift (src', shiftType, r)
                 match shiftBy with
-                | cons when cons.StartsWith("#") -> cons.Substring(1) |> parseNumberExpression symTable |> Result.map makeLitShift
+                | cons when cons.StartsWith("#") -> cons.Substring(1) |> parseNumberExpression symTable |> Result.bind (makeLitShift cons src' shiftType)
                 | reg when isRegister reg -> parseRegister reg |> Result.map makeRegShift
                 | reg when isValidNumericExpression symTable reg ->
                       makeFormatError "Numbers in instruction operands require '#' prefix (#22, #-1)" reg "flexop2"

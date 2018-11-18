@@ -142,7 +142,13 @@ let createMainWindow () =
         window.on("resize",
             unbox ( fun _ ->
                 window.webContents.send "resizeWindow")) |> ignore
-    
+
+        window.webContents.on("new-window",  (fun e x ->
+            printfn "Opening new window! %A %A" e x
+            e?preventDefault();
+            electron.shell.openExternal x |> ignore
+        )) |> ignore
+        
         electron.ipcMain?on ("doClose", unbox (fun () ->
             closeAfterSave <- true
             dTrace "%s" "Closing window NOW!"

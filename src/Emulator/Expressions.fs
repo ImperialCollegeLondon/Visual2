@@ -51,30 +51,43 @@ module Expressions
 
     /// Evaluate exp against the symbol table syms
     /// Returns a list of all errors or the result
-    let rec eval syms exp : Result<uint32, ErrCode> =
+    let rec eval (syms: Map<string,uint32>) exp : Result<uint32, ErrCode> =
         let joinErrors a b =
             match a,b with
             | ``Undefined symbol`` a' , ``Undefined symbol`` b' ->
-                ``Undefined symbol`` ( a' + "," + b') |> Error
+                ``Undefined symbol`` ( a' @ b') |> Error
             | ``Undefined symbol`` _ , a'
             | a', _  ->  a' |> Error
         let doBinary op x y = 
             match (eval syms x), (eval syms y) with
-            | Ok resX, Ok resY -> op resX resY |> Ok
+            | Ok resX, Ok resY -> ((op resX resY) >>> 0) |> Ok
             | Error a, Error b -> joinErrors a b
             | Error a, _ -> a |> Error
             | _, Error b -> b |> Error
+        let getSymError x =
+            let x' = String.toUpper x
+            let symLst = syms |> Map.toList |> List.map fst
+            match List.tryFind (fun sym -> x' = String.toUpper sym) symLst with
+            | Some sym ->    x, sprintf "'%s' which has different case from label '%s'" x sym
+            | None -> x, sprintf "'%s' which is not defined as a label" x
         match exp with
         | BinOp (op, x, y) -> doBinary op x y
         | Literal x -> x |> Ok
         | Label x ->
             match (Map.containsKey x syms) with
                 | true -> syms.[x] |> Ok
-                | false -> 
-                    (``Undefined symbol``  x) |> Error
+                | false -> ``Undefined symbol`` [getSymError x] |> Error
+                    
                   
-
-
+    let to32BitLiteral chars =
+        try 
+            chars
+            |> int64
+            |> function
+               | n when n > (1L <<< 32) || n < (-1L <<< 31) -> Error (``Literal more than 32 bits`` chars)
+               | n -> Ok (uint32 n)
+        with
+            | e -> Error (``Literal is not a valid number`` chars)
 
 
 
@@ -98,11 +111,17 @@ module Expressions
                         num
                         |> String.replace "_" ""
                         |> String.toLower
-                        |> uint32
+                        |> int64
+                        |> function // check that literal constants are within 32 bit range under FABLE
+                           | n when n > ((1L <<< 32)-1L)  -> 
+                                failwithf "Literal more than 32 bits"
+                           | n -> uint32 n
                         |> Literal
                     (litNum, rst) |> Some
                 with
-                    | _ -> failwithf "Exception in Expr: uint32(%A)" num
+                    | _ -> 
+                        printfn "Exception in Expr: uint32(%A)" num
+                        None
             | RegexPrefix "&[0-9a-fA-F]+" (num, rst) -> 
                 ("0x" + (removeWs num).[1..] |> uint32 |> Literal, rst) |> Some
             | _ -> None
@@ -169,7 +188,13 @@ module Expressions
         | Expr (ast,_) -> eval syms ast
         | _ when String.contains "#" op -> makeParseError "Numeric expression (without #)" op ""
         | _ -> makeParseError "Numeric expression" op ""
-    
+
+    let parse syms op =
+        match removeWs op with
+        | Expr (ast,txt) -> Result.map (fun e -> e,txt) (eval syms ast)
+        | _ when String.contains "#" op -> makeParseError "Numeric expression (without #)" op ""
+        | _ -> makeParseError "Numeric expression" op ""
+   
 
     type PartsOfASM = ALabel | AOpCode | AOperand of int
 

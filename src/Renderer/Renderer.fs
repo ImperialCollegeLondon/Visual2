@@ -81,7 +81,8 @@ let init () =
     
     Refs.saveFileBtn.addEventListener_click (fun _ -> MenuBar.interlock "save file" Files.saveFile) 
     
-    Refs.runSimulationBtn.addEventListener_click(fun _ ->
+    Refs.runSimulationBtn.addEventListener_click (fun _ ->
+        Stats.readOnlineInfo Stats.RunningCode
         Integration.runCode () :> obj
     )
     stepForwardBtn.addEventListener_click(fun _ ->
@@ -128,6 +129,8 @@ let init () =
 
     Tooltips.addFixedToolTips()
 
+    Stats.readOnlineInfo Stats.Startup
+
 /// top-level function that runs the renderer code
 let handleMonacoReady = { new EventListenerObject with
     member x.handleEvent (_: Event) = init () 
@@ -152,3 +155,4 @@ let handleDrop = { new EventListenerObject with
 document.addEventListener("monaco-ready", U2.Case2 handleMonacoReady)
 document.addEventListener("dragover", U2.Case2 handlePreventDefault)
 document.addEventListener("drop", U2.Case2 handleDrop)
+

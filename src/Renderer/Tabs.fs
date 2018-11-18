@@ -69,7 +69,7 @@ let setRunButton (mode:ExecutionTop.RunMode) =
     match mode with 
     | ExecutionTop.ActiveMode (ExecutionTop.Running,_) ->
         Refs.runSimulationBtn.innerText <- "Pause"; 
-    |_ -> 
+    | _ -> 
         Refs.runSimulationBtn.innerText <- "Run"
 
 let setMode (rm:ExecutionTop.RunMode) =

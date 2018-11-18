@@ -68,16 +68,31 @@ let fileFilterOpts =
         ]
     ] |> Some
 
-let updateCurrentPath p =
+let getPathElements p =
             let dir = p |> String.split [|'\\';'/'|]
-            if dir.Length > 1 then
-                let path = path.join dir.[0..dir.Length-2]
-                printfn "Made path=%A" path
-                if (fs.statSync (U2.Case1 path)).isDirectory() then
-                    printf "Changing current path from %A to %A" vSettings.CurrentFilePath path
-                    vSettings <- {vSettings with CurrentFilePath = path}
-                    Refs.setJSONSettings()
-            p
+            let root = 
+                match p |> Seq.toList with
+                | '\\' :: '\\' :: _ -> "\\\\"
+                | '\\' :: _ -> "\\"
+                | '/' :: _ -> "/"
+                | _ -> ""
+            match (dir |> Array.toList),root with
+            | [],"" -> []
+            | [], r -> [r]
+            | p :: rest, r -> (p+r) :: rest
+          
+            
+
+let updateCurrentPath p =
+    let dir = getPathElements p
+    if dir.Length > 1 then
+        let path = path.join (dir.[0..dir.Length-2] |> List.toArray)
+        printfn "Made path=%A" path
+        let path' = checkPath p
+        printf "Changing current path from %A to %A" vSettings.CurrentFilePath path'
+        vSettings <- {vSettings with CurrentFilePath = path'}
+        Refs.setJSONSettings()
+    p
 
 
 let updateCurrentPathFromList (res : string list) =
@@ -95,8 +110,7 @@ let writeCurrentCodeToFile path = (Refs.writeToFile (getCode currentFileTabId) p
 
 let filterBadName isSave path =
     path
-    |> (String.split [|'\\';'/'|])
-    |> Array.toList
+    |> getPathElements
     |> function 
         | [] -> []
         | pl -> List.last pl |> (fun name -> 

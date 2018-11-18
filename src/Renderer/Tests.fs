@@ -355,4 +355,9 @@ let runAllEmulatorTests () =
 
     List.iter (runEmulatorTestFile allowed) files
     printfn "Finished. See './test-results' for result files"
+
+//*************************************************************************************
+//                              CUSTOM TESTBENCH CODE
+//*************************************************************************************
+
  

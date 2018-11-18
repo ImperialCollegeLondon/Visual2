@@ -30,7 +30,7 @@ let opCodeData = [
     "STR","load memory word or byte at address 'EA' into Rd. Optionally update Rb.", LDRSTR
     "LDM","load multiple registers from memory", LDMSTM
     "STM","store multiple registers to memory", LDMSTM
-    "FILL", "allocate op1 data bytes. Op1 must be divisible by 4. Fill words with 0 or op2", MISC
+    "FILL", "allocate op1 data bytes. Op1 must be divisible by 4. Fill words with 0.", MISC
     "DCD","allocate data words as specified by op1,...opn",MISC
     "DCB","allocate data bytes as specified by op1,...,opn. The number of operand must be divisible by 4",MISC
     "EQU","define label on this line to equal op1. Op1 may contain: labels,numbers, +,-,*,/", EQU
@@ -48,10 +48,17 @@ let getRoot opc =
         | [ spec] -> spec
         | _ -> "unimplemented", "",UNIMPLEMENTED
 
+/// <summary> Add extra diagnostic info for bad shift instructions <summary>
+let makeShiftModes (isShift, isRRX, isBadShift) =
+    match isShift,isRRX,isBadShift with
+    | None, None, None -> " #-1"
+    | Some sft,_, _ -> sprintf " R2, %s #5" sft
+    | _, Some _, _ -> " R10, RRX"
+    | _, _, Some bad  -> sprintf " R6, LSR #1**\n\n*Note: * **%s** *is not a valid shift, did you mean* **LSR** , **ASR** , **LSL** , **ROR** , **RRX** *?* **" (String.trim bad)
 
 
 
-let makeDPHover2 opc func = 
+let makeDPHover2 (opc,sfts) func = 
     sprintf """
 *%s dest, op2;  %s*
 
@@ -61,11 +68,11 @@ let makeDPHover2 opc func =
 
 **%s R10, #0x5a**
 
-**%s R7, #-1**
+**%s R7, %s**
 
-"""    opc func  opc opc opc opc
+"""    opc func  opc opc opc opc (makeShiftModes sfts)
 
-let makeCMPHover opc func = 
+let makeCMPHover (opc,sfts) func = 
     sprintf """
 *%s op1, op2;  %s*
 
@@ -75,8 +82,8 @@ let makeCMPHover opc func =
 
 **%s R10, #0x5a**
 
-**%s R7, #-1**
-"""    opc func  opc opc opc opc
+**%s R7, %s**
+"""    opc func  opc opc opc opc (makeShiftModes sfts)
 
 let makeLDRSTRHover opc func = 
     sprintf """
@@ -110,7 +117,7 @@ let makeMISCHover opc func =
     let initLine =
         match opc with
         | "DCD" | "DCB" -> "op1, ..., opn; "
-        | "FILL"  -> "op1 [, op2]; "
+        | "FILL"  -> "op1 ; "
         | _ -> failwithf "%s is not a MISC opcode" opc        
     sprintf """
 *%s %s %s*
@@ -133,7 +140,7 @@ let makeEQUHover opc func =
 **PTR      EQU (X1 - 12) * 4 + X2**
 """  opc func 
 
-let makeDPHover3 opc func =
+let makeDPHover3 (opc,sfts) func =
     sprintf """
 *%s dest, op1, op2;  %s*
 
@@ -143,23 +150,32 @@ let makeDPHover3 opc func =
 
 **%s R10, R0, #0x5a**
 
-**%s R7, R10, #-1**
+**%s R7, R10, %s**
 
-"""     opc func  opc opc opc opc
+"""     opc func  opc opc opc opc (makeShiftModes sfts)
 
 let unimplementedHover opc =
-    sprintf " '%s': This opcode is not recognised" opc
+    sprintf " '%s': There is a problem with this instruction" opc
 
 
 let getOpcHover mess opc line =
     //printfn "getting hover: opc='%s' line='%s'" opc line
+    let uLine = 
+        String.toUpper (line + " ") 
+        |> String.replaceChar ',' ' '
+        |> String.replaceChar '#' ' '
     if opc = "" then failwithf "can't get hover for '' opcode"
+    let lineContains lst = List.tryFind (fun sft -> String.contains sft uLine) lst
+    let isShift = lineContains [" LSL";" LSR";" ASR";" ROR"]
+    let isRRX = lineContains [" RRX"]
+    let isBadShift = lineContains [" ASL ";" ROL "; " RRL "]
     let _, legend,typ = getRoot opc
+    let opc' = opc,(isShift,isRRX,isBadShift)
     let hoverText =
         match typ with
-        | DP3 -> mess + makeDPHover3 opc legend
-        | DP2 -> mess + makeDPHover2 opc legend
-        | CMP -> mess + makeCMPHover opc legend
+        | DP3 -> mess + makeDPHover3 opc' legend
+        | DP2 -> mess + makeDPHover2 opc' legend
+        | CMP -> mess + makeCMPHover opc' legend
         | MISC -> mess + makeMISCHover opc legend
         | LDRSTR -> mess + makeLDRSTRHover opc legend
         | LDMSTM -> mess + makeLDMSTMHover opc legend
@@ -178,11 +194,12 @@ let getOpcHover mess opc line =
         |>  List.rev
     let oStart = 
         match splitLine  with
-            | _afterPart :: before -> (before.Length-1)*oLen + List.sumBy String.length before + 1
+            | _afterPart :: before -> List.sumBy String.length before + 1
             | x -> failwithf "What? Unexpected split '%A' can't happen. line = '%s', opc = '%s'." x line opc
-    if oStart + oLen - 1 >= line.Length then failwithf "Bad hover range %d, %d in %s" oStart oLen line
     let lineText = sprintf "```\n%s\n```\n" (stripComment line)
-    ([lineText] @ hoverText), (oStart, oStart + oLen - 1)
+    if oStart + oLen - 1 >= line.Length then 
+        ([lineText] @ hoverText), (1, lineText.Length)
+    else  ([lineText] @ hoverText), (oStart, oStart + oLen - 1)
 
 
 

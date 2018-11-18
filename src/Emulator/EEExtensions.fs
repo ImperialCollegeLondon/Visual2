@@ -199,13 +199,15 @@ module String =
         str.TrimEnd(trimChars)
 
     /// Match a regular expression
-    /// Return Some (m,grps) where m is the match string,
+    /// Return Some [grps] where m is the match string,
     /// grps is the list of match groups (if any)
     /// return None on no match
     [<CompiledName("RegexMatchGroups")>]
     let regexMatchGroups (regex:string) (str:string) =
         let m = Text.RegularExpressions.Regex.Match(str, regex)
-        [ for n in [1..m.Groups.Count] -> m.Groups.[n].Value ]
+        if m.Success then 
+            Some [ for n in [1..m.Groups.Count] -> m.Groups.[n].Value ]
+        else None
  
     /// Match a regular expression
     /// Return Some m where m is the match string,

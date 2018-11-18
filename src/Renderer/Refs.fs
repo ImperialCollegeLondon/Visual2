@@ -21,7 +21,7 @@ open EEExtensions
 //                                  App Version 
 // **********************************************************************************
 
-let appVersion = "0.14.4"
+let appVersion = "1.04.6"
 
 // **********************************************************************************
 //                               Types used in this module
@@ -49,6 +49,7 @@ type VSettings = {
     EditorRenderWhitespace: string
     CurrentFilePath: string
     RegisteredKey: string
+    OnlineFetchText: string
     }
 
 // ***********************************************************************************************
@@ -267,6 +268,7 @@ let mutable vSettings = {
     EditorRenderWhitespace = "none"
     CurrentFilePath = Fable.Import.Node.Exports.os.homedir()
     RegisteredKey = ""
+    OnlineFetchText = ""
     }
 
 let themes =  [
@@ -277,14 +279,18 @@ let themes =  [
               ]
 let minFontSize = 6L
 let maxFontSize = 60L
+let checkPath (p:string) = 
+    try
+        let stat = fs.statSync (U2.Case1 p)          
+        match (stat.isDirectory()) with
+        | true -> p
+        | false -> os.homedir()
+    with
+        | e -> os.homedir()
 
 
 let checkSettings (vs: VSettings) = 
     let vso = vSettings
-    let checkPath (p:string) = 
-        match (fs.statSync (U2.Case1 p)).isDirectory() with
-        | true -> p
-        | false -> os.homedir()
     try
         let checkNum (n:string) (min:int64) (max:int64) (def:string) = 
             match int64 n with
@@ -332,7 +338,6 @@ let getJSONSettings() =
     | false -> 
         try
             let vs = (Fable.Import.JS.JSON.parse json) :?> VSettings
-            printfn "Found saved settings: %A" vs
             vs
         with
         | e -> 
@@ -370,7 +375,7 @@ let register rNum = getHtml <| sprintf "R%i" rNum
 
 let visualDocsPage name = 
     match EEExtensions.String.split [|'#'|] name |> Array.toList with
-    | [""] -> @"https://tomcl.github.io/visual2.github.io/"
+    | [""] -> @"https://tomcl.github.io/visual2.github.io/guide.html#content"
     | [ page ] ->sprintf  "https://tomcl.github.io/visual2.github.io/%s.html#content" page
     | [ page; tag ] -> sprintf @"https://tomcl.github.io/visual2.github.io/%s.html#%s" page tag
     | _ -> failwithf "What? Split must return non-empty list!"
@@ -396,9 +401,12 @@ let runPage url () =
     options.backgroundColor <- None
     options.icon <- Some (U2.Case2  "app/visual.ico")
     let window = rem.BrowserWindow.Create(options)
-    window.setMenuBarVisibility false
+    window.setMenuBarVisibility true
     window.loadURL url
     window.show()
+
+let runExtPage url () =
+    electron.shell.openExternal url |> ignore
 
 
 let writeToFile str path =
@@ -425,12 +433,14 @@ let initialFlags =  { N=false ; Z=false; C=false; V=false}
 let mutable currentFileTabId = -1 // By default no tab is open
 /// List of all in use file tabs
 let mutable fileTabList : int list = []
+/// tab containing current testbench specification (if testbench is loaded)
+let mutable testbenchTab: int option = None
 /// Map tabIds to the editors which are contained in them
 let mutable editors : Map<int, obj> = Map.ofList []
 /// Map of content widgets currently on editor, indexed by id
 let mutable currentTabWidgets: Map<string,obj> = Map.empty
 /// id of tab containing settings form, if this exists
-let mutable settingsTab : int option = Microsoft.FSharp.Core.option.None
+let mutable settingsTab : int option = None
 /// The current number representation being used
 let mutable currentRep = Hex
 /// indicates what the current DOM symbols display representation is
@@ -458,6 +468,10 @@ let mutable runMode: ExecutionTop.RunMode = ExecutionTop.ResetMode
 /// Global debug level set from main process.
 /// 0 => production. 1 => development. 2 => debug parameter.
 let mutable debugLevel = 0
+
+
+/// Online data matched time
+let mutable lastOnlineFetchTime: Result<System.DateTime,System.DateTime> = Result.Error System.DateTime.Now
 
 /// Return the text in tab id tId as a string
 let getCode tId :string =

@@ -57,15 +57,27 @@ let highlightErrorParse ((err:ParseError), lineNo) tId opc =
         | ``Unimplemented parse`` ->
             "", ML "Unimplemented parse: this is an unexpected error, please inform project maintainers"
         | ``Undefined symbol`` syms ->
-            "", ML <| "This line contains an expression with assembler labels '" + syms + "' that have not been defined"
+            let symsMsg = 
+                match syms with
+                | [sym,msg] -> sprintf ": %s" msg
+                | lst -> List.map snd  lst |> String.concat "\n" |> sprintf "s:\n%s"
+            "", ML <| "This line contains an expression with undefined symbol" + symsMsg
         | ``Invalid opCode`` (root, cond, suffix) ->
             "", sprintf "This opcode: %A%A%A is not valid" root cond suffix |> ML
         | ``Unimplemented instruction`` opcode ->
             "", sprintf "%s is not a valid UAL instruction" opcode |> ML
-    let gLink = [ sprintf "[UAL Guide](%s)" (visualDocsPage "list") ]
+        | ``Duplicate symbol`` (sym, lines) ->
+            let lineMsg = String.concat ", " (List.map (sprintf "%d") lines)
+            "", ML (sprintf "%s: duplicate labels on lines: %s\nDuplicate label names are not allowed" sym lineMsg)
+        | ``Literal more than 32 bits`` lit 
+        | ``Literal is not a valid number`` lit -> "", sprintf "%s is not a valid literal" lit |> ML
+
+    let gLink = []
     let mLink = [ sprintf "[more](%s)" (Refs.visualDocsPage link) ]
     let mHover = hover @ ["More: see \u26a0"]
-    makeErrorInEditor tId lineNo mHover  (gHover @ hover @ mLink @ gLink)
+    match err with
+    | ``Duplicate symbol`` (sym, lines) -> makeErrorInEditor tId lineNo  hover  hover
+    | _ -> makeErrorInEditor tId lineNo mHover  (gHover @ hover @ mLink @ gLink)
 
     setMode ParseErrorMode
 
@@ -161,14 +173,14 @@ let highlightCurrentAndNextIns classname pInfo tId  =
         | Some (condInstr, lineNo) -> 
             highlightLine tId lineNo classname 
             Editors.revealLineInWindow tId lineNo
-            Editors.toolTipInfo (lineNo-1) dp condInstr
+            Editors.toolTipInfo (lineNo-1,"top") dp condInstr
         | Option.None
         | Some _ -> failwithf "What? Current PC value (%x) is not an instruction: this should be impossible!" dp.Regs.[R15]
     let pc = (fst pInfo.dpCurrent).Regs.[R15]
     match Map.tryFind (WA pc) pInfo.IMem with
     | Some (condInstr, lineNo) -> 
         highlightNextInstruction tId lineNo
-        Editors.toolTipInfo (lineNo-1) (fst pInfo.dpCurrent) condInstr
+        Editors.toolTipInfo (lineNo-1,"bottom") (fst pInfo.dpCurrent) condInstr
     | _ -> ()
     
 /// Update GUI after a runtime error. Highlight error line (and make it visible).
@@ -267,7 +279,6 @@ let getRunInfoFromImage (lim:LoadImage) =
             if a > 0xFFFFFFFFu then failwithf "What? invalid address in memory image location: %d: %d" a x
             if x > 0xFFFFFFFFu then failwithf "What? invalid data value in memory image locatio: %d: %d" a x
             Map.add (WA a) (Dat x) mem) mm dLocs
-
     let dp = {
                 Fl = getFlags()
                 Regs = getRegs()
@@ -286,6 +297,7 @@ let getRunInfoFromImage (lim:LoadImage) =
         Source = lim.Source
         EditorText = lim.EditorText
         History = []
+        TestState = NoTest
     }
 
 /// Execution Step number at which GUI was last updated
@@ -328,6 +340,7 @@ let rec asmStepDisplay steps ri =
             let ri' = asmStep steps ri
             setCurrentModeActiveFromInfo Paused ri'
             displayState ri' running
+            highlightCurrentAndNextIns "editor-line-highlight" ri' currentFileTabId
         else
             let ri' = asmStep (stepsMax+ri.StepsDone - 1L) ri
             setCurrentModeActiveFromInfo RunState.Running ri'
@@ -336,7 +349,10 @@ let rec asmStepDisplay steps ri =
             | PSRunning -> 
                  Browser.window.setTimeout( (fun () -> 
                         asmStepDisplay steps ri'), 0, []) |> ignore
-            | _ -> displayState ri' true
+            | _ -> 
+                displayState ri' true
+                highlightCurrentAndNextIns "editor-line-highlight" ri' currentFileTabId
+
 
 /// If program has changed reset execution    
 let prepareModeForExecution() =
@@ -346,7 +362,7 @@ let prepareModeForExecution() =
     | ActiveMode (_,ri) ->
         if currentFileTabProgramIsChanged ri then
             Browser.window.alert "Resetting emulator for new execution" |> ignore
-            setMode ResetMode
+            resetEmulator()
     | _ -> ()
 
 /// Parses and runs the assembler program in the current tab

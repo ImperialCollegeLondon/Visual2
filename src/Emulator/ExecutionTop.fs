@@ -73,9 +73,9 @@ type AnnotatedSymbolTable = Map<string, uint32*SymbolType>
 
 type SymbolInfo = {
     SymTab: SymbolTable ; 
-    SymTypeTab: Map<string,SymbolType>;
-    Refs: (string * int) list ; 
-    Defs: (string * SymbolType * int) list; 
+    SymTypeTab: Map<string,SymbolType>
+    Refs: (string * int * string) list 
+    Defs: (string * (SymbolType * int) * int) list
     Unresolved: (string * SymbolType * int) list
     }
 
@@ -97,6 +97,9 @@ type Step = {
 
 type ProgState = | PSExit | PSRunning | PSError of ExecuteError
 
+type TestBenchState = NoTest | CustomTest of int
+
+
 type RunInfo = {
     dpInit: DataPath
     IMem: CodeMemory<CondInstr * int>
@@ -108,15 +111,18 @@ type RunInfo = {
     Source: string list
     EditorText: string list
     History: Step list
+    TestState: TestBenchState
     }
 
+
 type RunState = | Running | Paused | Stopping
+
 type RunMode = 
     | ResetMode
     | ParseErrorMode
-    | RunErrorMode of RunInfo
-    | ActiveMode of RunState * RunInfo
-    | FinishedMode of RunInfo
+    | RunErrorMode of RunInfo 
+    | ActiveMode of RunState * RunInfo 
+    | FinishedMode of RunInfo 
 
 
 
@@ -202,11 +208,11 @@ let loadLine (lim:LoadImage) ((line,lineNum) : string * int) =
             let si = lim.SymInf
             match pa.PLabel with
             | Some (lab, Ok addr) -> 
-                { si with 
-                    Defs = addSymbol lab labType si.Defs
-                    SymTab = Map.add lab addr si.SymTab
-                    SymTypeTab = Map.add lab labType si.SymTypeTab
-                }
+                    { si with 
+                        Defs = addSymbol lab (labType,lineNum) si.Defs
+                        SymTab = Map.add lab addr si.SymTab
+                        SymTypeTab = Map.add lab labType si.SymTypeTab
+                    }
             | None -> si
             | Some (lab, Error _) -> 
                 { si with Unresolved = addSymbol lab labType si.Unresolved }
@@ -216,9 +222,8 @@ let loadLine (lim:LoadImage) ((line,lineNum) : string * int) =
                 | Error ( ``Undefined symbol`` syms) ->
                     { si with
                         Refs =
-                            (syms.Split([|','|])
-                            |> Array.toList 
-                            |> List.map (fun s -> (s , lineNum)))
+                            (syms
+                            |> List.map (fun (s,msg) -> (s , lineNum, msg)))
                             @ si.Refs
                     }
                 | _ -> si)
@@ -265,8 +270,8 @@ let addTermination (lim:LoadImage) =
     let insLst = Map.toList lim.Code |> List.sortByDescending fst
     match insLst with
     | (_, ({Cond=Cal;InsExec=IBRANCH END;InsOpCode="END"},_)) :: _ -> lim 
-    | []
-    | _ -> loadLine lim ("END",1)
+    | [] -> loadLine lim ("END", 1)
+    | _ -> loadLine lim ("END", -1) // used if no line for END
 
     
 let loadProgram (lines: string list) (lim: LoadImage)   =
@@ -316,7 +321,20 @@ let invariantOfLine =
 
 let mutable programCache: Map<string list,LoadImage> = Map.empty
 
+let makeDupSymParseErrors (sym, defLst) =
+    let lNos dLst = dLst |> List.map (fun (_,(_,lineNo),_) -> lineNo)
+    let eLines = lNos defLst
+    defLst 
+    |> lNos
+    |> List.map (fun lineNo -> ``Duplicate symbol`` (sym, eLines), lineNo, "")
+
 let reLoadProgram (lines: string list) =
+    let findDuplicateSymbols (lim: LoadImage) =
+        let symDefs = lim.SymInf.Defs
+        let symGrps = List.groupBy (fun (sym, (_typ,_lineNo),_sVal) -> sym) symDefs
+        symGrps
+        |> List.filter (fun (sym, defLst) -> defLst.Length > 1)
+        |> List.collect makeDupSymParseErrors
     let reLoadProgram' (lines: string list) =
         let addCodeMarkers (lim: LoadImage) =
             match lim.LoadP.PosD with
@@ -344,7 +362,7 @@ let reLoadProgram (lines: string list) =
             |> next
             |> addCodeMarkers
         let src = indentProgram final lines
-        let lim = {final with Source=src ; EditorText = lines}
+        let lim = {final with Source=src ; EditorText = lines; Errors = (findDuplicateSymbols final) @ final.Errors}
         lim
     cacheLastN 10 reLoadProgram' lines
 
@@ -354,7 +372,7 @@ let executeADR (ai:ADRInstr) (dp:DataPath) =
 
 
 let dataPathStep (dp : DataPath, code:CodeMemory<CondInstr*int>) = 
-    let addToPc a dp = {dp with Regs = Map.add R15 ((uint32 a + dp.Regs.[R15] >>> 0) &&& 0xffffffffu) dp.Regs}
+    let addToPc a dp = {dp with Regs = Map.add R15 ((uint32 a + dp.Regs.[R15]) >>> 0) dp.Regs}
     let pc = dp.Regs.[R15]
     let dp' = addToPc 8 dp // +8 during instruction execution so PC reads correct (pipelining)
     let uFl = DP.toUFlags dp'.Fl
