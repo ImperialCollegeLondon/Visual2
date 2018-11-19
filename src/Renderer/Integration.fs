@@ -251,13 +251,6 @@ let tryParseAndIndentCode tId =
             if debugLevel > 0 then
                 if oldCode.Length <> newCode.Length then
                     printfn "Lengths of indented and old code do not match!"
-                else 
-                    let changedLines = 
-                        List.zip oldCode newCode
-                        |> List.indexed
-                        |> List.filter (fun (i,(o,n)) -> o <> n)
-                    printf "Differences: %A" changedLines
-
             (editor?setValue (String.concat "\n" newCode)) |> ignore
         (lim, lim.Source) |> Some
     | lim -> 

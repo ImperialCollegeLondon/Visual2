@@ -98,7 +98,7 @@ let updateCurrentPath p =
 let updateCurrentPathFromList (res : string list) =
         printfn "Updating path to: %A" res
         match res with
-        | p :: _ ->updateCurrentPath p |> ignore
+        | p :: _ -> updateCurrentPath p |> ignore
         | _ -> ()
         res
 

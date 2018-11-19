@@ -77,7 +77,6 @@ module Expressions
             match (Map.containsKey x syms) with
                 | true -> syms.[x] |> Ok
                 | false -> 
-                    printfn "\nUndefined symbol:%s\n%A\n" x syms
                     ``Undefined symbol`` [getSymError x] |> Error
                     
                   

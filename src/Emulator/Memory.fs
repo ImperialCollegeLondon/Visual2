@@ -230,16 +230,11 @@ module Memory
                                         ("invalid:'"+txt+"'") "list#single-memory-tranfer-instructions", txt)
                 // include base register value as second parameter of returned function
                 |> mapOptHeadResult (fun fo -> fun dp rbv -> fo dp + rbv)
-
-                
-
-
-           
+ 
             match ls.Operands with
             | REGMATCH(rd, ( REMOVEPREFIX "," txt)) -> 
-                //printfn "LDRSTR matching %s" txt
                 match PreIndex, PostIndex, txt with 
-                | indexType, _, BRACKETED '[' ']' (REGMATCH( rb, (OFFSET(spf,""))) ,  WRITEBACK w)
+                | indexType, _, BRACKETED '[' ']' (REGMATCH( rb, (OFFSET(spf,""))),  WRITEBACK w)
                 | _, indexType, BRACKETED '[' ']' ((REGMATCH( rb,""), OFFSET(spf, WRITEBACK w))) -> 
                     let mode =
                         match w, indexType with 

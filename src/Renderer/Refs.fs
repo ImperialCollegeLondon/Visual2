@@ -280,11 +280,14 @@ let themes =  [
 let minFontSize = 6L
 let maxFontSize = 60L
 let checkPath (p:string) = 
+    let p' = path.dirname p
     try
+        let stat' = fs.statSync (U2.Case1 p')          
         let stat = fs.statSync (U2.Case1 p)          
-        match (stat.isDirectory()) with
-        | true -> p
-        | false -> os.homedir()
+        match (stat.isDirectory(), stat'.isDirectory()) with
+        | true, _ -> p
+        | false, true -> p'
+        | _ -> os.homedir()
     with
         | e -> os.homedir()
 
