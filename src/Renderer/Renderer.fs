@@ -114,6 +114,12 @@ let init () =
         Views.updateMemory () :> obj
     )
 
+    (Refs.reverseViewBtn).addEventListener_click(fun _ ->
+        Browser.console.log "Toggling reverse view" |> ignore
+        Views.toggleReverseView ()
+        Views.updateMemory () :> obj
+    )
+
     (Refs.newFileTab).addEventListener_click(fun _ ->
         Browser.console.log "Creating a new file tab" |> ignore
         MenuBar.interlock "create a new tab" (fun () -> Tabs.createFileTab() |> ignore))

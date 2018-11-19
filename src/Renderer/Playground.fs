@@ -75,6 +75,7 @@ let parseTestbench() =
 
 let check1() =
     parseTestbench()
+    ()
 
 
 

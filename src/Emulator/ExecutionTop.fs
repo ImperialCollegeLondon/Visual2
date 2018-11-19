@@ -111,6 +111,7 @@ type RunInfo = {
     Source: string list
     EditorText: string list
     History: Step list
+    StackInfo: (uint32 * uint32) list
     TestState: TestBenchState
     }
 
@@ -377,10 +378,11 @@ let dataPathStep (dp : DataPath, code:CodeMemory<CondInstr*int>) =
     let dp' = addToPc 8 dp // +8 during instruction execution so PC reads correct (pipelining)
     let uFl = DP.toUFlags dp'.Fl
     let noFlagChange = Result.map (fun d -> d,uFl) 
-    match Map.tryFind (WA pc) code with
+    let thisInstr = Map.tryFind (WA pc) code
+    match thisInstr with
     | None ->
-        NotInstrMem pc |> Error
-    | Some ({Cond=cond;InsExec=instr;InsOpCode=_iopc},line) ->
+        None, NotInstrMem pc |> Error
+    | Some ({Cond=cond;InsExec=instr;InsOpCode=iOpc},line) ->
         match condExecute cond dp' with
         | true -> 
             match instr with
@@ -395,11 +397,14 @@ let dataPathStep (dp : DataPath, code:CodeMemory<CondInstr*int>) =
                 (executeADR adrInstr dp', uFl) |> Ok
             | IMISC ( x) -> (``Run time error`` ( dp.Regs.[R15], sprintf "Can't execute %A" x)) |> Error
             | ParseTop.EMPTY _ -> failwithf "Shouldn't be executing empty instruction"
-        | false -> (dp', uFl) |> Ok
+            |> fun res -> Some (instr,iOpc,line), res
+
+        | false -> None, ((dp', uFl) |> Ok)
         // NB because PC is incremented after execution all exec instructions that write PC must in fact 
         // write it as (+8-4) of real value. setReg does this.
-        |> Result.map (fun (dp,uF) -> addToPc (4 - 8) dp, uF) // undo +8 for pipelining added before execution. Add +4 to advance to next instruction
-
+        |> fun (ins, res) ->
+              ins, Result.map (fun (dp,uF) -> addToPc (4 - 8) dp, uF) res// undo +8 for pipelining added before execution. Add +4 to advance to next instruction
+    
 /// <summary> <para> Top-level function to run an assembly program.
 /// Will run until error, program end, or numSteps instructions have been executed. </para>
 /// <para> Previous runs are typically contained in a linked list of RunInfo records.
@@ -417,6 +422,9 @@ let asmStep (numSteps:int64) (ri:RunInfo) =
         let mutable stepsDone = 0L // number of instructions completed without error
         let mutable state = PSRunning
         let mutable lastDP = None
+        let mutable lastTi = None
+        let mutable stackInfo = ri.StackInfo
+        let recordStack ins opc lNum = []
         let (future,past) = List.partition (fun (st:Step) -> st.NumDone >= numSteps) ri.History
         let mutable history = past
         match past with | step :: _ -> dp <- step.Dp ; stepsDone <- step.NumDone | _ -> ()   
@@ -427,10 +435,14 @@ let asmStep (numSteps:int64) (ri:RunInfo) =
             let historyLastRecord = match history with | [] -> 0L | h :: _ -> h.NumDone
             if (stepsDone - historyLastRecord) > historyMaxGap then
                 history <- {Dp=dp; NumDone=stepsDone} :: history
-            match dataPathStep (fst dp, ri.IMem) with
-            | Result.Ok (dp',uF') ->  lastDP <- Some dp; dp <- dp',uF' ; stepsDone <- stepsDone + 1L;
-            | Result.Error EXIT -> running <- false ; state <- PSExit;
+            let ti, stepRes = dataPathStep (fst dp, ri.IMem)
+            match stepRes with
+            | Result.Ok (dp',uF') ->  lastDP <- Some dp; dp <- dp',uF' ; stepsDone <- stepsDone + 1L; 
+            | Result.Error EXIT -> running <- false ; state <- PSExit; 
             | Result.Error e ->  running <- false ; state <- PSError e; lastDP <- Some dp;
+            match ti with
+            | Some (ins, opc, lNum) -> stackInfo <- recordStack ins opc lNum
+            | None -> ()
 
         //printf "stepping after while PC=%d, dp=%A, done=%d --- err'=%A" dp.Regs.[R15] dp stepsDone (dataPathStep (dp,ri.IMem))
         {
@@ -439,6 +451,7 @@ let asmStep (numSteps:int64) (ri:RunInfo) =
                 State = state                   
                 LastDP = lastDP
                 StepsDone=stepsDone
+                StackInfo= stackInfo
                 History = future @ history
         } 
 

@@ -297,6 +297,7 @@ let getRunInfoFromImage (lim:LoadImage) =
         Source = lim.Source
         EditorText = lim.EditorText
         History = []
+        StackInfo = []
         TestState = NoTest
     }
 

@@ -103,6 +103,9 @@ let stepBackBtn = getHtml "stepb" :?> HTMLButtonElement
 /// get byte/word switch button element
 let byteViewBtn = getHtml "byte-view"
 
+/// get reverse direction element
+let reverseViewBtn = getHtml "reverse-view"
+
 /// get memory list element
 let memList = getHtml "mem-list"
 
@@ -449,6 +452,8 @@ let mutable displayedCurrentRep = Hex
 let mutable currentView = Registers
 /// Whether the Memory View is byte of word based
 let mutable byteView = false
+/// direction of memory addresses
+let mutable reverseDirection = false
 /// Number of instructions imulated before break. If 0 run forever
 let mutable maxStepsToRun = 50000
 /// Contents of data memory

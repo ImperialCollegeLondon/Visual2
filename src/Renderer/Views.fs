@@ -53,6 +53,16 @@ let setRepresentation rep =
     calcDashboardWidth()
     updateRegisters()
 
+/// Toggle memory direction
+let toggleReverseView () = 
+    reverseDirection <- not reverseDirection
+    match reverseDirection with
+    | true -> 
+        reverseViewBtn.classList.add("btn-byte-active")
+        reverseViewBtn.innerHTML <- "Disable Reverse Direction"
+    | false -> 
+        reverseViewBtn.classList.remove("btn-byte-active")
+        reverseViewBtn.innerHTML <- "Enable Reverse Direction"
 
 
 /// Toggle byte / word view
@@ -67,7 +77,7 @@ let toggleByteView () =
         byteViewBtn.innerHTML <- "Enable Byte View"
 
 /// Converts a memory map to a list of lists which are contiguous blocks of memory
-let contiguousMemory (mem : Map<uint32, uint32>) =
+let contiguousMemory reverse (mem : Map<uint32, uint32>) =
     Map.toList mem
     |> List.fold (fun state (addr, value) -> 
         match state with
@@ -79,8 +89,8 @@ let contiguousMemory (mem : Map<uint32, uint32>) =
                 ((addr, value) :: hd) :: tl // Add to current contiguous block
             | _ :: _ -> [(addr, value)] :: state // Non-contiguous, add to new block
     ) [] 
-    |> List.map List.rev // Reverse each list to go back to increasing
-    |> List.rev // Reverse the overall list
+    |> List.map (if reverse then id else List.rev) // Reverse each list to go back to increasing
+    |> if reverse then id else List.rev // Reverse the overall list
 
 /// Converts a list of (uint32 * uint32) to a byte addressed
 /// memory list of (uint32 * uint32) which is 4 times longer
@@ -138,7 +148,7 @@ let addToDOM (parent: Node) (childList: Node list) =
 /// Update Memory view based on byteview, memoryMap, symbolMap
 /// Creates the html to format the memory table in contiguous blocks
 let updateMemoryIfChanged =
-    let updateMemory' (currentRep, byteView, symbolMap, mem) =
+    let updateMemory' (currentRep, byteView, reverseView, symbolMap, mem) =
         let chWidth = 13
         let memPanelShim = 50
         let onlyIfByte x = if byteView then [x] else []
@@ -206,14 +216,14 @@ let updateMemoryIfChanged =
         // Add the new memory list
 
         mem
-        |> contiguousMemory
+        |> contiguousMemory reverseView
         |> List.map makeContig
         |> List.iter (fun html -> memList.appendChild(html) |> ignore)
     updateMemory' 
     |> cacheLastWithActionIfChanged
 
 let updateMemory () =
-    updateMemoryIfChanged (currentRep, byteView, symbolMap, memoryMap)
+    updateMemoryIfChanged (currentRep, byteView, reverseDirection, symbolMap, memoryMap)
 
 /// Update symbol table View using currentRep and symbolMap
 let updateSymTableIfChanged =

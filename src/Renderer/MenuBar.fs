@@ -270,6 +270,18 @@ let viewMenu() =
             makeCondItem (debugLevel > 0) "Toggle Dev Tools" (Some devToolsKey) (electron.remote.getCurrentWebContents()).toggleDevTools
         ]
 
+let runMenu() = 
+        let runToBranch() = ()
+        let runToInstruction() = ()
+        let loadTestbench() = ()
+        makeMenu "Run" [
+            makeItem "Run to next branch"  (Some "F5")  runToBranch
+            makeItem "Run to instruction" Core.Option.None runToInstruction
+            menuSeparator
+            makeItem "Load Testbench" Core.Option.None loadTestbench
+        ]
+
+
 let helpMenu() =
         makeMenu "Help" ( 
             [
