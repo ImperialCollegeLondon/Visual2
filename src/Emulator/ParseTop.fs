@@ -86,7 +86,7 @@ module ParseTop
 
 
     let parseLine (symtab: SymbolTable) (loadI:uint32, loadD:uint32) (asmLine:string) =
-        let isDataOp op = List.contains op ["DCD";"DCB";"FILL"]
+        let isDataOp (op:string) = List.contains (op.ToUpper()) ["DCD";"DCB";"FILL"]
         let isLabel (str:string) =
             str.Length > 0 && System.Char.IsLetter str.[0] && Seq.forall (fun ch -> System.Char.IsLetterOrDigit ch || ch = '_') str
         /// put parameters into a LineData record and parse
