@@ -129,6 +129,7 @@ let setCurrentModeActiveFromInfo runState ri =
 
 let resetEmulator () =
     printfn "Resetting..."
+    Tooltips.deleteAllContentWidgets()
     Editors.removeEditorDecorations currentFileTabId
     Editors.enableEditors()   
     memoryMap <- Map.empty

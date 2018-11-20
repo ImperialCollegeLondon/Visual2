@@ -154,6 +154,7 @@ let deleteFileTab id =
                    | true -> -1
                    | false -> List.last Refs.fileTabList
         | _ -> ()
+        Tooltips.deleteAllContentWidgets()
         Refs.fileTabMenu.removeChild(Refs.fileTab id) |> ignore
         Refs.fileViewPane.removeChild(Refs.fileView id) |> ignore
         match isSettingsTab with
