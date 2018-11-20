@@ -38,10 +38,10 @@ let opCodeData = [
 
     /// match opcode with opcode list returning root instruction (without suffixes or conditions)
     /// return "unimplemented" on no match.
-let getRoot opc =
+let getRoot (opc:string) =
     opCodeData
     |> List.collect (fun (root,legend,opType) ->
-        if String.startsWith root opc then 
+        if String.startsWith (root.ToUpper()) (opc.ToUpper()) then 
             [root,legend, opType]
         else [])
     |> function
@@ -116,8 +116,8 @@ let makeLDMSTMHover opc func =
 let makeMISCHover opc func = 
     let initLine =
         match opc with
-        | "DCD" | "DCB" -> "op1, ..., opn; "
-        | "FILL"  -> "op1 ; "
+        | "DCD" | "DCB" | "dcd" | "dcb" -> "op1, ..., opn; "
+        | "FILL" | "fill" -> "op1 ; "
         | _ -> failwithf "%s is not a MISC opcode" opc        
     sprintf """
 *%s %s %s*

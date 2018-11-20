@@ -76,7 +76,8 @@ module Expressions
         | Label x ->
             match (Map.containsKey x syms) with
                 | true -> syms.[x] |> Ok
-                | false -> ``Undefined symbol`` [getSymError x] |> Error
+                | false -> 
+                    ``Undefined symbol`` [getSymError x] |> Error
                     
                   
     let to32BitLiteral chars =

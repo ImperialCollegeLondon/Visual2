@@ -71,7 +71,7 @@ module Helpers
     /// Return as a string list.
     let splitAnyKeepSpaces (str: string) char =                                   
         str.Split [|char|]              
-        |> Array.map (uppercase)
+        //|> Array.map (id)
         |> List.ofArray
 
 
@@ -167,8 +167,8 @@ module Helpers
         | _ -> makeParseError "register name" txt "" |> Some
 
     /// A partilly active pattern to extract a register name, returning it paired with the rest of the string, if possible
-    let (|REGMATCH|_|) (txt:string) =
-        match txt with
+    let (|REGMATCH|_|) (txt':string) =
+        match txt' with
         | ParseRegex2 @"\s*([rR][0-9]+|[Pp][Cc]|[Ss][Pp]|[Ll][Rr]|[Pp][Cc]|[Ss][Pp]|[Ll][Rr])(.*$)" (txt,TRIM rst) -> 
             match Map.tryFind (txt.ToUpper()) regNames with
             | Some rn -> (Some (rn, rst))
