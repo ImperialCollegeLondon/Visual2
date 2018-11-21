@@ -170,11 +170,13 @@ let updateMemoryIfChanged =
                                                      | None -> sprintf "(%08x)" target)
                                |> Map.ofList, sp
             | _ -> Map.empty,0u
-            |> (fun (map,sp) ->
+            |> (fun (map,sp) -> // add SP legend
                     let lab =
-                        match Map.tryFind sp map with
-                        | None -> "SP ->"
-                        | Some sym -> sym + " ->"
+                        match sp, Map.tryFind sp map with
+                        | 0u, Some sym -> sym
+                        | 0u, None -> ""
+                        | _, None -> "SP ->"
+                        | _, Some sym -> sym + " ->"
                     Map.add sp lab map)
             
 
