@@ -164,12 +164,19 @@ let updateMemoryIfChanged =
         let invCodeMap = invSymbolTypeMap ExecutionTop.CodeSymbol
         let invStackMap = 
             match stkInf with
-            | Some si -> si |>  List.map (fun {SP=sp;Target=target} ->
+            | Some (si,sp) -> si |>  List.map (fun {SP=sp;Target=target} ->
                                             sp - 4u, match Map.tryFind target invCodeMap with 
                                                      | Some s -> "(" + s + ")"
                                                      | None -> sprintf "(%08x)" target)
-                            |> Map.ofList
-            | _ -> Map.empty
+                               |> Map.ofList, sp
+            | _ -> Map.empty,0u
+            |> (fun (map,sp) ->
+                    let lab =
+                        match Map.tryFind sp map with
+                        | None -> "SP ->"
+                        | Some sym -> sym + " ->"
+                    Map.add sp lab map)
+            
 
         let lookupSym addr = 
                 match Map.tryFind addr invSymbolMap, Map.tryFind addr invStackMap with
@@ -240,7 +247,8 @@ let updateMemory () =
         | FinishedMode ri 
         | RunErrorMode ri 
         | ActiveMode(_,ri) -> 
-            Some ri.StackInfo
+            let sp = (fst ri.dpCurrent).Regs.[CommonData.R13]
+            Some (ri.StackInfo, sp)
         | _ -> Core.Option.None
     updateMemoryIfChanged (currentRep, byteView, reverseDirection, symbolMap, memoryMap, stackInfo)
 
