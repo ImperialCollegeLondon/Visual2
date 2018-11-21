@@ -261,7 +261,7 @@ let tryParseAndIndentCode tId =
         Core.Option.None
 
 /// Return initial RunInfo context from a LoadImage
-let getRunInfoFromImage (lim:LoadImage) =
+let getRunInfoFromImageWithInits (lim:LoadImage) regsInit flagsInit mMap mm=
     let getSymTyp sym = 
         match Map.tryFind sym lim.SymInf.SymTypeTab with
         | Some typ -> typ
@@ -274,9 +274,9 @@ let getRunInfoFromImage (lim:LoadImage) =
             if x > 0xFFFFFFFFu then failwithf "What? invalid data value in memory image locatio: %d: %d" a x
             Map.add (WA a) (Dat x) mem) mm dLocs
     let dp = {
-                Fl = getFlags()
-                Regs = getRegs()
-                MM = getData memoryMap lim.Mem
+                Fl = flagsInit
+                Regs = regsInit
+                MM = getData mMap mm
              } 
     {
         dpInit=dp; 
@@ -294,6 +294,10 @@ let getRunInfoFromImage (lim:LoadImage) =
         StackInfo = []
         TestState = NoTest
     }
+
+let getRunInfoFromImage (lim:LoadImage) =
+    getRunInfoFromImageWithInits lim (getRegs()) (getFlags())  memoryMap lim.Mem
+
 
 /// Execution Step number at which GUI was last updated
 let mutable lastDisplayStepsDone = 0L

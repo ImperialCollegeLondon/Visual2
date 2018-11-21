@@ -363,6 +363,17 @@ let showMessage (callBack:int ->unit) (message:string) (detail:string) (buttons:
         opts), retFn)   
     |> ignore
 
+let showAlert (message:string) (detail:string)  =
+    let rem = electron.remote
+    rem.dialog.showMessageBox(
+       (let opts = createEmpty<Fable.Import.Electron.ShowMessageBoxOptions>
+        opts.title <- FSharp.Core.Option.None
+        opts.message <- message |> Some
+        opts.detail <- detail |> Some
+        opts.``type`` <- "error" |> Some
+        opts))   
+    |> ignore
+
 /// extract CSS custom variable value
 let getCustomCSS (varName:string) =
     let styles = window.getComputedStyle Browser.document.documentElement

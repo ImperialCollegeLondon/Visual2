@@ -7,7 +7,6 @@
     <Compile Include="Refs.fs" />
     <Compile Include="Tooltips.fs" />
     <Compile Include="Stats.fs" />
-    <Compile Include="Playground.fs" />
     <Compile Include="Editors.fs" />
     <Compile Include="ErrorDocs.fs" />
     <Compile Include="Tabs.fs" />
@@ -16,6 +15,7 @@
     <Compile Include="Files.fs" />
     <Compile Include="Integration.fs" />
     <Compile Include="Tests.fs" />
+    <Compile Include="Playground.fs" />
     <Compile Include="MenuBar.fs" />
     <Compile Include="Renderer.fs" />
   </ItemGroup>

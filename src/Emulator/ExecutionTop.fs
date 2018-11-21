@@ -97,7 +97,18 @@ type Step = {
 
 type ProgState = | PSExit | PSRunning | PSError of ExecuteError
 
-type TestBenchState = NoTest | CustomTest of int
+type TbSpec =
+    | TbRegEquals of int * RName * uint32
+    | TbRegPointsTo of int * RName * uint32 * uint32 list
+
+type tbCheck =
+    | TbVal of uint32
+    | TbMem of uint32 * uint32 option
+
+type TbInOut = TbIn | TbOut
+
+
+type TestBenchState = NoTest | Testing of TbSpec list
 
 
 type RunInfo = {
