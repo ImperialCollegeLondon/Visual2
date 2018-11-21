@@ -148,23 +148,35 @@ let addToDOM (parent: Node) (childList: Node list) =
 /// Update Memory view based on byteview, memoryMap, symbolMap
 /// Creates the html to format the memory table in contiguous blocks
 let updateMemoryIfChanged =
-    let updateMemory' (currentRep, byteView, reverseView, symbolMap, mem) =
+
+    let updateMemory' (currentRep, byteView, reverseView, symbolMap, mem, stkInf) =
         let chWidth = 13
         let memPanelShim = 50
         let onlyIfByte x = if byteView then [x] else []
-
-        let invSymbolMap = 
+        let invSymbolTypeMap symType = 
             symbolMap
             |> Map.toList
-            |> List.filter (fun (_, (_,typ)) -> typ = ExecutionTop.DataSymbol)
+            |> List.filter (fun (_, (_,typ)) -> typ = symType)
             |> List.distinctBy (fun (_,(addr,_)) -> addr)
             |> List.map (fun (sym,(addr,_)) -> (addr,sym))
             |> Map.ofList
+        let invSymbolMap = invSymbolTypeMap ExecutionTop.DataSymbol
+        let invCodeMap = invSymbolTypeMap ExecutionTop.CodeSymbol
+        let invStackMap = 
+            match stkInf with
+            | Some si -> si |>  List.map (fun {SP=sp;Target=target} ->
+                                            sp - 4u, match Map.tryFind target invCodeMap with 
+                                                     | Some s -> "(" + s + ")"
+                                                     | None -> sprintf "(%08x)" target)
+                            |> Map.ofList
+            | _ -> Map.empty
 
         let lookupSym addr = 
-                match Map.tryFind addr invSymbolMap with
-                | option.None -> ""
-                | Some sym -> sym
+                match Map.tryFind addr invSymbolMap, Map.tryFind addr invStackMap with
+                | Some sym, _-> sym
+                | option.None, Some sub -> sub
+                | _ -> ""
+                    
        
         let makeRow (addr : uint32, (chRep:string, value : uint32)) =
 
@@ -223,7 +235,14 @@ let updateMemoryIfChanged =
     |> cacheLastWithActionIfChanged
 
 let updateMemory () =
-    updateMemoryIfChanged (currentRep, byteView, reverseDirection, symbolMap, memoryMap)
+    let stackInfo =
+        match runMode with 
+        | FinishedMode ri 
+        | RunErrorMode ri 
+        | ActiveMode(_,ri) -> 
+            Some ri.StackInfo
+        | _ -> Core.Option.None
+    updateMemoryIfChanged (currentRep, byteView, reverseDirection, symbolMap, memoryMap, stackInfo)
 
 /// Update symbol table View using currentRep and symbolMap
 let updateSymTableIfChanged =

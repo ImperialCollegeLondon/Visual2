@@ -90,9 +90,13 @@ type LoadImage = {
     EditorText: string list
     }
 
+type StackI = { Target: uint32; SP: uint32; RetAddr: uint32}
+
+
 type Step = {
     NumDone: int64
     Dp: DataPath*UFlags
+    SI: StackI list
     }
 
 type ProgState = | PSExit | PSRunning | PSError of ExecuteError
@@ -122,7 +126,7 @@ type RunInfo = {
     Source: string list
     EditorText: string list
     History: Step list
-    StackInfo: (uint32 * uint32) list
+    StackInfo: StackI list
     TestState: TestBenchState
     }
 
@@ -434,25 +438,35 @@ let asmStep (numSteps:int64) (ri:RunInfo) =
         let mutable state = PSRunning
         let mutable lastDP = None
         let mutable lastTi = None
-        let mutable stackInfo = ri.StackInfo
-        let recordStack ins opc lNum = []
+        let mutable stackInfo = []
+        let recordStack ins (opc:string) lNum =
+            if String.startsWith "BL" (opc.ToUpper()) then
+                let ret = match lastDP with | Some (dp,_) -> dp.Regs.[R15] + 4u |_ -> 0u
+                stackInfo <- {Target = (fst dp).Regs.[R15] ; SP =  (fst dp).Regs.[R13]; RetAddr = ret} :: stackInfo
         let (future,past) = List.partition (fun (st:Step) -> st.NumDone >= numSteps) ri.History
         let mutable history = past
-        match past with | step :: _ -> dp <- step.Dp ; stepsDone <- step.NumDone | _ -> ()   
+        match past with | step :: _ -> dp <- step.Dp ; stepsDone <- step.NumDone ; stackInfo <- step.SI | _ -> ()   
         //printf "Stepping before while Done=%d num=%d dp=%A" stepsDone numSteps  dp
         let mutable running = true // true if no error has yet happened
         if stepsDone >= numSteps then lastDP <- Some dp;
         while stepsDone < numSteps && running do
             let historyLastRecord = match history with | [] -> 0L | h :: _ -> h.NumDone
             if (stepsDone - historyLastRecord) > historyMaxGap then
-                history <- {Dp=dp; NumDone=stepsDone} :: history
+                history <- {Dp=dp; SI=stackInfo; NumDone=stepsDone} :: history
             let ti, stepRes = dataPathStep (fst dp, ri.IMem)
             match stepRes with
-            | Result.Ok (dp',uF') ->  lastDP <- Some dp; dp <- dp',uF' ; stepsDone <- stepsDone + 1L; 
+            | Result.Ok (dp',uF') ->  
+                if dp'.Regs.[R15] - (fst dp).Regs.[R15] <> 4u then
+                    match stackInfo with 
+                    | {RetAddr=ra} :: rest when ra = dp'.Regs.[R15] -> 
+                        stackInfo <- rest
+                    | _ -> ()
+                    
+                lastDP <- Some dp; dp <- dp',uF' ; stepsDone <- stepsDone + 1L; 
             | Result.Error EXIT -> running <- false ; state <- PSExit; 
             | Result.Error e ->  running <- false ; state <- PSError e; lastDP <- Some dp;
             match ti with
-            | Some (ins, opc, lNum) -> stackInfo <- recordStack ins opc lNum
+            | Some (ins, opc, lNum) -> recordStack ins opc lNum
             | None -> ()
 
         //printf "stepping after while PC=%d, dp=%A, done=%d --- err'=%A" dp.Regs.[R15] dp stepsDone (dataPathStep (dp,ri.IMem))
