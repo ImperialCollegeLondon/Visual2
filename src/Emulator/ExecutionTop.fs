@@ -111,9 +111,9 @@ type tbCheck =
 
 type TbInOut = TbIn | TbOut
 
+type Test = { TNum:int; Ins:TbSpec list; Outs:TbSpec list}
 
-type TestBenchState = NoTest | Testing of TbSpec list
-
+type TestBenchState = NoTest | Testing of Test list
 
 type RunInfo = {
     dpInit: DataPath
@@ -129,7 +129,6 @@ type RunInfo = {
     StackInfo: StackI list
     TestState: TestBenchState
     }
-
 
 type RunState = | Running | Paused | Stopping
 

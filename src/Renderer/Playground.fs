@@ -50,9 +50,6 @@ let decorateParseLine (i, pl) = ()
 
 let setupTest tl = ()
 
-type Test = { TNum:int; Ins:TbSpec list; Outs:TbSpec list}
-
-
 let linkSpecs start specs =
     let addSpec (start,linkedSpecs) (inOut,spec) =
         match spec with
@@ -122,7 +119,9 @@ let checkDP specs (dp:DataPath) =
             |> List.indexed
             |> List.map (fun (n,u) ->  (start + uint32(4*n), u))
             |> List.collect checkOneLoc
-    specs |> List.map checkSpec
+    specs |> List.collect checkSpec
+
+//let writeTestbenchWithResults tests 
 
 let getTestbench dStart =
     let getTB id =
@@ -140,20 +139,21 @@ let getTestbench dStart =
     Refs.fileTabList 
     |> List.collect (fun tabId -> (getTB tabId |> List.map (fun tb -> tabId,tb)))
 
-let runEditorTab steps (test:Test) =
+let runEditorTabOnTests steps (tests:Test list) =
         Integration.prepareModeForExecution()
         match runMode with
         | ResetMode
         | ParseErrorMode _ ->
             let tId = Refs.currentFileTabId
             Editors.removeEditorDecorations tId
-            match Integration.tryParseAndIndentCode tId with
-            | Some (lim, _) -> 
+            match Integration.tryParseAndIndentCode tId, tests with
+            | Some (lim, _), test :: others -> 
                 let dp = initDP test.Ins { Fl = {C=false;V=false;N=false;Z=false}; Regs=initialRegMap; MM= lim.Mem}
                 Editors.disableEditors()
                 let ri = 
                     lim 
                     |> fun lim -> Integration.getRunInfoFromImageWithInits lim dp.Regs dp.Fl Map.empty dp.MM
+                    |> fun ri -> {ri with TestState = Testing tests}
                 Integration.setCurrentModeActiveFromInfo RunState.Running ri
                 Integration.asmStepDisplay steps ri
             | _ -> ()
