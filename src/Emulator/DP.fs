@@ -293,7 +293,7 @@ let parseOp2 (subMode: InstrNegativeLiteralMode) (symTable : SymbolTable) (args 
 
     /// apply shift expression to register
     let parseShiftExpression (str : string) reg =
-        let getShiftType str = match Map.tryFind str (Map.ofList ["LSL", LSL; "LSR", LSR; "ASR", ASR; "ROR",ROR]) with
+        let getShiftType str = match Map.tryFind (String.toUpper str) (Map.ofList ["LSL", LSL; "LSR", LSR; "ASR", ASR; "ROR",ROR]) with
                                 | Some s -> Ok s
                                 | None -> makeDPE "Valid shift code LSL,LSR,ASR,ROR" str
 

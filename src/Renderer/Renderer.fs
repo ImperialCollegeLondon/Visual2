@@ -93,6 +93,9 @@ let init () =
     )
 
     resetSimulationBtn.addEventListener_click(fun _ ->
+        let tabId = Refs.currentFileTabId
+        if tabId >= 0 then
+            Refs.editors.[tabId]?focus()
         Integration.resetEmulator() :>  obj
     )
 
