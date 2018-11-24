@@ -229,6 +229,19 @@ module List =
     [<CompiledName("ToString")>]
     let toString (chars: char list) =  chars |> Seq.ofList |> System.String.Concat
 
+    /// Split list into list of lists each such that each element for which pred returns true starts a sublist.
+    /// Every sublist must contain at least one element.
+    /// Every sublist except possibly the first starts with an element el for which pred el is true
+    [<CompiledName("ChunkAt")>]
+    let chunkAt pred lst = 
+        let mutable i = 0 // should optimise this using sequences and yield! to group by subarray
+        [ for el in lst do
+            if pred el then i <- i + 1
+            yield i, el ]
+        |> List.groupBy fst
+        |> List.map (snd >> (List.map snd))
+    
+
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 [<RequireQualifiedAccess>]
 module Array =
@@ -236,6 +249,17 @@ module Array =
     [<CompiledName("ToString")>]
     let toString (chars: char array) = chars |> Seq.ofArray |> System.String.Concat
 
+    /// Split array into array of arrays each such that each element for which pred returns true starts a subarray.
+    /// Every subarray must contain at least one element.
+    /// Every subarray except possibly the first starts with an element el for which pred el is true.
+    [<CompiledName("ChunkAt")>]
+    let chunkAt pred arr = // should optimise this using sequences and yield! to group by subarray
+        let mutable i = 0
+        [| for x in arr do
+            if pred x then i <- i + 1
+            yield i, x |]
+        |> Array.groupBy fst
+        |> Array.map (snd >> (Array.map snd))
 
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]

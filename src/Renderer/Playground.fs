@@ -121,7 +121,8 @@ let checkDP specs (dp:DataPath) =
             |> List.collect checkOneLoc
     specs |> List.collect checkSpec
 
-//let writeTestbenchWithResults tests 
+let insertAfterTest tb n =
+    
 
 let getTestbench dStart =
     let getTB id =
