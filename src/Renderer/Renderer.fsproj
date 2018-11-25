@@ -13,9 +13,9 @@
     <Compile Include="Settings.fs" />
     <Compile Include="Views.fs" />
     <Compile Include="Files.fs" />
+    <Compile Include="Testbench.fs" />
     <Compile Include="Integration.fs" />
     <Compile Include="Tests.fs" />
-    <Compile Include="Playground.fs" />
     <Compile Include="MenuBar.fs" />
     <Compile Include="Renderer.fs" />
   </ItemGroup>

@@ -290,7 +290,7 @@ let helpMenu() =
                 makeItem "Official ARM documentation" Core.Option.None (runExtPage "http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.ddi0234b/i1010871.html")           
                 makeItem "Load Complex Demo Code" Core.Option.None (interlockAction "load code" loadDemo)
         
-                makeCondItem (debugLevel > 0) "Run dev tools FABLE checks" Core.Option.None (interlockAction "FABLE checks" Playground.check1)
+                makeCondItem (debugLevel > 0) "Run dev tools FABLE checks" Core.Option.None (interlockAction "FABLE checks" Integration.runTestbench)
                 makeCondItem (debugLevel > 0) "Run Emulator Tests" Core.Option.None (interlockAction "run tests" Tests.runAllEmulatorTests)
                 makeItem "About" Core.option.None ( fun () -> 
                     printfn "Directory is:%s" (Stats.dirOfSettings())

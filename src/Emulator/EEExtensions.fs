@@ -232,14 +232,37 @@ module List =
     /// Split list into list of lists each such that each element for which pred returns true starts a sublist.
     /// Every sublist must contain at least one element.
     /// Every sublist except possibly the first starts with an element el for which pred el is true
-    [<CompiledName("ChunkAt")>]
-    let chunkAt pred lst = 
+    [<CompiledName("ChunkAt1")>]
+    let chunkAt1 pred lst = 
+        printfn "Chunk at: %A" lst
         let mutable i = 0 // should optimise this using sequences and yield! to group by subarray
         [ for el in lst do
             if pred el then i <- i + 1
-            yield i, el ]
+            yield (i, el);
+          yield! []]
         |> List.groupBy fst
+        |> List.sortBy fst
         |> List.map (snd >> (List.map snd))
+        |> (fun lst -> printfn "Final chunks = %A" lst; lst)
+    
+    [<CompiledName("ChunkAt")>]
+    let chunkAt pred list = 
+      let rec loop chunk chunks list = 
+        match list with
+        | [] -> List.rev ((List.rev chunk)::chunks)
+        | x::xs when pred x && List.isEmpty chunk -> loop [x] chunks xs
+        | x::xs when pred x -> loop [x] ((List.rev chunk)::chunks) xs
+        | x::xs -> loop (x::chunk) chunks xs
+      loop [] [] list
+      |> (fun lst -> printfn "Final chunks = %A" lst; lst)
+
+
+
+    [<CompiledName("OkList")>]
+    let okList lst = [ for x in lst do match x with | Ok y -> yield y | _ -> ()]
+
+    [<CompiledName("ErrorList")>]
+    let errorList lst = [ for x in lst do match x with | Error y -> yield y | _ -> ()]
     
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]

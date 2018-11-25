@@ -102,16 +102,16 @@ type Step = {
 type ProgState = | PSExit | PSRunning | PSError of ExecuteError
 
 type TbSpec =
-    | TbRegEquals of int * RName * uint32
-    | TbRegPointsTo of int * RName * uint32 * uint32 list
+    | TbRegEquals of TNum: int * Register:RName * Data:uint32
+    | TbRegPointsTo of TNum: int * Pointer:RName * Address:uint32 * MemData:uint32 list
 
 type tbCheck =
-    | TbVal of uint32
-    | TbMem of uint32 * uint32 option
+    | TbVal of Actual: uint32
+    | TbMem of ActualAddress:uint32 * ActualData:uint32 option
 
 type TbInOut = TbIn | TbOut
 
-type Test = { TNum:int; Ins:TbSpec list; Outs:TbSpec list}
+type Test = { TNum:int; Ins:TbSpec list; Outs:TbSpec list; CheckLines: string list}
 
 type TestBenchState = NoTest | Testing of Test list
 

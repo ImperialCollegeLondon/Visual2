@@ -16,6 +16,7 @@ open ExecutionTop
 open Errors
 open Refs
 open Editors
+open Testbench
 
 open Fable.Core.JsInterop
 open Fable.Import
@@ -184,10 +185,11 @@ let highlightCurrentAndNextIns classname pInfo tId  =
         Editors.toolTipInfo (lineNo-1,"bottom") (fst pInfo.dpCurrent) condInstr
     | _ -> ()
     
-/// Update GUI after a runtime error. Highlight error line (and make it visible).
-/// Set suitable error message hover.
+/// Update GUI after a runtime error or exit. Highlight error line (and make it visible).
+/// Set suitable error message hover. Update GUI to 'finished' state on program exit.
+/// If running a testbench check results on finish and start next test if passed.
 let UpdateGUIWithRunTimeError e (pInfo:RunInfo)  =
-    let getCodeLineMess pInfo pos =
+    let getCodeLineMess pInfo =
         match pInfo.LastDP with
         | None -> ""
         | Some (dp,_) ->
@@ -196,23 +198,32 @@ let UpdateGUIWithRunTimeError e (pInfo:RunInfo)  =
             | _ -> ""
     match e with
     | EXIT ->
-        setMode (FinishedMode pInfo)
-        highlightCurrentAndNextIns "editor-line-highlight" (pInfo) currentFileTabId
-        enableEditors()
+        match pInfo.TestState with
+        | NoTest -> printfn "No test!" ; ()
+        | Testing [] -> showAlert "Bad TestState: Testing []" ""; resetEmulator()
+        | Testing (test :: _rest) -> 
+            printfn "Test finished!"
+            let dp = fst pInfo.dpCurrent
+            let passed =  addResultsToTestbench test dp 
+            setMode (FinishedMode pInfo)
+            highlightCurrentAndNextIns "editor-line-highlight" (pInfo) currentFileTabId
+            enableEditors()
+            match passed with
+            | true -> showAlert "Test Passed!" ""; resetEmulator()
+            | false -> showAlert "Test has errors!" ""; 
 
     | NotInstrMem x -> 
         Browser.window.alert(sprintf "Trying to access non-instruction memory 0x%x" x)
         setMode (RunErrorMode pInfo)
 
-    | ``Run time error`` (pos,msg) ->
-        let lineMess = getCodeLineMess pInfo pos
+    | ``Run time error`` (_pos,msg) ->
+        let lineMess = getCodeLineMess pInfo
         highlightCurrentAndNextIns "editor-line-highlight-error" pInfo currentFileTabId
         updateRegisters()
         Browser.window.setTimeout( (fun () ->                
             Browser.window.alert(sprintf "Error %s: %s" lineMess msg)
             RunErrorMode pInfo), 100, []) |> ignore
         setMode (RunMode.RunErrorMode pInfo)
-       
 
     | ``Unknown symbol runtime error`` undefs ->
         Browser.window.alert(sprintf "What? Undefined symbols: %A" undefs)
@@ -312,44 +323,51 @@ let rec asmStepDisplay steps ri =
     let loopMessage() = 
         let steps = Refs.vSettings.SimulatorMaxSteps
         sprintf "WARNING Possible infinite loop: max number of steps (%s) exceeded. To disable this warning use Edit -> Preferences" steps
+    /// Main subfunction that updates GUI after a bit of simulation.
+    /// running: true if trying to run program to end, false if pausing or single stepping.
+    /// ri': simulator state including whether we have a program end or error termination.
     let displayState ri' running =
             match ri'.State with
-            | PSRunning ->  
+            | PSRunning -> // simulation stopped without error or exit
                 highlightCurrentAndNextIns "editor-line-highlight" ri' currentFileTabId
                 showInfoFromCurrentMode()
                 if ri.StepsDone < slowDisplayThreshold || (ri.StepsDone - lastDisplayStepsDone) >  maxStepsBeforeSlowDisplay then
                     lastDisplayStepsDone <- ri.StepsDone
                     showInfoFromCurrentMode()
                 if running && (int64 Refs.vSettings.SimulatorMaxSteps) <> 0L then  Browser.window.alert( loopMessage() )
-            | PSError e -> UpdateGUIWithRunTimeError e ri'
-            | PSExit -> UpdateGUIWithRunTimeError EXIT ri'
+            | PSError e -> // Something went wrong causing a run-time error
+                UpdateGUIWithRunTimeError e ri'
+            | PSExit -> // end-of-program termination (from END or implicit drop off code section)
+                UpdateGUIWithRunTimeError EXIT ri'
 
     match runMode with
-    | ActiveMode (Stopping,ri') -> 
+    | ActiveMode (Stopping,ri') -> // pause execution from GUI button
         setCurrentModeActiveFromInfo RunState.Paused ri'
         showInfoFromCurrentMode ()
         highlightCurrentAndNextIns "editor-line-highlight" ri' currentFileTabId
-    | ResetMode -> ()
-    | _ ->
-        let stepsNeeded = steps - ri.StepsDone
-        let running = stepsNeeded <> 1L
-        let stepsMax = maxStepsBeforeCheckEvents
+    | ResetMode -> () // stop everything after reset
+    | _ -> // actually do some simulation
+        let stepsNeeded = steps - ri.StepsDone // the number of steps still required
+        let running = stepsNeeded <> 1L // false if we are single-stepping - a special case
+        let stepsMax = maxStepsBeforeCheckEvents // maximum steps to do before updating GUI
         //printfn "exec with steps=%d and R0=%d" ri.StepsDone ri.dpCurrent.Regs.[R0]
-        if stepsNeeded <= stepsMax then
-            let ri' = asmStep steps ri
-            setCurrentModeActiveFromInfo Paused ri'
-            displayState ri' running
+        if stepsNeeded <= stepsMax then // in this case we are running to some defined step as part of stepping back, or stepping forward by 1
+            let ri' = asmStep steps ri // finally run the simulator!
+            setCurrentModeActiveFromInfo Paused ri' // mark the fact that we have paused
+            displayState ri' running // update GUI
             highlightCurrentAndNextIns "editor-line-highlight" ri' currentFileTabId
-        else
-            let ri' = asmStep (stepsMax+ri.StepsDone - 1L) ri
-            setCurrentModeActiveFromInfo RunState.Running ri'
-            showInfoFromCurrentMode()
-            match  ri'.State with
-            | PSRunning -> 
+        else // in this case we are running indefinitely, or else for a long time
+             // if indefinitely, we could stop on display update timeout, or error, or end of program exit
+            let ri' = asmStep (stepsMax + ri.StepsDone - 1L) ri // finally run the simulator!
+            setCurrentModeActiveFromInfo RunState.Running ri' // mark the fact that we are running
+            showInfoFromCurrentMode() // main function to update GUI
+            match ri'.State with
+            | PSRunning -> //
                  Browser.window.setTimeout( (fun () -> 
+                        // schedule more simulation in the event loop allowing button-press events
                         asmStepDisplay steps ri'), 0, []) |> ignore
             | _ -> 
-                displayState ri' true
+                displayState ri' true // update GUI
                 highlightCurrentAndNextIns "editor-line-highlight" ri' currentFileTabId
 
 
@@ -446,3 +464,35 @@ let stepCodeBackBy numSteps =
 
 /// Step simulation back by 1 instruction
 let stepCodeBack () = stepCodeBackBy 1L
+
+
+let runEditorTabOnTests steps (tests:Test list) =
+        prepareModeForExecution()
+        match runMode with
+        | ResetMode
+        | ParseErrorMode _ ->
+            let tId = Refs.currentFileTabId
+            Editors.removeEditorDecorations tId
+            match tryParseAndIndentCode tId, tests with
+            | Some (lim, _), test :: others -> 
+                let dp = initDP test.Ins { Fl = {C=false;V=false;N=false;Z=false}; Regs=initialRegMap; MM= lim.Mem}
+                Editors.disableEditors()
+                let ri = 
+                    lim 
+                    |> fun lim -> getRunInfoFromImageWithInits lim dp.Regs dp.Fl Map.empty dp.MM
+                    |> fun ri -> {ri with TestState = Testing tests}
+                setCurrentModeActiveFromInfo RunState.Running ri
+                asmStepDisplay steps ri
+            | _ -> ()
+        | ActiveMode (RunState.Paused,ri) -> asmStepDisplay  (steps + ri.StepsDone) ri
+        | ActiveMode _
+        | RunErrorMode _ 
+        | FinishedMode _ -> ()
+
+let runTestbench() =
+    match getParsedTests 0x80000000u with
+    | Error mess -> showAlert mess ""
+    | Ok (tabId, tests) when  Refs.currentFileTabId = tabId ->
+        showAlert "Can't run testbench" "Please select the program tab which you want to test - not the testbench"
+    | Ok (_, tests) -> runEditorTabOnTests System.Int64.MaxValue tests
+

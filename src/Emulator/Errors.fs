@@ -49,9 +49,6 @@ module Errors
     // Error messages for instruction execution
     // *************************************************************************
 
-
-
-
     type ErrCode =
         | ``Invalid syntax`` of wanted: string * found : string * page: string
         | ``Invalid format`` of error: string * found : string * page : string
@@ -67,17 +64,15 @@ module Errors
 
     type ParseError = ErrCode
 
-    
-    
+    /// The thing that stopped the simulation: EXIT means a normal program END.
     type ExecuteError =
-        | NotInstrMem of uint32 // Address where there is no instruction
-        | ``Run time error`` of uint32 * string
-        | ``Unknown symbol runtime error`` of string list
+        | NotInstrMem of uint32 // Trying to fetch from address where there is no instruction
+        | ``Run time error`` of uint32 * string // a memory access error at given address (with error message)
+        | ``Unknown symbol runtime error`` of string list // this should never happen, since symbols are resolved by parse
         | EXIT
 
-    //let makePE code txt message = (code,txt,message) |> Error
-
     let makeParseError wanted found page = ``Invalid syntax`` (wanted=wanted,found=found, page=page) |> Error
+
     let makeFormatError wanted found page = ``Invalid format`` (error=wanted,found=found,page=page) |> Error
    
     let makeInstructionError str = ``Invalid instruction`` str |> Error
