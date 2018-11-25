@@ -44,13 +44,14 @@ let parseTbLine lNum (lin:string) =
             List.concat parseL |> Some
     let (|Defs|_|) words =
         match words with
-        | [RegMatch (Ok rn) ; "IS" ; LITERALNUMB (lit,"")] -> TbRegEquals(lNum, rn,lit) |> Some
-        | RegMatch (Ok rn) :: "PTR" :: RESOLVE lits -> TbRegPointsTo(lNum, rn, 0u, lits) |> Some
+        | [RegMatch (Ok rn) ; "IS" ; LITERALNUMB (lit,"")] -> (TbRegEquals(lNum, rn,lit)) |> Some
+        | RegMatch (Ok rn) :: "PTR" :: RESOLVE lits -> (TbRegPointsTo(lNum, rn, 0u, lits)) |> Some
         | _ -> None
     match lin.ToUpper() |> String.splitOnWhitespace |> Array.toList  with
     | "IN" :: Defs tbSpec -> Ok (TbIn, tbSpec)
     | "OUT" :: Defs tbSpec -> Ok (TbOut, tbSpec)
-    | _ -> Error (lNum,"Parse Error in testbench")
+    | _ -> 
+        Error (lNum,"Parse Error in testbench")
 
 let splitResult resL =
     List.fold (fun (rl,el) -> function | Error e -> rl, e :: el | Ok r -> r :: rl, el) ([],[]) resL
@@ -64,7 +65,7 @@ let linkSpecs start specs =
         match spec with
         | TbRegEquals(_lNum, rn,u) -> start, (inOut,spec) :: linkedSpecs
         | TbRegPointsTo(lNum, rn, _start, uLst) ->
-            let n = start + uint32(uLst.Length+4)
+            let n = start + uint32(uLst.Length*4)
             n, (inOut, TbRegPointsTo(lNum, rn, n, uLst)) :: linkedSpecs
     List.fold addSpec (start,[]) specs
     |> snd
@@ -73,12 +74,12 @@ let parseOneTest dataStart testNum lines =
 
     let checkRes, tbLines =
         lines
-        |> List.indexed
-        |> List.partition (snd >> String.startsWith ">> ")
+        |> List.partition (snd >> String.trim >> String.startsWith ">> ")
     
     let testLines,testErrors =
         tbLines
-        |> List.map (fun (i,lin) -> parseTbLine i lin)
+        |> List.filter (snd >> (<>) "")
+        |> List.map (fun (i,lin) -> parseTbLine (i+1) lin)
         |> splitResult
 
     let linkedLines = linkSpecs dataStart testLines 
@@ -92,20 +93,25 @@ let parseOneTest dataStart testNum lines =
     else
         testErrors |> Error
 
+
+let parseChunk dStart chunk =
+    List.head chunk
+    |> snd
+    |> String.splitOnWhitespace 
+    |> Array.toList
+    |> (function | "#TEST" :: LITERALNUMB (n,"") :: _ -> parseOneTest dStart (int n) (List.tail chunk)
+                 | x -> Error [1, sprintf "Can't parse test header '%A'" (List.truncate 2 x)])
+    
+
 let parseTests dStart lines =
     lines
     |> List.map String.trim
-    |> List.chunkAt (fun s -> (printfn "Pred"; let b = s.StartsWith "#TEST"; in  printfn "pred=%A" b; b))
-    |> List.filter (fun x -> x <> [])
-    |> List.map (fun c -> printfn "el=%A" c ; c)
-    |> List.map (fun chunk -> 
-                    printfn "parsing chunk %A\n\n" chunk
-                    if chunk = [] then failwithf "What? chunk of testbench can never be []" else failwithf "Chunk=%A" chunk
-                    List.head chunk
-                    |> String.splitOnWhitespace 
-                    |> Array.toList
-                    |> (function | "#TEST" :: LITERALNUMB (n,"") :: _ -> parseOneTest dStart (int n) (List.tail chunk)
-                                 | x -> Error [1,sprintf "Can't parse test header '%A'" (List.truncate 2 x)]))
+    |> List.indexed
+    |> List.filter (snd >> (<>) "")
+    |> List.tail
+    |> List.chunkAt (snd >> String.startsWith "#TEST")
+    |> List.map (fun chunk -> parseChunk dStart chunk)
+
 
 let writeTest (test:Test) =
         getTBWithTab()
@@ -113,13 +119,15 @@ let writeTest (test:Test) =
             dat
             |> String.splitString [|"\n"|]
             |> Array.toList
+            |> List.map String.trim
             |> List.chunkAt (String.trim >> String.startsWith "#TEST")
             |> List.collect (fun chunk -> 
                         let testLst = String.splitOnWhitespace (List.head chunk) |> Array.toList
-                        let testData = List.filter (String.trim >> String.startsWith ">>" >> not) chunk
+                        let testData = List.filter (String.trim >> String.startsWith ">>" >> not) (chunk |> List.tail)
                         match testLst with
-                        | "#TEST" :: LITERALNUMB (n,"") :: _ when int n = test.TNum -> testData @ test.CheckLines
+                        | "#TEST" :: LITERALNUMB (n,"") :: _ when int n = test.TNum -> (sprintf "#TEST %d" n) ::testData @ test.CheckLines
                         | _ -> chunk) // no change
+            |> List.filter ((<>) "")
             |> String.concat "\n"
             |> fun r -> tabId, r)
         |> function | Ok (tabId, txt) -> 
@@ -128,22 +136,24 @@ let writeTest (test:Test) =
                     | Error _-> showAlert "Error" "What? can't find testbench to write results!"
 
 let initDP specs rMap =
-    let addSpec dp spec =
-        match spec with
-        | TbRegEquals(_, rn,u) -> {dp with Regs = Map.add rn u dp.Regs}
-        | TbRegPointsTo(_, rn, start, uLst) ->
+    let addSpec dp (inout,spec) =
+        match inout,spec with
+        | TbOut, TbRegEquals(_, rn,u)
+        | TbIn, TbRegEquals(_, rn,u) -> {dp with Regs = Map.add rn u dp.Regs}
+        | tbio,TbRegPointsTo(_, rn, start, uLst) ->
             let mm' = ExecutionTop.addWordDataListToMem start dp.MM (uLst |> List.map Dat)
             let dp' = Map.add rn start dp.Regs
-            {dp with Regs=dp'; MM=mm'}
+            {dp with Regs = dp'; MM = (match tbio with | TbIn -> mm' | TbOut -> dp.MM)}
+       
     List.fold addSpec rMap specs
  
 let checkTestResults (test:Test) (dp:DataPath) =
     let specs = test.Outs
     let checkSpec spec =
         let checkOneLoc (ma,u) =
-            match dp.MM.[WA ma] with
-            | Dat u' when u = u' -> []
-            | Dat u' -> [u, TbMem (ma, Some u'), spec]
+            match Map.tryFind (WA ma) dp.MM with
+            | Some (Dat u') when u = u' -> []
+            | Some (Dat u') -> [u, TbMem (ma, Some u'), spec]
             | _ -> [u, TbMem (ma, None), spec]
         match spec with
         | TbRegEquals(lNum, rn, u) when dp.Regs.[rn] = u -> []
@@ -162,24 +172,26 @@ let addResultsToTestbench (test:Test) (dp:DataPath) =
     let displayError (u: uint32, check: tbCheck, spec:TbSpec) =
         match check, spec with
         | TbVal act, TbRegEquals(n, reg, v) -> 
-            sprintf ">> %A: Actual: %d, expected: %d\n" reg act v
+            sprintf "\t>> %A: Actual: %d, Expected: %d" reg act v
         | TbMem(adr,act), TbRegPointsTo(n, ptr, start, uLst) -> 
             let actTxt = match act with None -> "None" | Some a -> sprintf "%d" a
             let offset = int (adr - start)
-            sprintf ">> [%A,#%d] -> Actual: %s. expected: %d\n" ptr offset actTxt uLst.[offset/4] 
+            sprintf "\t>> [%A,#%d] -> Actual: %s. expected: %d" ptr offset actTxt uLst.[offset/4] 
         | _ -> failwithf "What?: inconsistent specs and check results"
     let errorLines = 
         checkTestResults test dp
         |> List.map displayError
     let resultLines =
         errorLines
-        |> function | [] -> [sprintf ">> Test %d PASSED.\n" test.TNum]
-                    | errMess -> sprintf ">> Test %d FAILED.\n" test.TNum :: errMess
+        |> function | [] -> [sprintf "\t>>; Test %d PASSED." test.TNum]
+                    | errMess -> sprintf "\t>> Test %d FAILED." test.TNum :: errMess
     writeTest {test with CheckLines = resultLines}
     errorLines = []
     
 let processParseErrors (eLst: Result<Test,(int*string) list>list) =
-    let highlightErrors tab = List.iter (fun (lNum, mess) -> Editors.highlightLine tab lNum "editor-line-error")  
+    let highlightErrors tab = 
+        Editors.removeEditorDecorations tab
+        List.iter (fun (lNum, mess) -> Editors.highlightLine tab lNum "editor-line-error")  
     match getTBWithTab() with
     | Error mess -> Error mess
     | Ok (tab,_) ->

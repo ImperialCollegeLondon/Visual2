@@ -182,8 +182,29 @@ let highlightCurrentAndNextIns classname pInfo tId  =
     match Map.tryFind (WA pc) pInfo.IMem with
     | Some (condInstr, lineNo) -> 
         highlightNextInstruction tId lineNo
-        Editors.toolTipInfo (lineNo-1,"bottom") (fst pInfo.dpCurrent) condInstr
+        Editors.toolTipInfo (lineNo - 1,"bottom") (fst pInfo.dpCurrent) condInstr
     | _ -> ()
+
+
+let handleTest exitType pInfo =
+    match exitType with
+    | EXIT -> 
+        match pInfo.TestState with
+        | NoTest -> printfn "No test!" ; ()
+        | Testing [] -> 
+            showAlert "Bad TestState: Testing []" ""; 
+            resetEmulator()
+        | Testing (test :: _rest) -> 
+            printfn "Test finished!"
+            let dp = fst pInfo.dpCurrent
+            let passed =  addResultsToTestbench test dp 
+            match passed with
+            | true -> 
+                showMessage ignore  "Test Passed!" "" []; 
+                resetEmulator()
+            | false -> 
+                showAlert "Test has errors!" ""; 
+    | _ ->  showAlert "Test terminated because program has runtime error" ""
     
 /// Update GUI after a runtime error or exit. Highlight error line (and make it visible).
 /// Set suitable error message hover. Update GUI to 'finished' state on program exit.
@@ -196,21 +217,12 @@ let UpdateGUIWithRunTimeError e (pInfo:RunInfo)  =
             match Map.tryFind (WA dp.Regs.[R15]) pInfo.IMem with
             | Some (_, lineNo) -> sprintf "on line %d" lineNo
             | _ -> ""
+    handleTest e pInfo
     match e with
     | EXIT ->
-        match pInfo.TestState with
-        | NoTest -> printfn "No test!" ; ()
-        | Testing [] -> showAlert "Bad TestState: Testing []" ""; resetEmulator()
-        | Testing (test :: _rest) -> 
-            printfn "Test finished!"
-            let dp = fst pInfo.dpCurrent
-            let passed =  addResultsToTestbench test dp 
-            setMode (FinishedMode pInfo)
-            highlightCurrentAndNextIns "editor-line-highlight" (pInfo) currentFileTabId
-            enableEditors()
-            match passed with
-            | true -> showAlert "Test Passed!" ""; resetEmulator()
-            | false -> showAlert "Test has errors!" ""; 
+        setMode (FinishedMode pInfo)
+        highlightCurrentAndNextIns "editor-line-highlight" (pInfo) currentFileTabId
+        enableEditors()
 
     | NotInstrMem x -> 
         Browser.window.alert(sprintf "Trying to access non-instruction memory 0x%x" x)
@@ -474,8 +486,21 @@ let runEditorTabOnTests steps (tests:Test list) =
             let tId = Refs.currentFileTabId
             Editors.removeEditorDecorations tId
             match tryParseAndIndentCode tId, tests with
-            | Some (lim, _), test :: others -> 
-                let dp = initDP test.Ins { Fl = {C=false;V=false;N=false;Z=false}; Regs=initialRegMap; MM= lim.Mem}
+            | Some (lim, _), test :: _ -> 
+                let ldSpecs = [
+                                test.Ins |> List.map (fun sp -> TbIn,sp)
+                                test.Outs |> List.map (fun sp -> TbOut,sp)
+                              ] |> List.concat
+                let dp = initDP ldSpecs { 
+                        Fl = {
+                            C=false
+                            V=false
+                            N=false
+                            Z=false
+                        }; 
+                    Regs=initialRegMap; 
+                    MM= lim.Mem
+                    }
                 Editors.disableEditors()
                 let ri = 
                     lim 
