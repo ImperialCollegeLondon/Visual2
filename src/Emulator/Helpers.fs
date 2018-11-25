@@ -116,7 +116,15 @@ module Helpers
             Some trimTxt.[prefix.Length..trimTxt.Length-1]
         else None
        
-            
+    /// match and remove specified string, ignoring initial space
+    /// return everything after the string
+    /// The match is case insensitive
+    let (|REMOVEPREFIXUNCASED|_|) (prefix:string) (txt:string) =
+        let trimTxt = trim txt
+        if EEExtensions.String.startsWith (prefix.ToUpper()) (trimTxt.ToUpper()) then
+            Some trimTxt.[prefix.Length..trimTxt.Length-1]
+        else None
+
 
     /// unusually this match requires no initial space
     let (|LITERALNUMB|_|) txt = 
