@@ -50,6 +50,7 @@ let parseTbLine lNum (lin:string) =
     match lin.ToUpper() |> String.splitOnWhitespace |> Array.toList  with
     | "IN" :: Defs tbSpec -> Ok (TbIn, tbSpec)
     | "OUT" :: Defs tbSpec -> Ok (TbOut, tbSpec)
+    | "STACKPROTECT" :: _ -> Ok(TbOut, TbStackProtected 0u)
     | _ -> 
         Error (lNum,"Parse Error in testbench")
 
@@ -60,17 +61,18 @@ let decorateParseLine (i, pl) = ()
 
 let setupTest tl = ()
 
-let linkSpecs start specs =
+let linkSpecs initStack start specs =
     let addSpec (start,linkedSpecs) (inOut,spec) =
         match spec with
         | TbRegEquals(_lNum, rn,u) -> start, (inOut,spec) :: linkedSpecs
         | TbRegPointsTo(lNum, rn, _start, uLst) ->
             let n = start + uint32(uLst.Length*4)
             n, (inOut, TbRegPointsTo(lNum, rn, n, uLst)) :: linkedSpecs
+        | TbStackProtected _ -> start, (inOut,TbStackProtected initStack) :: linkedSpecs
     List.fold addSpec (start,[]) specs
     |> snd
 
-let parseOneTest dataStart testNum lines =
+let parseOneTest initStack dataStart testNum lines =
 
     let checkRes, tbLines =
         lines
@@ -82,7 +84,7 @@ let parseOneTest dataStart testNum lines =
         |> List.map (fun (i,lin) -> parseTbLine (i+1) lin)
         |> splitResult
 
-    let linkedLines = linkSpecs dataStart testLines 
+    let linkedLines = linkSpecs initStack dataStart testLines 
     if testErrors = [] then
         { 
             TNum = testNum;
@@ -94,23 +96,23 @@ let parseOneTest dataStart testNum lines =
         testErrors |> Error
 
 
-let parseChunk dStart chunk =
+let parseChunk initStack dStart chunk =
     List.head chunk
     |> snd
     |> String.splitOnWhitespace 
     |> Array.toList
-    |> (function | "#TEST" :: LITERALNUMB (n,"") :: _ -> parseOneTest dStart (int n) (List.tail chunk)
+    |> (function | "#TEST" :: LITERALNUMB (n,"") :: _ -> parseOneTest initStack dStart (int n) (List.tail chunk)
                  | x -> Error [1, sprintf "Can't parse test header '%A'" (List.truncate 2 x)])
     
 
-let parseTests dStart lines =
+let parseTests initStack dStart lines =
     lines
     |> List.map String.trim
     |> List.indexed
     |> List.filter (snd >> (<>) "")
     |> List.tail
     |> List.chunkAt (snd >> String.startsWith "#TEST")
-    |> List.map (fun chunk -> parseChunk dStart chunk)
+    |> List.map (fun chunk -> parseChunk initStack dStart chunk)
 
 
 let writeTest (test:Test) =
@@ -135,7 +137,8 @@ let writeTest (test:Test) =
                         editor?setValue txt
                     | Error _-> showAlert "Error" "What? can't find testbench to write results!"
 
-let initDP specs rMap =
+let initDP initStack specs rMap =
+    let rMap' = {rMap with Regs = Map.add R13 initStack rMap.Regs}
     let addSpec dp (inout,spec) =
         match inout,spec with
         | TbOut, TbRegEquals(_, rn,u)
@@ -145,7 +148,7 @@ let initDP specs rMap =
             let dp' = Map.add rn start dp.Regs
             {dp with Regs = dp'; MM = (match tbio with | TbIn -> mm' | TbOut -> dp.MM)}
        
-    List.fold addSpec rMap specs
+    List.fold addSpec rMap' specs
  
 let checkTestResults (test:Test) (dp:DataPath) =
     let specs = test.Outs
@@ -156,6 +159,12 @@ let checkTestResults (test:Test) (dp:DataPath) =
             | Some (Dat u') -> [u, TbMem (ma, Some u'), spec]
             | _ -> [u, TbMem (ma, None), spec]
         match spec with
+        | TbStackProtected sp when dp.Regs.[R13] <> sp -> [0u, TbVal dp.Regs.[R13], spec ]
+        | TbStackProtected sp ->
+            Map.toList dp.MM
+            |> List.filter (fun (WA u, mm) -> u >= sp )
+            |> List.collect (fun (WA u, mm) -> match mm with | Dat m -> [u,m] | CodeSpace -> [])
+            |> List.map (fun (u,m) -> 0u, TbMem (u, Some m), spec)
         | TbRegEquals(lNum, rn, u) when dp.Regs.[rn] = u -> []
         | TbRegEquals(lNum, rn, u) -> [u, TbVal dp.Regs.[rn], spec]
         | TbRegPointsTo(_, rn, start, uLst) ->
@@ -164,6 +173,7 @@ let checkTestResults (test:Test) (dp:DataPath) =
             |> List.map (fun (n,u) ->  (start + uint32(4*n), u))
             |> List.collect checkOneLoc
     specs |> List.collect checkSpec
+
 /// Add one Test of result messages to the testbench buffer.
 /// test: test to add (one of those in the testbench).
 /// dp: DataPath after test simulation ends.
@@ -171,6 +181,11 @@ let checkTestResults (test:Test) (dp:DataPath) =
 let addResultsToTestbench (test:Test) (dp:DataPath) =
     let displayError (u: uint32, check: tbCheck, spec:TbSpec) =
         match check, spec with
+        | TbVal spAct, TbStackProtected sp -> 
+            sprintf "\t>> Unbalanced Stack. SP: Actual: %d, Expected: %d" spAct sp
+        | TbMem(adr,act), TbStackProtected sp -> 
+            let actTxt = match act with None -> "None" | Some a -> sprintf "%d" a
+            sprintf "\t>> Caller Stack [%x] -> Actual: %s." adr actTxt
         | TbVal act, TbRegEquals(n, reg, v) -> 
             sprintf "\t>> %A: Actual: %d, Expected: %d" reg act v
         | TbMem(adr,act), TbRegPointsTo(n, ptr, start, uLst) -> 
@@ -203,13 +218,14 @@ let processParseErrors (eLst: Result<Test,(int*string) list>list) =
             Error "Parse errors in testbench"
 
 let getParsedTests dStart =
+    let initStack = 0xFF000000u
     getTBWithTab()
     |> Result.bind (
             fun (tab, tb) -> 
                 String.toUpper tb
                 |> String.splitString [|"\n"|]
                 |> Array.toList
-                |> parseTests dStart
+                |> parseTests initStack dStart
                 |> processParseErrors
                 |> Result.map (fun x -> tab,x))
 

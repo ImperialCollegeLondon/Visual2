@@ -104,6 +104,7 @@ type ProgState = | PSExit | PSRunning | PSError of ExecuteError
 type TbSpec =
     | TbRegEquals of TNum: int * Register:RName * Data:uint32
     | TbRegPointsTo of TNum: int * Pointer:RName * Address:uint32 * MemData:uint32 list
+    | TbStackProtected of uint32 
 
 type tbCheck =
     | TbVal of Actual: uint32
