@@ -185,11 +185,11 @@ module Memory
             /// ", Rx, XXX #S" -> scaled register offset where XXX = ASR, LSR,LSL.
             /// Returns (offset gen function, restOfTxt)
             let (|OFFSET|_|) (txt:string) =
-                let (|SHIFT|_|) txt =
+                let (|SHIFT|_|) (txt:string) =
                     match txt with
-                    | REMOVEPREFIX "ASR" s->  (SASR, s) |> Some
-                    | REMOVEPREFIX "LSR" s -> (SLSR, s) |> Some
-                    | REMOVEPREFIX "LSL" s -> (SLSL, s) |> Some
+                    | REMOVEPREFIXUNCASED "ASR" s ->  (SASR, s) |> Some
+                    | REMOVEPREFIXUNCASED "LSR" s -> (SLSR, s) |> Some
+                    | REMOVEPREFIXUNCASED "LSL" s -> (SLSL, s) |> Some
                     | _ -> None
                 let (|COMMA|_|) = (|REMOVEPREFIX|_|) ","
                 let (|R|_|) = (|REGMATCH|_|)
