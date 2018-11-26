@@ -112,7 +112,7 @@ type tbCheck =
 
 type TbInOut = TbIn | TbOut
 
-type Test = { TNum:int; Ins:TbSpec list; Outs:TbSpec list; CheckLines: string list}
+type Test = { TNum:int; Ins:TbSpec list; Outs:TbSpec list; CheckLines: string list; InitSP: uint32}
 
 type TestBenchState = NoTest | Testing of Test list
 

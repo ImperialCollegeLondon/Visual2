@@ -91,6 +91,7 @@ let parseOneTest initStack dataStart testNum lines =
             Ins = List.collect (function | (TbIn,x) -> [x] | _ -> []) linkedLines
             Outs = List.collect (function | (TbOut,x) -> [x] | _ -> []) linkedLines
             CheckLines = (checkRes |> List.map snd)
+            InitSP = initStack
         } |> Ok
     else
         testErrors |> Error
@@ -137,8 +138,12 @@ let writeTest (test:Test) =
                         editor?setValue txt
                     | Error _-> showAlert "Error" "What? can't find testbench to write results!"
 
-let initDP initStack specs rMap =
-    let rMap' = {rMap with Regs = Map.add R13 initStack rMap.Regs}
+let initDP test rMap =
+    let rMap' = {rMap with Regs = Map.add R13 test.InitSP rMap.Regs}
+    let ldSpecs = [
+                    test.Ins |> List.map (fun sp -> TbIn,sp)
+                    test.Outs |> List.map (fun sp -> TbOut,sp)
+                  ] |> List.concat
     let addSpec dp (inout,spec) =
         match inout,spec with
         | TbOut, TbRegEquals(_, rn,u)
@@ -147,8 +152,8 @@ let initDP initStack specs rMap =
             let mm' = ExecutionTop.addWordDataListToMem start dp.MM (uLst |> List.map Dat)
             let dp' = Map.add rn start dp.Regs
             {dp with Regs = dp'; MM = (match tbio with | TbIn -> mm' | TbOut -> dp.MM)}
-       
-    List.fold addSpec rMap' specs
+        | _, TbStackProtected _u -> dp     
+    List.fold addSpec rMap' ldSpecs
  
 let checkTestResults (test:Test) (dp:DataPath) =
     let specs = test.Outs

@@ -487,11 +487,7 @@ let runEditorTabOnTests steps (tests:Test list) =
             Editors.removeEditorDecorations tId
             match tryParseAndIndentCode tId, tests with
             | Some (lim, _), test :: _ -> 
-                let ldSpecs = [
-                                test.Ins |> List.map (fun sp -> TbIn,sp)
-                                test.Outs |> List.map (fun sp -> TbOut,sp)
-                              ] |> List.concat
-                let dp = initDP ldSpecs { 
+                let dp = initDP test { 
                         Fl = {
                             C=false
                             V=false
