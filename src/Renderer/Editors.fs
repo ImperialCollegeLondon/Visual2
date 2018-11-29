@@ -222,7 +222,7 @@ let toolTipInfo (v: int,orientation: string) (dp: DataPath) ({Cond=cond;InsExec=
                         (match dir with | MemRead -> "\u2190" | MemWrite -> "\u2192")
                         (sprintf "Mem<sub>32</sub>[0x%08X]" ol) 
                         (match dir with 
-                            | MemRead -> dp.MM.[WA ol] |> (function | Dat x -> x | _ -> 0u) 
+                            | MemRead -> Map.tryFind (WA ol) dp.MM |> (function | Some (Dat x) -> x | _ -> 0u) 
                             | MemWrite -> dp.Regs.[rn])
                         |> (fun x -> if abs (int x) < 10000 then sprintf "(%d)" x else sprintf "(0x%08X)" x)
                     ]
