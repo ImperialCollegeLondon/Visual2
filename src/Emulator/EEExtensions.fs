@@ -245,7 +245,7 @@ module List =
 
     /// Split list into list of lists each such that each element for which pred returns true starts a sublist.
     /// Every sublist must contain at least one element.
-    /// Every sublist except possibly the first starts with an element el for which pred el is true    
+    /// Every sublist except possibly the first starts with an element el for which pred el is true.    
     [<CompiledName("ChunkAt")>]
     let chunkAt pred list = 
       let rec loop chunk chunks list = 
@@ -257,12 +257,19 @@ module List =
       loop [] [] list
 
 
-
+    /// Extract Ok elements from result list, return list of Ok values
     [<CompiledName("OkList")>]
     let okList lst = [ for x in lst do match x with | Ok y -> yield y | _ -> (); yield! []]
 
+    /// Extract Error elements from result list, return list of errors
     [<CompiledName("ErrorList")>]
     let errorList lst = [ for x in lst do match x with | Error y -> yield y | _ -> (); yield! []]
+
+    /// split Result list into pair of Ok and Error value lists repectively
+    [<CompiledName("SplitResult")>]
+    let splitResult resL =
+        List.fold (fun (rl,el) -> function | Error e -> rl, e :: el | Ok r -> r :: rl, el) ([],[]) resL
+
     
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]

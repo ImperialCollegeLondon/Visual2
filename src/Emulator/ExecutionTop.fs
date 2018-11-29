@@ -105,6 +105,8 @@ type TbSpec =
     | TbRegEquals of TNum: int * Register:RName * Data:uint32
     | TbRegPointsTo of TNum: int * Pointer:RName * Address:uint32 * MemData:uint32 list
     | TbStackProtected of uint32 
+    | TbSetDataArea of uint32
+    | APCS of (RName*uint32) list
 
 type tbCheck =
     | TbVal of Actual: uint32
@@ -115,6 +117,12 @@ type TbInOut = TbIn | TbOut
 type Test = { TNum:int; Ins:TbSpec list; Outs:TbSpec list; CheckLines: string list; InitSP: uint32}
 
 type TestBenchState = NoTest | Testing of Test list
+
+type BreakCondition =
+    | Steps of int64
+    | ToSubroutine
+    | ToReturn
+
 
 type RunInfo = {
     dpInit: DataPath

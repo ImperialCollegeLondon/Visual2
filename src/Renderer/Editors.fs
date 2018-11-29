@@ -228,7 +228,8 @@ let toolTipInfo (v: int,orientation: string) (dp: DataPath) ({Cond=cond;InsExec=
                     ]
                 let regRows =
                     locs
-                    |> List.map (makeRegRow >> TROWS) 
+                    |> List.map makeRegRow
+                    |> List.map TROWS
                 (findCodeEnd v, "Stack"), TABLE [] [
                     DIV [] [
                         TROWS [sprintf "Pointer (%s)" (ins.Rn.ToString());  sprintf "0x%08X" sp ]

@@ -186,25 +186,37 @@ let highlightCurrentAndNextIns classname pInfo tId  =
     | _ -> ()
 
 
-let handleTest exitType pInfo =
-    match exitType with
-    | EXIT -> 
+let handleTest (pInfo:RunInfo) =
+    printfn "Handling Test: State=%A, TestState=%A" pInfo.State pInfo.TestState
+    match pInfo.TestState, pInfo.State with
+    | _, PSExit
+    | _, PSError EXIT -> 
         match pInfo.TestState with
-        | NoTest -> printfn "No test!" ; ()
+        | NoTest -> printfn "No test!" ; []
         | Testing [] -> 
             showAlert "Bad TestState: Testing []" ""; 
             resetEmulator()
-        | Testing (test :: _rest) -> 
-            printfn "Test finished!"
+            []
+        | Testing (test :: rest) -> 
+            printfn "Test %d finished!" test.TNum
             let dp = fst pInfo.dpCurrent
             let passed =  addResultsToTestbench test dp 
-            match passed with
-            | true -> 
+            match passed, rest with
+            | true,[]-> 
                 showMessage ignore  "Test Passed!" "" []; 
                 resetEmulator()
-            | false -> 
+                []
+            | true, rest -> rest
+
+                
+            | false,_ -> 
                 showAlert "Test has errors!" ""; 
-    | _ ->  showAlert "Test terminated because program has runtime error" ""
+                []
+    | NoTest, _ -> []
+    | _ ->  
+        printfn "State=%A, TestState=%A" pInfo.State pInfo.TestState
+        showAlert "Test terminated because program has runtime error" ""
+        []
     
 /// Update GUI after a runtime error or exit. Highlight error line (and make it visible).
 /// Set suitable error message hover. Update GUI to 'finished' state on program exit.
@@ -217,7 +229,6 @@ let UpdateGUIWithRunTimeError e (pInfo:RunInfo)  =
             match Map.tryFind (WA dp.Regs.[R15]) pInfo.IMem with
             | Some (_, lineNo) -> sprintf "on line %d" lineNo
             | _ -> ""
-    handleTest e pInfo
     match e with
     | EXIT ->
         setMode (FinishedMode pInfo)
@@ -241,7 +252,7 @@ let UpdateGUIWithRunTimeError e (pInfo:RunInfo)  =
         Browser.window.alert(sprintf "What? Undefined symbols: %A" undefs)
         setMode (RunMode.RunErrorMode pInfo)
     showInfoFromCurrentMode()
-
+ 
 
 
 /// Return executable image of program in editor tab
@@ -325,6 +336,30 @@ let getRunInfoFromImage (lim:LoadImage) =
 /// Execution Step number at which GUI was last updated
 let mutable lastDisplayStepsDone = 0L
 
+let runTests tests stepFunc steps =
+    let tId = Refs.currentFileTabId
+
+    match tryParseAndIndentCode tId, tests with
+    | Some (lim, _), test :: _ -> 
+        let dp = initTestDP test { 
+                Fl = {
+                    C=false
+                    V=false
+                    N=false
+                    Z=false
+                }; 
+            Regs=initialRegMap; 
+            MM= lim.Mem
+            }
+        Editors.disableEditors()
+        let ri = 
+            lim 
+            |> fun lim -> getRunInfoFromImageWithInits lim dp.Regs dp.Fl Map.empty dp.MM
+            |> fun ri -> {ri with TestState = Testing tests}
+        setCurrentModeActiveFromInfo RunState.Running ri
+        stepFunc steps ri
+    | _ -> ()
+
 
 /// Run the simulation from state ri for steps instructions. 
 /// Steps can be positive or negative, for forward or backward stepping.
@@ -381,6 +416,10 @@ let rec asmStepDisplay steps ri =
             | _ -> 
                 displayState ri' true // update GUI
                 highlightCurrentAndNextIns "editor-line-highlight" ri' currentFileTabId
+                match handleTest ri' with
+                | [] -> ()
+                | tests -> runTests tests asmStepDisplay System.Int64.MaxValue
+
 
 
 /// If program has changed reset execution    
@@ -485,26 +524,7 @@ let runEditorTabOnTests steps (tests:Test list) =
         | ParseErrorMode _ ->
             let tId = Refs.currentFileTabId
             Editors.removeEditorDecorations tId
-            match tryParseAndIndentCode tId, tests with
-            | Some (lim, _), test :: _ -> 
-                let dp = initDP test { 
-                        Fl = {
-                            C=false
-                            V=false
-                            N=false
-                            Z=false
-                        }; 
-                    Regs=initialRegMap; 
-                    MM= lim.Mem
-                    }
-                Editors.disableEditors()
-                let ri = 
-                    lim 
-                    |> fun lim -> getRunInfoFromImageWithInits lim dp.Regs dp.Fl Map.empty dp.MM
-                    |> fun ri -> {ri with TestState = Testing tests}
-                setCurrentModeActiveFromInfo RunState.Running ri
-                asmStepDisplay steps ri
-            | _ -> ()
+            runTests tests asmStepDisplay steps
         | ActiveMode (RunState.Paused,ri) -> asmStepDisplay  (steps + ri.StepsDone) ri
         | ActiveMode _
         | RunErrorMode _ 

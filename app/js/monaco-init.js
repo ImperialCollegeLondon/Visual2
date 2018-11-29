@@ -183,7 +183,7 @@ amdRequire(['vs/editor/editor.main'], function () {
       "ADRHI","ADRHS","ADRLO","ADRLS","ADRGE","ADRGT","ADRLE","ADRLT","ADRVS","ADRVC","ADRCC","ADRCS",],
 
     // we include these common regular expressions
-    symbols: /[=><!~?:&|+\-*\/\^%]+/,
+    symbols: /[=!~?:&|+\-*\/\^%]+/,
 
     // C# style strings
     escapes: /\\(?:[abfnrtv\\"']|x[0-9A-Fa-f]{1,4}|u[0-9A-Fa-f]{4}|U[0-9A-Fa-f]{8})/,
@@ -204,7 +204,7 @@ amdRequire(['vs/editor/editor.main'], function () {
 
         // delimiters and operators
         [/[{}()\[\]]/, '@brackets'],
-        [/[<>](?!@symbols)/, '@brackets'],
+        //[/[<>](?!@symbols)/, '@brackets'],
         [/@symbols/, {
           cases: {
             '@operators': 'symbol.operator',
@@ -236,6 +236,8 @@ amdRequire(['vs/editor/editor.main'], function () {
 
         // ARM comments
         [/;(.*)/, 'comment'],
+        [/>>;(.*)/, 'comment.testpass'],
+        [/>>-(.*)/, 'comment.testerror'],
 
       ],
 
@@ -286,6 +288,7 @@ amdRequire(['vs/editor/editor.main'], function () {
       { token: 'keyword', foreground: cs('#1010a0')},
       { token: 'symbols', foreground: cs('#303030')},
       { token: 'comment', foreground: cs('#308030')},
+      { token: 'comment.testerror', foreground: cs(red) },
       { token: 'escape', foreground: cs('#ff0000')},
       { token: 'string', foreground: cs('#e06c75') },
       {token: 'number.bare', foreground: cs("#c08000") },
@@ -310,6 +313,7 @@ amdRequire(['vs/editor/editor.main'], function () {
       { token: 'keyword', foreground: cs(blue)},
       { token: 'symbol', foreground: cs('#a0a0a0')},
       { token: 'comment', foreground: cs('#20a020')},
+      { token: 'comment.testerror', foreground: cs(red) },
       { token: 'escape', foreground: cs('#57b6c2')},
       { token: 'string', foreground: cs('#e06c75')},
       { token: 'number.hash', foreground: cs("#80c0c0")},
@@ -338,6 +342,7 @@ amdRequire(['vs/editor/editor.main'], function () {
       { token: 'keyword', foreground: cs(blue)},
       { token: 'symbol', foreground: cs(base00)},
       { token: 'comment', foreground: cs(green)},
+      { token: 'comment.testerror', foreground: cs(red) },
       { token: 'escape', foreground: cs('#57b6c2')},
       { token: 'string', foreground: cs('#e06c75')},
       { token: 'number.hash', foreground: cs(cyan)},
@@ -367,6 +372,7 @@ amdRequire(['vs/editor/editor.main'], function () {
         { token: 'keyword', foreground: cs(blue)},
         { token: 'symbol', foreground: cs(base0)},
         { token: 'comment', foreground: cs(green)},
+        { token: 'comment.testerror', foreground: cs(red) },
         { token: 'escape', foreground: cs('#57b6c2')},
         { token: 'string', foreground: cs('#e06c75')},
         { token: 'number.hash', foreground: cs(cyan)},

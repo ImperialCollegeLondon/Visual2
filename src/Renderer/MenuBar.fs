@@ -278,7 +278,7 @@ let runMenu() =
             makeItem "Run to next branch"  (Some "F5")  runToBranch
             makeItem "Run to instruction" Core.Option.None runToInstruction
             menuSeparator
-            makeItem "Load Testbench" Core.Option.None loadTestbench
+            makeItem "Run Tests" Core.Option.None (interlockAction "Testbench" Integration.runTestbench)
         ]
 
 
@@ -315,6 +315,7 @@ let mainMenu() =
             editMenu()
             viewMenu()
             helpMenu()
+            runMenu()
         ]
     template
     |> electron.remote.Menu.buildFromTemplate
