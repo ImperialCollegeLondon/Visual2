@@ -31,6 +31,13 @@ let getTB() =
     getTBWithTab()
     |> Result.map snd
 
+let currentTabIsTB() =
+    match Refs.currentFileTabId with
+    | -1 -> false
+    | tab -> getCode tab 
+             |> String.trim |>  String.startsWith "##TESTBENCH"
+       
+
 let parseTbLine lNum (lin:string) =
 
     let apcsRegs rNumLst =

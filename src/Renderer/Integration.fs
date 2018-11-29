@@ -459,20 +459,6 @@ let runEditorTab steps =
         | FinishedMode _ -> ()
 
 
-/// Top-level simulation execute
-let runCode () = 
-    match runMode with
-    | FinishedMode _ 
-    | RunErrorMode _ -> resetEmulator()
-    | _ -> ()
-    match runMode with
-    | ActiveMode(RunState.Running,ri) -> setCurrentModeActiveFromInfo(RunState.Stopping) ri
-    | _ ->
-        runEditorTab <|
-                match int64 Refs.vSettings.SimulatorMaxSteps with
-                | 0L -> System.Int64.MaxValue
-                | n when n > 0L -> n
-                | _ -> System.Int64.MaxValue
 
 /// Step simulation forward by 1
 let stepCode() = 
@@ -532,8 +518,33 @@ let runEditorTabOnTests steps (tests:Test list) =
 
 let runTestbench() =
     match getParsedTests 0x80000000u with
-    | Error mess -> showAlert mess ""
+    | Error (mess) -> 
+        showAlert mess ""
     | Ok (tabId, tests) when  Refs.currentFileTabId = tabId ->
         showAlert "Can't run testbench" "Please select the program tab which you want to test - not the testbench"
     | Ok (_, tests) -> runEditorTabOnTests System.Int64.MaxValue tests
 
+/// Top-level simulation execute
+/// If current tab is TB run TB if this is possible
+let runCode () = 
+    match  currentTabIsTB() with
+    | true -> 
+        match fileTabList |> List.filter (fun id -> id <> currentFileTabId) with
+        | [] -> showAlert "Can't run Tests because no assembly file is loaded!" |> ignore
+        | [id] -> 
+            Tabs.selectFileTab id
+            runTestbench()
+        | _ -> showAlert "Can't run Tests because more than one assembler file is currently loaded. Select the file you wish to test and use Run-> Tests." |> ignore
+    | false -> 
+        match runMode with
+        | FinishedMode _ 
+        | RunErrorMode _ -> resetEmulator()
+        | _ -> ()
+        match runMode with
+        | ActiveMode(RunState.Running,ri) -> setCurrentModeActiveFromInfo(RunState.Stopping) ri
+        | _ ->
+            runEditorTab <|
+                    match int64 Refs.vSettings.SimulatorMaxSteps with
+                    | 0L -> System.Int64.MaxValue
+                    | n when n > 0L -> n
+                    | _ -> System.Int64.MaxValue
