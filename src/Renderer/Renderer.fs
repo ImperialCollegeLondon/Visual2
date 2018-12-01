@@ -83,7 +83,7 @@ let init () =
     
     Refs.runSimulationBtn.addEventListener_click (fun _ ->
         Stats.readOnlineInfo Stats.RunningCode
-        Integration.runCode () :> obj
+        Integration.runCode ExecutionTop.NoBreak () :> obj
     )
     stepForwardBtn.addEventListener_click(fun _ ->
         Integration.stepCode ()  :> obj

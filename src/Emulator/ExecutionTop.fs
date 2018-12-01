@@ -119,7 +119,7 @@ type Test = { TNum:int; Ins:TbSpec list; Outs:TbSpec list; CheckLines: string li
 type TestBenchState = NoTest | Testing of Test list
 
 type BreakCondition =
-    | Steps of int64
+    | NoBreak
     | ToSubroutine
     | ToReturn
 
@@ -137,7 +137,9 @@ type RunInfo = {
     History: Step list
     StackInfo: StackI list
     TestState: TestBenchState
+    BreakCond: BreakCondition
     }
+
 
 type RunState = | Running | Paused | Stopping
 
@@ -447,8 +449,11 @@ let asmStep (numSteps:int64) (ri:RunInfo) =
         let mutable lastDP = None
         let mutable lastTi = None
         let mutable stackInfo = []
+        let mutable lastStepCondition = NoBreak
+        let breakCondition = ri.BreakCond
         let recordStack ins (opc:string) lNum =
             if String.startsWith "BL" (opc.ToUpper()) then
+                lastStepCondition <- ToSubroutine
                 let ret = match lastDP with | Some (dp,_) -> dp.Regs.[R15] + 4u |_ -> 0u
                 stackInfo <- {Target = (fst dp).Regs.[R15] ; SP =  (fst dp).Regs.[R13]; RetAddr = ret} :: stackInfo
         let (future,past) = List.partition (fun (st:Step) -> st.NumDone >= numSteps) ri.History
@@ -457,7 +462,9 @@ let asmStep (numSteps:int64) (ri:RunInfo) =
         //printf "Stepping before while Done=%d num=%d dp=%A" stepsDone numSteps  dp
         let mutable running = true // true if no error has yet happened
         if stepsDone >= numSteps then lastDP <- Some dp;
-        while stepsDone < numSteps && running do
+        while stepsDone < numSteps && running && 
+              (breakCondition = NoBreak || breakCondition <> lastStepCondition || stepsDone <= ri.StepsDone) do
+            lastStepCondition <- NoBreak // default value
             let historyLastRecord = match history with | [] -> 0L | h :: _ -> h.NumDone
             if (stepsDone - historyLastRecord) > historyMaxGap then
                 history <- {Dp=dp; SI=stackInfo; NumDone=stepsDone} :: history
@@ -468,16 +475,17 @@ let asmStep (numSteps:int64) (ri:RunInfo) =
                     match stackInfo with 
                     | {RetAddr=ra} :: rest when ra = dp'.Regs.[R15] -> 
                         stackInfo <- rest
+                        lastStepCondition <- ToReturn
                     | _ -> ()
                     
                 lastDP <- Some dp; dp <- dp',uF' ; stepsDone <- stepsDone + 1L; 
             | Result.Error EXIT -> running <- false ; state <- PSExit; 
-            | Result.Error e ->  running <- false ; state <- PSError e; lastDP <- Some dp;
+            | Result.Error e -> running <- false ; state <- PSError e; lastDP <- Some dp;
             match ti with
-            | Some (ins, opc, lNum) -> recordStack ins opc lNum
+            | Some (ins, opc, lNum) -> 
+                recordStack ins opc lNum
             | None -> ()
 
-        //printf "stepping after while PC=%d, dp=%A, done=%d --- err'=%A" dp.Regs.[R15] dp stepsDone (dataPathStep (dp,ri.IMem))
         {
             ri with 
                 dpCurrent = dp
@@ -485,6 +493,7 @@ let asmStep (numSteps:int64) (ri:RunInfo) =
                 LastDP = lastDP
                 StepsDone=stepsDone
                 StackInfo= stackInfo
+                BreakCond = lastStepCondition
                 History = future @ history
         } 
 

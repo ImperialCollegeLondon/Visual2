@@ -221,7 +221,8 @@ let handleTest (pInfo:RunInfo) =
 /// Update GUI after a runtime error or exit. Highlight error line (and make it visible).
 /// Set suitable error message hover. Update GUI to 'finished' state on program exit.
 /// If running a testbench check results on finish and start next test if passed.
-let UpdateGUIWithRunTimeError e (pInfo:RunInfo)  =
+let UpdateGUIWithRunTimeError e (pInfo':RunInfo)  =
+    let pInfo = { pInfo' with BreakCond = NoBreak}
     let getCodeLineMess pInfo =
         match pInfo.LastDP with
         | None -> ""
@@ -295,7 +296,7 @@ let tryParseAndIndentCode tId =
         Core.Option.None
 
 /// Return initial RunInfo context from a LoadImage
-let getRunInfoFromImageWithInits (lim:LoadImage) regsInit flagsInit mMap mm=
+let getRunInfoFromImageWithInits breakCond (lim:LoadImage) regsInit flagsInit mMap mm=
     let getSymTyp sym = 
         match Map.tryFind sym lim.SymInf.SymTypeTab with
         | Some typ -> typ
@@ -327,20 +328,19 @@ let getRunInfoFromImageWithInits (lim:LoadImage) regsInit flagsInit mMap mm=
         History = []
         StackInfo = []
         TestState = NoTest
+        BreakCond = breakCond
     }
 
-let getRunInfoFromImage (lim:LoadImage) =
-    getRunInfoFromImageWithInits lim (getRegs()) (getFlags())  memoryMap lim.Mem
+let getRunInfoFromImage bc (lim:LoadImage) =
+    getRunInfoFromImageWithInits bc lim (getRegs()) (getFlags())  memoryMap lim.Mem
 
 
 /// Execution Step number at which GUI was last updated
 let mutable lastDisplayStepsDone = 0L
 
-let runTests tests stepFunc steps =
-    let tId = Refs.currentFileTabId
-
-    match tryParseAndIndentCode tId, tests with
-    | Some (lim, _), test :: _ -> 
+let getTestRunInfo test codeTid breakCond =
+    match tryParseAndIndentCode codeTid with
+    | Some (lim, _) -> 
         let dp = initTestDP test { 
                 Fl = {
                     C=false
@@ -352,13 +352,22 @@ let runTests tests stepFunc steps =
             MM= lim.Mem
             }
         Editors.disableEditors()
-        let ri = 
-            lim 
-            |> fun lim -> getRunInfoFromImageWithInits lim dp.Regs dp.Fl Map.empty dp.MM
-            |> fun ri -> {ri with TestState = Testing tests}
-        setCurrentModeActiveFromInfo RunState.Running ri
-        stepFunc steps ri
-    | _ -> ()
+        lim 
+        |> fun lim -> getRunInfoFromImageWithInits breakCond lim dp.Regs dp.Fl Map.empty dp.MM
+        |> Some
+    | None -> None
+
+let runTests tests stepFunc steps =
+    let codeTid = Refs.currentFileTabId
+    match tests with
+    | test :: _ ->
+        match getTestRunInfo test codeTid NoBreak with
+        | Some ri ->
+            {ri with TestState = Testing tests}
+            |> setCurrentModeActiveFromInfo RunState.Running
+            stepFunc steps ri
+        | _ -> ()
+    | [] -> ()
 
 
 /// Run the simulation from state ri for steps instructions. 
@@ -435,7 +444,7 @@ let prepareModeForExecution() =
 
 /// Parses and runs the assembler program in the current tab
 /// Aborts after steps instructions, unless steps is 0
-let runEditorTab steps =
+let runEditorTab breakCondition steps =
     if currentFileTabId = -1 then 
         Browser.window.alert "No file tab in editor to run!"
         ()
@@ -449,7 +458,7 @@ let runEditorTab steps =
             match tryParseAndIndentCode tId with
             | Some (lim, _) -> 
                 disableEditors()
-                let ri = lim |> getRunInfoFromImage
+                let ri = lim |> getRunInfoFromImage breakCondition
                 setCurrentModeActiveFromInfo RunState.Running ri
                 asmStepDisplay steps ri
             | _ -> ()
@@ -462,7 +471,7 @@ let runEditorTab steps =
 
 /// Step simulation forward by 1
 let stepCode() = 
-    runEditorTab 1L
+    runEditorTab NoBreak 1L
 
 /// Step simulation back by numSteps
 let stepCodeBackBy numSteps =
@@ -511,7 +520,7 @@ let runEditorTabOnTests steps (tests:Test list) =
             let tId = Refs.currentFileTabId
             Editors.removeEditorDecorations tId
             runTests tests asmStepDisplay steps
-        | ActiveMode (RunState.Paused,ri) -> asmStepDisplay  (steps + ri.StepsDone) ri
+        | ActiveMode (RunState.Paused,ri) -> asmStepDisplay  (steps + ri.StepsDone) { ri with BreakCond = NoBreak}
         | ActiveMode _
         | RunErrorMode _ 
         | FinishedMode _ -> ()
@@ -526,7 +535,7 @@ let runTestbench() =
 
 /// Top-level simulation execute
 /// If current tab is TB run TB if this is possible
-let runCode () = 
+let runCode breakCondition () = 
     match  currentTabIsTB() with
     | true -> 
         match fileTabList |> List.filter (fun id -> id <> currentFileTabId) with
@@ -543,7 +552,7 @@ let runCode () =
         match runMode with
         | ActiveMode(RunState.Running,ri) -> setCurrentModeActiveFromInfo(RunState.Stopping) ri
         | _ ->
-            runEditorTab <|
+            runEditorTab breakCondition <|
                     match int64 Refs.vSettings.SimulatorMaxSteps with
                     | 0L -> System.Int64.MaxValue
                     | n when n > 0L -> n
