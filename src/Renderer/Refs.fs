@@ -52,6 +52,47 @@ type VSettings = {
     OnlineFetchText: string
     }
 
+
+
+// ***********************************************************************************************
+//                                vex-js library for modal boxes
+// ***********************************************************************************************
+
+[<Emit("require('vex-js');")>]
+let vex:obj  = jsNative
+
+[<Emit("require('vex-dialog');")>]
+let vexDialog:obj  = jsNative
+
+vex?defaultOptions?className <- "vex-theme-default"
+
+vex?registerPlugin vexDialog
+
+let vButton (caption:string) =
+    let b = createObj [
+        "text" ==> caption
+        "click" ==> fun () -> "abc"
+    ]
+    b
+     
+let showVexAlert  (htmlMessage:string)  = 
+    vex?dialog?alert (createObj ["unsafeMessage" ==> htmlMessage])
+
+let showVexPrompt (placeHolder: string) (callBack:string->unit) (htmlMessage:string) =
+    vex?dialog?prompt (createObj [
+        "unsafeMessage" ==> htmlMessage
+        "placeholder" ==> placeHolder
+        "callback" ==> callBack
+        ])
+
+let showSimpleVexPrompt (callBack:string->unit) (htmlMessage:string) = 
+    showVexPrompt "" callBack htmlMessage
+
+let testVex() :unit =
+    printfn "%A" vex?dialog?buttons?NO
+    showVexPrompt "Test!" (fun value -> printfn "Callback value = %A" value) "My new Prompt" 
+
+
 // ***********************************************************************************************
 //                                  Mini DSL for creating DOM objects
 // ***********************************************************************************************
@@ -363,7 +404,10 @@ let showMessage (callBack:int ->unit) (message:string) (detail:string) (buttons:
         opts), retFn)   
     |> ignore
 
-let showAlert (message:string) (detail:string)  =
+let showAlert (message:string) (detail:string) = 
+    showVexAlert <| sprintf """<p style="text-align:center"><b>%s</b><br>%s</p>""" detail message
+
+let showAlert1 (message:string) (detail:string)  =
     let rem = electron.remote
     rem.dialog.showMessageBox(
        (let opts = createEmpty<Fable.Import.Electron.ShowMessageBoxOptions>

@@ -29,7 +29,9 @@
     "react": "^16.4.2",
     "react-dom": "^16.4.2",
     "requirejs": "^2.3.5",
-    "tippy.js": "^2.5.4"
+    "tippy.js": "^2.5.4",
+    "vex-dialog": "^1.1.0",
+    "vex-js": "^4.1.0"
   },
   "devDependencies": {
     "babel-core": "^6.26.0",

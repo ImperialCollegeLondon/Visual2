@@ -17,6 +17,9 @@ open Refs
 open Settings
 open Tabs
 
+
+
+
 let display runMode = 
     match runMode with 
     | ExecutionTop.ResetMode -> "ResetMode"
@@ -270,14 +273,27 @@ let viewMenu() =
             makeCondItem (debugLevel > 0) "Toggle Dev Tools" (Some devToolsKey) (electron.remote.getCurrentWebContents()).toggleDevTools
         ]
 
+
+
+
+
+let vexPrompt() : unit =
+    let o = createEmpty
+    o?message <- "What planet did the aliens come from?"
+    o?placeholder <- "Planet name"
+    o?callback <-  (fun value ->  printfn "%A" value)
+    vex?dialog?prompt o
+
+
 let runMenu() = 
         let runToBranch() = ()
         let runToInstruction() = ()
         let loadTestbench() = ()
         makeMenu "Run" [
-            makeItem "Run to next branch"  (Some "F5")  runToBranch
+            makeItem "Run to next branch"  (Some "F5")  vexPrompt
             makeItem "Run to instruction" Core.Option.None runToInstruction
             menuSeparator
+            makeItem "Test Vex" Core.Option.None (interlockAction "Test Vex" Refs.testVex)
             makeItem "Run Tests" Core.Option.None (interlockAction "Testbench" Integration.runTestbench)
         ]
 
