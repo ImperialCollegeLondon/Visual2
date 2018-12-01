@@ -356,8 +356,6 @@ let demoSVG ()  =
 //                                  Tooltips using Tippy.js
 // ***********************************************************************************************
 
-/// top-level function from tippy.js to make tooltips
-let tippy(rClass:string, tippyOpts:obj):unit = importDefault "tippy.js"
 
 /// Position of widget on editor buffer character grid.
 /// AboveBelow => offset form position, Exact => centered on position

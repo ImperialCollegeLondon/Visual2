@@ -55,9 +55,17 @@ type VSettings = {
 
 
 // ***********************************************************************************************
-//                                vex-js library for modal boxes
+//                             Top-level Interfaces to Javascript libraries
 // ***********************************************************************************************
 
+//------------------------------------------TIPPY.JS----------------------------------------------
+
+/// top-level function from tippy.js to make tooltips
+let tippy(rClass:string, tippyOpts:obj):unit = importDefault "tippy.js"
+
+//-------------------------------------------VEX-JS-----------------------------------------------
+
+/// interfaces to vex.js
 [<Emit("require('vex-js');")>]
 let vex:obj  = jsNative
 
@@ -92,6 +100,12 @@ let testVex() :unit =
     printfn "%A" vex?dialog?buttons?NO
     showVexPrompt "Test!" (fun value -> printfn "Callback value = %A" value) "My new Prompt" 
 
+//---------------------------------------------SVG------------------------------------------------
+
+// SVG (scalable vector graphics) library is interfaced via built-in FABLE libraries:
+// Fable.Helpers.React
+// Fable.Helpers.React.Props
+// see tooltips.fs for examples and some documentation of SVG helpers
 
 // ***********************************************************************************************
 //                                  Mini DSL for creating DOM objects
@@ -241,7 +255,9 @@ let statusBar = getHtml "status-bar"
 let setFilePaneBackground color =
     fileViewPane.setAttribute("style", sprintf "background: %s" color)
 
-let updateClockTime (n:uint64) = getHtml "clock-time" |> INNERHTML (if n = 0uL then "-" else sprintf "%d" n) |> ignore
+let updateClockTime (n:uint64) = 
+    getHtml "clock-time" 
+    |> INNERHTML (if n = 0uL then "-" else sprintf "%d" n) |> ignore
 
 // ************************************************************************************
 //                         Utility functions used in this module
@@ -351,8 +367,10 @@ let checkSettings (vs: VSettings) =
                 | Some _ ->  vs.EditorTheme
                 | _ ->  printfn "Setting theme to default"
                         vSettings.EditorTheme
-            SimulatorMaxSteps = checkNum vs.SimulatorMaxSteps 0L System.Int64.MaxValue vso.SimulatorMaxSteps
-            EditorFontSize = checkNum vs.EditorFontSize minFontSize maxFontSize vso.EditorFontSize
+            SimulatorMaxSteps = 
+                checkNum vs.SimulatorMaxSteps 0L System.Int64.MaxValue vso.SimulatorMaxSteps
+            EditorFontSize = 
+                checkNum vs.EditorFontSize minFontSize maxFontSize vso.EditorFontSize
             CurrentFilePath = checkPath vs.CurrentFilePath
         }
     with
@@ -405,7 +423,8 @@ let showMessage (callBack:int ->unit) (message:string) (detail:string) (buttons:
     |> ignore
 
 let showAlert (message:string) (detail:string) = 
-    showVexAlert <| sprintf """<p style="text-align:center"><b>%s</b><br>%s</p>""" detail message
+    showVexAlert <| 
+        sprintf """<p style="text-align:center"><b>%s</b><br>%s</p>""" detail message
 
 let showAlert1 (message:string) (detail:string)  =
     let rem = electron.remote
@@ -534,7 +553,12 @@ let mutable debugLevel = 0
 
 
 /// Online data matched time
-let mutable lastOnlineFetchTime: Result<System.DateTime,System.DateTime> = Result.Error System.DateTime.Now
+let mutable lastOnlineFetchTime: Result<System.DateTime,System.DateTime> = 
+    Result.Error System.DateTime.Now
+
+
+//--------------------------------Helper functions to read mutable state-----------------------------------
+
 
 /// Return the text in tab id tId as a string
 let getCode tId :string =
@@ -564,6 +588,10 @@ let updateRegisters () =
 
 let resetRegs () =
     [0..15]
-    |> List.map (fun x ->  setRegister (CommonData.register x) (match x with | 13 -> 0xFF000000u | _ -> 0u))
+    |> List.map (fun x ->  
+        setRegister (CommonData.register x) (
+            match x with 
+            | 13 -> 0xFF000000u 
+            | _ -> 0u))
     |> ignore
     
