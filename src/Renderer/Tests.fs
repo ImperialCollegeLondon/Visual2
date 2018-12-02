@@ -293,7 +293,7 @@ let RunEmulatorTest allowed  ts=
 
     if more then printfn "\n\nIndented ASM:\n%s\n" (lim.EditorText |> String.concat "\n")
 
-    let ri = lim |> getRunInfoFromImage
+    let ri = lim |> getRunInfoFromImage NoBreak
 
     if lim.Errors <> [] then 
         match ts.After with

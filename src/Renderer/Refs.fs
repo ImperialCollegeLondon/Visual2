@@ -92,6 +92,30 @@ let showVexPrompt (placeHolder: string) (callBack:string->unit) (htmlMessage:str
         "placeholder" ==> placeHolder
         "callback" ==> callBack
         ])
+    ()
+
+let validPosInt s =
+    match s with
+    | null -> Error ""
+    | x -> 
+        printfn "Error %s" x
+        x
+        |> System.Int32.TryParse
+        |> function
+            | true, n when n > 0 -> Ok n
+            | true, n -> Error "number must be greater than 0"
+            | false,_ -> Error "Input a positive integer"
+
+let showVexValidatedPrompt (placeHolder: string) (validator: string -> Result<'T,string>) (callBack:'T->unit) (htmlMessage:string) =
+    let cb (s:string) =
+        match (unbox s) with
+        | false -> ()
+        | _ ->
+            validator s
+            |> function
+                | Ok valid -> callBack valid
+                | Error errMess -> showVexAlert errMess
+    showVexPrompt placeHolder cb htmlMessage
 
 let showSimpleVexPrompt (callBack:string->unit) (htmlMessage:string) = 
     showVexPrompt "" callBack htmlMessage

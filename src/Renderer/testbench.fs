@@ -278,5 +278,13 @@ let getParsedTests dStart =
                 |> processParseErrors
                 |> Result.map (fun x -> tab,x))
 
+let getTestList() =
+    getParsedTests 0x10000000u
+    |> function 
+        | Error e -> showVexAlert e; []
+        | Ok (_, tests) ->
+            tests
+            
+        
 
 

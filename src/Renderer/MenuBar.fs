@@ -277,24 +277,38 @@ let viewMenu() =
 
 
 
-let vexPrompt() : unit =
-    let o = createEmpty
-    o?message <- "What planet did the aliens come from?"
-    o?placeholder <- "Planet name"
-    o?callback <-  (fun value ->  printfn "%A" value)
-    vex?dialog?prompt o
 
+let popupMenu(items) =
+    let menu = electron.remote.Menu.Create()
+    items
+    |> List.map electron.remote.MenuItem.Create
+    |> List.iter menu.append
+    menu.popup(electron.remote.getCurrentWindow())
+    ()
 
 let runMenu() = 
         let runToBranch() = ()
-        let runToInstruction() = ()
-        let loadTestbench() = ()
+        let menu = electron.remote.Menu.Create()
+        let runSteps() = 
+            showVexValidatedPrompt "steps forward" validPosInt (int64 >> (Integration.runEditorTab ExecutionTop.NoBreak)) "Number of steps forward"
+        let runStepsBack() = 
+            showVexValidatedPrompt "steps back" validPosInt (int64 >> (Integration.stepCodeBackBy)) "Number of steps back"
+        let runSingleTest() = 
+            match Testbench.getTestList() with
+            | [] -> showVexAlert "Can't find any tests. Have you loaded a valid testbench?"
+            | lst -> popupMenu (List.map (fun (test:ExecutionTop.Test) -> 
+                        let name = sprintf "Step code with initial data from Test %d" test.TNum
+                        let actFun = fun () -> Integration.startTest test
+                        makeItem name Core.None actFun) lst)
+        let runTo cond () = Integration.runEditorTab cond System.Int64.MaxValue
         makeMenu "Run" [
-            makeItem "Run to next branch"  (Some "F5")  vexPrompt
-            makeItem "Run to instruction" Core.Option.None runToInstruction
+            makeItem "Run to next call"  (Some "F5")  (runTo ExecutionTop.ToSubroutine)
+            makeItem "Run to next return" (Some "F6") (runTo ExecutionTop.ToReturn)
+            makeItem "Step forward by" Core.Option.None runSteps
+            makeItem "Step back by" Core.Option.None runStepsBack
             menuSeparator
-            makeItem "Test Vex" Core.Option.None (interlockAction "Test Vex" Refs.testVex)
-            makeItem "Run Tests" Core.Option.None (interlockAction "Testbench" Integration.runTestbench)
+            makeItem "Step into test" Core.Option.None (interlockAction "Test" runSingleTest)
+            makeItem "Run all tests" Core.Option.None (interlockAction "Testbench" Integration.runTestbenchOnCode)
         ]
 
 

@@ -99,7 +99,7 @@ type Step = {
     SI: StackI list
     }
 
-type ProgState = | PSExit | PSRunning | PSError of ExecuteError
+type ProgState = | PSExit | PSRunning | PSError of ExecuteError | PSBreak
 
 type TbSpec =
     | TbRegEquals of TNum: int * Register:RName * Data:uint32
@@ -449,51 +449,52 @@ let asmStep (numSteps:int64) (ri:RunInfo) =
         let mutable lastDP = None
         let mutable lastTi = None
         let mutable stackInfo = []
-        let mutable lastStepCondition = NoBreak
+        let mutable running = true // true if no error has yet happened
         let breakCondition = ri.BreakCond
-        let recordStack ins (opc:string) lNum =
+
+        let recordStack dp' ins (opc:string) lNum =
             if String.startsWith "BL" (opc.ToUpper()) then
-                lastStepCondition <- ToSubroutine
+                if ri.BreakCond = ToSubroutine && stepsDone > ri.StepsDone then 
+                    state <- PSBreak
+                    running <- false
                 let ret = match lastDP with | Some (dp,_) -> dp.Regs.[R15] + 4u |_ -> 0u
                 stackInfo <- {Target = (fst dp).Regs.[R15] ; SP =  (fst dp).Regs.[R13]; RetAddr = ret} :: stackInfo
-        let (future,past) = List.partition (fun (st:Step) -> st.NumDone >= numSteps) ri.History
+            elif (String.startsWith "B" opc |> not) && dp'.Regs.[R15] - (fst dp).Regs.[R15] <> 4u then
+                match stackInfo with 
+                | {RetAddr=ra} :: rest when ra = dp'.Regs.[R15] -> 
+                    stackInfo <- rest
+                    if ri.BreakCond = ToReturn && stepsDone > ri.StepsDone then 
+                        state <- PSBreak
+                        running <- false
+                | _ -> ()
+
+        let runFrom = match ri.BreakCond with | NoBreak -> numSteps | _ -> ri.StepsDone
+        let (future,past) = List.partition (fun (st:Step) -> st.NumDone >= runFrom) ri.History
         let mutable history = past
         match past with | step :: _ -> dp <- step.Dp ; stepsDone <- step.NumDone ; stackInfo <- step.SI | _ -> ()   
         //printf "Stepping before while Done=%d num=%d dp=%A" stepsDone numSteps  dp
-        let mutable running = true // true if no error has yet happened
         if stepsDone >= numSteps then lastDP <- Some dp;
-        while stepsDone < numSteps && running && 
-              (breakCondition = NoBreak || breakCondition <> lastStepCondition || stepsDone <= ri.StepsDone) do
-            lastStepCondition <- NoBreak // default value
+        while stepsDone < numSteps && running  do
             let historyLastRecord = match history with | [] -> 0L | h :: _ -> h.NumDone
             if (stepsDone - historyLastRecord) > historyMaxGap then
                 history <- {Dp=dp; SI=stackInfo; NumDone=stepsDone} :: history
             let ti, stepRes = dataPathStep (fst dp, ri.IMem)
             match stepRes with
-            | Result.Ok (dp',uF') ->  
-                if dp'.Regs.[R15] - (fst dp).Regs.[R15] <> 4u then
-                    match stackInfo with 
-                    | {RetAddr=ra} :: rest when ra = dp'.Regs.[R15] -> 
-                        stackInfo <- rest
-                        lastStepCondition <- ToReturn
-                    | _ -> ()
-                    
+            | Result.Ok (dp',uF') ->                      
                 lastDP <- Some dp; dp <- dp',uF' ; stepsDone <- stepsDone + 1L; 
             | Result.Error EXIT -> running <- false ; state <- PSExit; 
             | Result.Error e -> running <- false ; state <- PSError e; lastDP <- Some dp;
-            match ti with
-            | Some (ins, opc, lNum) -> 
-                recordStack ins opc lNum
-            | None -> ()
-
+            match ti, stepRes with
+            | Some (ins, opc, lNum), Result.Ok (dp',uF') -> recordStack dp' ins opc lNum
+            | _ -> ()
         {
             ri with 
                 dpCurrent = dp
-                State = state                   
+                State = state
                 LastDP = lastDP
                 StepsDone=stepsDone
                 StackInfo= stackInfo
-                BreakCond = lastStepCondition
+                BreakCond = if state = PSBreak then NoBreak else ri.BreakCond
                 History = future @ history
         } 
 
