@@ -315,13 +315,15 @@ let runMenu() =
 let helpMenu() =
         makeMenu "Help" ( 
             [
-                makeItem "UAL Instruction Guide" Core.Option.None (runExtPage <| visualDocsPage "guide#content")
+                makeItem "UAL instruction guide" Core.Option.None (runExtPage <| visualDocsPage "guide#content")
                 makeItem "VisUAL2 web pages" Core.Option.None (runExtPage <| visualDocsPage "")
+                makeItem "Testbenches" Core.Option.None (runExtPage <| visualDocsPage "testbench")
                 makeItem "Official ARM documentation" Core.Option.None (runExtPage "http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.ddi0234b/i1010871.html")           
-                makeItem "Load Complex Demo Code" Core.Option.None (interlockAction "load code" loadDemo)
-        
+                menuSeparator
+                makeItem "Load complex demo code" Core.Option.None (interlockAction "load code" loadDemo)
                 makeCondItem (debugLevel > 0) "Run dev tools FABLE checks" Core.Option.None (interlockAction "FABLE checks" Integration.runTestbench)
                 makeCondItem (debugLevel > 0) "Run Emulator Tests" Core.Option.None (interlockAction "run tests" Tests.runAllEmulatorTests)
+                menuSeparator
                 makeItem "About" Core.option.None ( fun () -> 
                     printfn "Directory is:%s" (Stats.dirOfSettings())
                     electron.remote.dialog.showMessageBox (
