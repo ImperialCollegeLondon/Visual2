@@ -366,12 +366,12 @@ let runThingOnCode thing =
     match Testbench.getTBWithTab() with
     | Ok (tbTab, _) ->
         match fileTabList |> List.filter (fun id -> id <> tbTab) with
-        | [] -> showVexAlert "" "Can't run Tests because no assembly file is loaded!"
+        | [] -> showVexAlert "Can't run Tests because no assembly file is loaded!"
         | [id] -> 
             Tabs.selectFileTab id
             thing()
-        | _ -> showAlert "" "Can't run Tests because more than one assembler file is currently loaded. Select the file you wish to test and use Run-> Tests."
-    | Error e -> showVexAlert "" e 
+        | _ -> showVexAlert "Can't run Tests because more than one assembler file is currently loaded. Select the file you wish to test and use Run-> Tests."
+    | Error e -> showVexAlert e 
 
 
 let runTests startTest tests stepFunc =
@@ -493,7 +493,9 @@ let runEditorTab breakCondition steps =
 
 /// Step simulation forward by 1
 let stepCode() = 
-    runEditorTab NoBreak 1L
+    match currentTabIsTB() with
+    | false -> runEditorTab NoBreak 1L
+    | true -> showVexAlert "Current file is a testbench: switch to an assembly tab"
 
 /// Step simulation back by numSteps
 let stepCodeBackBy numSteps =
@@ -554,9 +556,9 @@ let runEditorTabOnTests (tests:Test list) =
 let runTestbench() =
     match getParsedTests 0x80000000u with
     | Error (mess) -> 
-        showVexAlert mess ""
+        showVexAlert mess
     | Ok (tabId, tests) when  Refs.currentFileTabId = tabId ->
-        showVexAlert "Can't run testbench" "Please select the program tab which you want to test - not the testbench"
+        showVexAlert "Please select the program tab which you want to test - not the testbench"
     | Ok (_, tests) -> 
         printfn "Running %d Tests" tests.Length
         runEditorTabOnTests  tests

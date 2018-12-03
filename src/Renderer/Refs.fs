@@ -85,6 +85,7 @@ let vButton (caption:string) =
      
 let showVexAlert  (htmlMessage:string)  = 
     vex?dialog?alert (createObj ["unsafeMessage" ==> htmlMessage])
+    ()
 
 let showVexPrompt (placeHolder: string) (callBack:string->unit) (htmlMessage:string) =
     vex?dialog?prompt (createObj [

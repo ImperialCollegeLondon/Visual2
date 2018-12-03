@@ -452,14 +452,17 @@ let asmStep (numSteps:int64) (ri:RunInfo) =
         let mutable running = true // true if no error has yet happened
         let breakCondition = ri.BreakCond
 
-        let recordStack dp' ins (opc:string) lNum =
-            if String.startsWith "BL" (opc.ToUpper()) then
+        /// record branches and returns for display and break conditions.
+        /// stackInfo is list of StackI that record sp and return or target address
+        let recordStack dp' dp ins (opc:string) lNum =
+            let opc' = opc.ToUpper()
+            if opc'.Length <> 3 && String.startsWith "BL" opc'  then
                 if ri.BreakCond = ToSubroutine && stepsDone > ri.StepsDone then 
                     state <- PSBreak
                     running <- false
-                let ret = match lastDP with | Some (dp,_) -> dp.Regs.[R15] + 4u |_ -> 0u
-                stackInfo <- {Target = (fst dp).Regs.[R15] ; SP =  (fst dp).Regs.[R13]; RetAddr = ret} :: stackInfo
-            elif (String.startsWith "B" opc |> not) && dp'.Regs.[R15] - (fst dp).Regs.[R15] <> 4u then
+                let ret = dp.Regs.[R15] + 4u
+                stackInfo <- {Target = dp'.Regs.[R15] ; SP =  dp.Regs.[R13]; RetAddr = ret} :: stackInfo
+            elif (String.startsWith "B" opc' |> not) && dp'.Regs.[R15] - dp.Regs.[R15] <> 4u then
                 match stackInfo with 
                 | {RetAddr=ra} :: rest when ra = dp'.Regs.[R15] -> 
                     stackInfo <- rest
@@ -471,10 +474,11 @@ let asmStep (numSteps:int64) (ri:RunInfo) =
         let runFrom = match ri.BreakCond with | NoBreak -> numSteps | _ -> ri.StepsDone
         let (future,past) = List.partition (fun (st:Step) -> st.NumDone >= runFrom) ri.History
         let mutable history = past
-        match past with | step :: _ -> dp <- step.Dp ; stepsDone <- step.NumDone ; stackInfo <- step.SI | _ -> ()   
+        match past with | step :: _ -> dp <- step.Dp ; stepsDone <- step.NumDone ; stackInfo <- step.SI ; | _ -> ()   
         //printf "Stepping before while Done=%d num=%d dp=%A" stepsDone numSteps  dp
         if stepsDone >= numSteps then lastDP <- Some dp;
         while stepsDone < numSteps && running  do
+            //printfn "stepsDone=%d, SI=%A" stepsDone stackInfo
             let historyLastRecord = match history with | [] -> 0L | h :: _ -> h.NumDone
             if (stepsDone - historyLastRecord) > historyMaxGap then
                 history <- {Dp=dp; SI=stackInfo; NumDone=stepsDone} :: history
@@ -484,8 +488,8 @@ let asmStep (numSteps:int64) (ri:RunInfo) =
                 lastDP <- Some dp; dp <- dp',uF' ; stepsDone <- stepsDone + 1L; 
             | Result.Error EXIT -> running <- false ; state <- PSExit; 
             | Result.Error e -> running <- false ; state <- PSError e; lastDP <- Some dp;
-            match ti, stepRes with
-            | Some (ins, opc, lNum), Result.Ok (dp',uF') -> recordStack dp' ins opc lNum
+            match ti, stepRes, lastDP with
+            | Some (ins, opc, lNum), Result.Ok (dp',uF'), Some (dp,_) -> recordStack dp' dp ins opc lNum
             | _ -> ()
         {
             ri with 
@@ -495,7 +499,10 @@ let asmStep (numSteps:int64) (ri:RunInfo) =
                 StepsDone=stepsDone
                 StackInfo= stackInfo
                 BreakCond = if state = PSBreak then NoBreak else ri.BreakCond
-                History = future @ history
+                History = 
+                    future @ history
+                    |> List.distinctBy (fun st -> st.NumDone)
+                    |> List.sortByDescending (fun st -> st.NumDone)
         } 
 
 
