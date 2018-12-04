@@ -43,7 +43,6 @@ let interlock (actionName:string) (action: (Unit -> Unit)) = (
         match Refs.runMode with
         | ExecutionTop.ResetMode
         | ExecutionTop.ParseErrorMode -> action() :> obj
-        //| _ ->  showMessage actIfConfirmed (sprintf "Can't %s while simulator is running" actionName) "" ["Cancel"; (sprintf "Reset and %s" actionName)] :> obj       
         | _ ->  showVexConfirm (sprintf "Can't %s while simulator is running <br> <br>Reset and %s<br>" actionName actionName) actIfConfirmed  :> obj       
     )
  /// Wrap an action so that it can only happen if simulator is stopped.
@@ -153,21 +152,21 @@ let loadDemo () =
 
 
 
+let showQuitMessage (callBack:bool ->unit) =
+    let mess = "You have unsaved changes. Are you sure you want to exit and lose changes?"
+    let buttons =  [ "Save" ; "Exit without saving" ] 
+    Refs.showVexConfirm mess callBack
+
+
 /// Check if there is any unsaved info. Display dialog asking for confirmation if there is.
 /// Otherwise exit.   
 let ExitIfOK() =
     let close() = electron.ipcRenderer.send "doClose" |> ignore
-    let callback (result:int) =
-        match int result with
-        | 0 -> ()
-        | _ -> close()
+    let callback (result:bool) =
+        match result with
+        | false -> ()
+        | true -> close()
     let tabL = Tabs.unsavedTabs()
-    let showQuitMessage (callBack:int ->unit) =
-        let rem = electron.remote
-        let mess = "You have unsaved changes. Would you like to save them first?"
-        let detail = "Your changes will be lost if you don\'t save them."
-        let buttons =  [ "Save" ; "Exit without saving" ] 
-        Refs.showMessage callBack mess detail buttons
     if tabL <> [] then
         showQuitMessage callback
     else close()

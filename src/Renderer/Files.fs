@@ -116,7 +116,7 @@ let filterBadName isSave path =
         | pl -> List.last pl |> (fun name -> 
             if name = "Untitled.s" 
             then 
-                Browser.window.alert (
+                showVexAlert (
                     if isSave then 
                         "Can't save 'Untitled.s'- choose another name"
                     else  "Can't open file 'Untitled.s'. rename file to open it") 

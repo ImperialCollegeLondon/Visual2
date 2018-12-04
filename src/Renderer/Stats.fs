@@ -112,8 +112,9 @@ let (|MatchDate|_|) txt =
    | None -> None
 
 
-let infoBox mess =
-    showMessage (fun _ -> ()) "Information" mess []
+let infoBox (mess:string) =
+    showVexAlert ("<h4>Information</h4> <br> <p>" + mess + "</p>")
+    ()
     
 
 let (|MatchVersion|_|) txt =
@@ -126,11 +127,14 @@ let (|MatchVersion|_|) txt =
             printfn "Web latest version = %d.%d.%d" major minor debug
             match major > aMajor, minor > aMinor, debug > aDebug with
             | true, _, _ -> (infoBox <| sprintf "There is a new major release of Visual2 (%s) with additional features, you may wish to upgrade." txt) |> Some
-            | _, true, _ -> (infoBox <| sprintf "There is a new minor release of Visual2 (%s) with new features, you should upgrade." txt) |> Some
-            | _, _, true -> (infoBox <| sprintf "There is a new release of Visual2 (%s) with bug fixes, you may wish to upgrade." txt) |> Some
+            | _, true, _ when major = aMajor -> 
+                (infoBox <| sprintf "There is a new minor release of Visual2 (%s) with new features, you should upgrade." txt) |> Some
+            | _, false, true when major = aMajor && minor = aMinor -> 
+                (infoBox <| sprintf "There is a new release of Visual2 (%s) with bug fixes, you may wish to upgrade." txt) |> Some
             | _ -> None
        | _, None -> None
        | _, x -> None
+
 
 let remindNewVersion txt =
     printfn "Remind new version if needed!"

@@ -439,7 +439,7 @@ let getJSONSettings() =
             printfn "Parse failed: using default settings"
             vSettings
 
-let showMessage (callBack:int ->unit) (message:string) (detail:string) (buttons:string list) =
+let showMessage1 (callBack:int ->unit) (message:string) (detail:string) (buttons:string list) =
     let rem = electron.remote
     let retFn = unbox callBack
     rem.dialog.showMessageBox(

@@ -321,7 +321,7 @@ module Memory
 
                     let matcher = function
                         | RegListMatch x -> x 
-                        | _ -> []
+                        | x -> [x]
                     
                     let checker = function
                         | RegCheck x -> x

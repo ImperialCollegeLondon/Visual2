@@ -70,7 +70,7 @@ let updateAllEditors readOnly =
 let disableEditors () = 
     Refs.fileTabMenu.classList.add("disabled-click")
     Refs.fileTabMenu.onclick <- (fun _ ->
-        Browser.window.alert("Cannot change tabs during execution")
+        showVexAlert("Cannot change tabs during execution")
         createObj [] 
     )
     updateEditor Refs.currentFileTabId true

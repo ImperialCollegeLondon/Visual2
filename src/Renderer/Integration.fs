@@ -202,19 +202,19 @@ let handleTest (pInfo:RunInfo) =
             let passed =  addResultsToTestbench test dp 
             match passed, rest with
             | true,[]-> 
-                showMessage ignore  "Tests all passed!" "" []; 
+                showVexAlert "Tests all passed!" 
                 resetEmulator()
                 []
             | true, rest -> rest            
             | false, _ -> 
-                showAlert (sprintf "Test %d has errors!" test.TNum) ""; 
+                showVexAlert (sprintf "Test %d has errors!" test.TNum)
                 resetEmulator()
                 match Testbench.getTBWithTab() with
                 | Ok (tbTab,_) -> Tabs.selectFileTab tbTab
                 | _ -> ()
                 []
     | NoTest, _ -> []
-    | _ -> showAlert "Test terminated because program has runtime error" ""
+    | _ -> showVexAlert "Test terminated because program has runtime error"
            []
     
 /// Update GUI after a runtime error or exit. Highlight error line (and make it visible).
@@ -241,7 +241,7 @@ let UpdateGUIFromRunState (pInfo:RunInfo)  =
         enableEditors()
 
     | PSError (NotInstrMem x) -> 
-        Browser.window.alert(sprintf "Trying to access non-instruction memory 0x%x" x)
+        showVexAlert (sprintf "Trying to access non-instruction memory 0x%x" x)
         setMode (RunErrorMode pInfo)
 
     | PSError (``Run time error`` (_pos,msg)) ->
@@ -249,12 +249,12 @@ let UpdateGUIFromRunState (pInfo:RunInfo)  =
         highlightCurrentAndNextIns "editor-line-highlight-error" pInfo currentFileTabId
         updateRegisters()
         Browser.window.setTimeout( (fun () ->                
-            Browser.window.alert(sprintf "Error %s: %s" lineMess msg)
+            showVexAlert(sprintf "Error %s: %s" lineMess msg)
             RunErrorMode pInfo), 100, []) |> ignore
         setMode (RunMode.RunErrorMode pInfo)
 
     | PSError (``Unknown symbol runtime error`` undefs) ->
-        Browser.window.alert(sprintf "What? Undefined symbols: %A" undefs)
+        showVexAlert(sprintf "What? Undefined symbols: %A" undefs)
         setMode (RunMode.RunErrorMode pInfo)
     | PSRunning -> failwithf "What? Invalid pInfo.State=PSRunning. Can't update GUI here if still running"
     showInfoFromCurrentMode()
@@ -409,7 +409,7 @@ let rec asmStepDisplay (breakc:BreakCondition) steps ri'  =
                 if ri.StepsDone < slowDisplayThreshold || (ri.StepsDone - lastDisplayStepsDone) >  maxStepsBeforeSlowDisplay then
                     lastDisplayStepsDone <- ri.StepsDone
                     showInfoFromCurrentMode()
-                if running && (int64 Refs.vSettings.SimulatorMaxSteps) <> 0L then  Browser.window.alert( loopMessage() )
+                if running && (int64 Refs.vSettings.SimulatorMaxSteps) <> 0L then  showVexAlert( loopMessage() )
             | PSError e -> // Something went wrong causing a run-time error
                 UpdateGUIFromRunState ri'
             | PSBreak   // execution met a valid break condition
@@ -458,7 +458,7 @@ let prepareModeForExecution() =
     | RunErrorMode ri
     | ActiveMode (_,ri) ->
         if currentFileTabProgramIsChanged ri then
-            Browser.window.alert "Resetting emulator for new execution" |> ignore
+            showVexAlert "Resetting emulator for new execution" |> ignore
             resetEmulator()
     | _ -> ()
 
@@ -467,7 +467,7 @@ let prepareModeForExecution() =
 /// if breackCondition happens
 let runEditorTab breakCondition steps =
     if currentFileTabId = -1 then 
-        Browser.window.alert "No file tab in editor to run!"
+        showVexAlert "No file tab in editor to run!"
         ()
     else
         prepareModeForExecution()
@@ -505,7 +505,7 @@ let stepCodeBackBy numSteps =
     | FinishedMode ri' -> 
         let ri = {ri' with BreakCond = NoBreak}
         if  currentFileTabProgramIsChanged ri then
-            Browser.window.alert "can't step backwards because execution state is no longer valid"
+            showVexAlert "can't step backwards because execution state is no longer valid"
         else
             //printf "Stepping back with done=%d  PC=%A" ri.StepsDone ri.dpCurrent
             let target = 
@@ -529,8 +529,8 @@ let stepCodeBackBy numSteps =
                     highlightCurrentAndNextIns "editor-line-highlight" ri' currentFileTabId
                 | PSError _ | PSExit | PSBreak -> failwithf "What? Error can't happen when stepping backwards!"
                 showInfoFromCurrentMode ()
-    | ParseErrorMode -> Browser.window.alert( sprintf "Can't execute when code has errors")
-    | ResetMode -> Browser.window.alert( sprintf "Execution has not started")
+    | ParseErrorMode -> showVexAlert( sprintf "Can't execute when code has errors")
+    | ResetMode -> showVexAlert( sprintf "Execution has not started")
     | _ -> ()
 
 /// Step simulation back by 1 instruction
