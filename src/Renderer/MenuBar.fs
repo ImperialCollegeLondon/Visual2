@@ -286,7 +286,7 @@ let popupMenu(items) =
     menu.popup(electron.remote.getCurrentWindow())
     ()
 
-let runMenu() = 
+let testMenu() = 
         let runToBranch() = ()
         let menu = electron.remote.Menu.Create()
         let runSteps() = 
@@ -301,9 +301,10 @@ let runMenu() =
                         let actFun = fun () -> Integration.startTest test
                         makeItem name Core.None actFun) lst)
         let runTo cond () = Integration.runEditorTab cond System.Int64.MaxValue
-        makeMenu "Run" [
-            makeItem "Run to next call"  (Some "F5")  (runTo ExecutionTop.ToSubroutine)
-            makeItem "Run to next return" (Some "F6") (runTo ExecutionTop.ToReturn)
+        makeMenu "Test" [
+            makeItem "Step forward" (Some "F4") runSteps
+            makeItem "Step to next call"  (Some "F5")  (runTo ExecutionTop.ToSubroutine)
+            makeItem "Step to next return" (Some "F6") (runTo ExecutionTop.ToReturn)
             makeItem "Step forward by" Core.Option.None runSteps
             makeItem "Step back by" Core.Option.None runStepsBack
             menuSeparator
@@ -341,7 +342,7 @@ let mainMenu() =
             editMenu()
             viewMenu()
             helpMenu()
-            runMenu()
+            testMenu()
         ]
     template
     |> electron.remote.Menu.buildFromTemplate
