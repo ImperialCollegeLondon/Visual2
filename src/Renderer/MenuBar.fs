@@ -302,7 +302,8 @@ let testMenu() =
                         makeItem name Core.None actFun) lst)
         let runTo cond () = Integration.runEditorTab cond System.Int64.MaxValue
         makeMenu "Test" [
-            makeItem "Step forward" (Some "F4") runSteps
+            makeItem "Step <-" (Some "F3") Integration.stepCodeBack
+            makeItem "Step ->" (Some "F4") Integration.stepCode
             makeItem "Step to next call"  (Some "F5")  (runTo ExecutionTop.ToSubroutine)
             makeItem "Step to next return" (Some "F6") (runTo ExecutionTop.ToReturn)
             makeItem "Step forward by" Core.Option.None runSteps
