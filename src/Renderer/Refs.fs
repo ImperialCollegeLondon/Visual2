@@ -82,7 +82,12 @@ let vButton (caption:string) =
         "click" ==> fun () -> "abc"
     ]
     b
-     
+let showVexConfirm  (htmlMessage:string) (callBack: bool -> unit) = 
+    vex?dialog?confirm (createObj [
+        "unsafeMessage" ==> htmlMessage; 
+        "callback" ==> callBack])
+    ()
+
 let showVexAlert  (htmlMessage:string)  = 
     vex?dialog?alert (createObj ["unsafeMessage" ==> htmlMessage])
     ()

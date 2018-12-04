@@ -36,14 +36,15 @@ let display runMode =
 let interlock (actionName:string) (action: (Unit -> Unit)) = (
         if debugLevel > 0 then printf "Interlock : runMode=%A" (display runMode)
         let actIfConfirmed buttonNum =
-            printf "button %d" buttonNum
+            printf "button %A" buttonNum
             match buttonNum with
-            | 0 -> ()
+            | false -> ()
             | _ -> Integration.resetEmulator(); action()
         match Refs.runMode with
         | ExecutionTop.ResetMode
         | ExecutionTop.ParseErrorMode -> action() :> obj
-        | _ ->  showMessage actIfConfirmed (sprintf "Can't %s while simulator is running" actionName) "" ["Cancel"; (sprintf "Reset and %s" actionName)] :> obj       
+        //| _ ->  showMessage actIfConfirmed (sprintf "Can't %s while simulator is running" actionName) "" ["Cancel"; (sprintf "Reset and %s" actionName)] :> obj       
+        | _ ->  showVexConfirm (sprintf "Can't %s while simulator is running <br> <br>Reset and %s<br>" actionName actionName) actIfConfirmed  :> obj       
     )
  /// Wrap an action so that it can only happen if simulator is stopped.
  /// Operates on (Unit->Unit) to make (Unit->Unit).
@@ -326,16 +327,10 @@ let helpMenu() =
                 menuSeparator
                 makeItem "About" Core.option.None ( fun () -> 
                     printfn "Directory is:%s" (Stats.dirOfSettings())
-                    electron.remote.dialog.showMessageBox (
-                          let opts = createEmpty<ShowMessageBoxOptions>
-                          opts.title <-  Core.Option.None
-                          opts.message <- sprintf "VisUAL2 ARM Simulator v%s" Refs.appVersion |> Some
-                          opts.detail <- 
-                                "(c) 2018, Imperial College\n\nAcknowledgements: Salman Arif (VisUAL), HLP 2018 class" +
+                    showVexAlert ( sprintf "<h4>VisUAL2 ARM Simulator v%s</h4> " Refs.appVersion +
+                                "(c) 2018, Imperial College <br> Acknowledgements: Salman Arif (VisUAL), HLP 2018 class" +
                                 " (F# reimplementation), with special mention to Thomas Carrotti," +
-                                " Lorenzo Silvestri, and HLP Team 10" |> Some
-                          opts
-                    ) |> ignore; () )
+                                " Lorenzo Silvestri, and HLP Team 10"))
             ])  
 
 
