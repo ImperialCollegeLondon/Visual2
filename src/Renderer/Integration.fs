@@ -177,7 +177,11 @@ let highlightCurrentAndNextIns classname pInfo tId  =
             Editors.revealLineInWindow tId lineNo
             Editors.toolTipInfo (lineNo-1,"top") dp condInstr
         | Option.None
-        | Some _ -> failwithf "What? Current PC value (%x) is not an instruction: this should be impossible!" dp.Regs.[R15]
+        | Some _ -> 
+            if dp.Regs.[R15] <> 0xFFFFFFFCu then
+                failwithf "What? Current PC value (%x) is not an instruction: this should be impossible!" dp.Regs.[R15]
+            else
+                () // special case of return from testbench call
     let pc = (fst pInfo.dpCurrent).Regs.[R15]
     match Map.tryFind (WA pc) pInfo.IMem with
     | Some (condInstr, lineNo) -> 
@@ -189,7 +193,8 @@ let highlightCurrentAndNextIns classname pInfo tId  =
 let handleTest (pInfo:RunInfo) =
     match pInfo.TestState, pInfo.State with
     | _, PSExit
-    | _, PSError EXIT -> 
+    | _, PSError EXIT
+    | _, PSError TBEXIT ->
         match pInfo.TestState with
         | NoTest -> printfn "No test!" ; []
         | Testing [] -> 
@@ -199,9 +204,9 @@ let handleTest (pInfo:RunInfo) =
         | Testing (test :: rest) -> 
             printfn "Test %d finished!" test.TNum
             let dp = fst pInfo.dpCurrent
-            let passed =  addResultsToTestbench test dp 
+            let passed =  addResultsToTestbench test dp
             match passed, rest with
-            | true,[]-> 
+            | true, []-> 
                 showVexAlert "Tests all passed!" 
                 resetEmulator()
                 []
@@ -230,6 +235,7 @@ let UpdateGUIFromRunState (pInfo:RunInfo)  =
             | _ -> ""
     match pInfo.State with
     | PSError EXIT
+    | PSError TBEXIT
     | PSExit ->
         setMode (FinishedMode pInfo)
         highlightCurrentAndNextIns "editor-line-highlight" (pInfo) currentFileTabId
@@ -346,7 +352,7 @@ let mutable lastDisplayStepsDone = 0L
 let getTestRunInfo test codeTid breakCond =
     match tryParseAndIndentCode codeTid with
     | Some (lim, _) -> 
-        let dp = initTestDP test { 
+        let dp = initTestDP lim test { 
                 Fl = {
                     C=false
                     V=false
@@ -357,9 +363,9 @@ let getTestRunInfo test codeTid breakCond =
             MM= lim.Mem
             }
         Editors.disableEditors()
-        lim 
-        |> fun lim -> getRunInfoFromImageWithInits breakCond lim dp.Regs dp.Fl Map.empty dp.MM
-        |> Some
+        match dp with
+        | Ok dp -> getRunInfoFromImageWithInits breakCond lim dp.Regs dp.Fl Map.empty dp.MM |> Ok |> Some
+        | Error e -> Error e |> Some
     | None -> None
 
 let runThingOnCode thing =
@@ -380,10 +386,11 @@ let runTests startTest tests stepFunc =
     | test :: _ ->
         printfn "Running tests"
         match getTestRunInfo test codeTid NoBreak with
-        | Some ri ->
+        | Some (Ok ri) ->
             let ri' = {ri with TestState = if startTest then NoTest else Testing tests}
             setCurrentModeActiveFromInfo RunState.Running ri'
             stepFunc (if startTest then 1L else System.Int64.MaxValue) ri'
+        | Some (Error eMess) -> showVexAlert eMess
         | _ -> showVexAlert "Can't run tests: current tab must have valid assembler"
     | [] -> ()
 

@@ -70,6 +70,7 @@ module Errors
         | ``Run time error`` of uint32 * string // a memory access error at given address (with error message)
         | ``Unknown symbol runtime error`` of string list // this should never happen, since symbols are resolved by parse
         | EXIT
+        | TBEXIT
 
     let makeParseError wanted found page = ``Invalid syntax`` (wanted=wanted,found=found, page=page) |> Error
 

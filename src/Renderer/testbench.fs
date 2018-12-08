@@ -57,24 +57,33 @@ let parseTbLine lNum (lin:string) =
         if List.exists ((=) []) parseL then None
         else
             List.concat parseL |> Some
+    /// Active pattern converts a string to uppercase - for case-insensitive matches
+    let (|UPPER|_|) (name:string) = Some (name.ToUpper())
     let (|Defs|_|) words =
         match words with
-        | [RegMatch (Ok rn) ; "IS" ; LITERALNUMB (lit,"")] -> (TbRegEquals(lNum, rn,lit)) |> Some
-        | RegMatch (Ok rn) :: "PTR" :: RESOLVE lits -> (TbRegPointsTo(lNum, rn, 0u, lits)) |> Some
+        | [RegMatch (Ok rn) ; UPPER "IS" ; LITERALNUMB (lit,"")] -> (TbRegEquals(lNum, rn,lit)) |> Some
+        | RegMatch (Ok rn) :: UPPER "PTR" :: RESOLVE lits -> (TbRegPointsTo(lNum, rn, 0u, lits)) |> Some
         | _ -> None
-    match lin.ToUpper() |> String.splitOnWhitespace |> Array.toList  with
-    | "IN" :: Defs tbSpec -> Ok (TbIn, tbSpec)
-    | "OUT" :: Defs tbSpec -> Ok (TbOut, tbSpec)
-    | "STACKPROTECT" :: _ -> Ok(TbOut, TbStackProtected 0u)
-    | "DATAAREA" :: LITERALNUMB (lit,"") :: _ -> Ok(TbIn, TbSetDataArea lit)
-    | "PERSISTENTREGS" :: RESOLVE lits -> Ok(TbIn, APCS (apcsRegs (lits |> List.map int)))
+    let commentStrippedLine = 
+        match String.split [|';'|] lin |> Array.toList with
+        | [] -> ""
+        | lin :: _ -> lin.Trim()
+    match commentStrippedLine |> String.splitOnWhitespace |> Array.toList  with
+    | [""] -> []
+    | UPPER "IN" :: Defs tbSpec -> [Ok (TbIn, tbSpec)]
+    | UPPER "OUT" :: Defs tbSpec -> [Ok (TbOut, tbSpec)]
+    | UPPER "STACKPROTECT" :: _ -> [Ok(TbOut, TbStackProtected 0u)]
+    | UPPER "DATAAREA" :: LITERALNUMB (lit,"") :: _ -> [Ok(TbIn, TbSetDataArea lit)]
+    | UPPER "PERSISTENTREGS" :: RESOLVE lits -> [Ok(TbIn, APCS (apcsRegs (lits |> List.map int)))]
+    | [UPPER "RANDOMISEINITVALS"]->  [Ok (TbIn, RandomiseInitVals)]
+    | [UPPER "BRANCHTOSUB"; subName] -> [Ok (TbIn, BranchToSub subName)]
     | _ -> 
-        Error (lNum,"Parse Error in testbench")
+        [Error (lNum,"Parse Error in testbench")]
 
 
 
 
-/// Process test specs in textual order linking allocated data addresses.
+/// Process test specs in textual order linking allocated data addresses, and reordering specs where needed
 /// Initstack - stack initial value.
 /// Start - current data address for allocation
 let linkSpecs initStack start specs =
@@ -87,9 +96,15 @@ let linkSpecs initStack start specs =
         | TbStackProtected _ -> start, (inOut, TbStackProtected initStack) :: linkedSpecs
         | TbSetDataArea u -> u, (inOut, TbSetDataArea u) :: linkedSpecs
         | APCS regs -> start, (inOut, APCS regs) :: linkedSpecs
-    List.fold addSpec (start,[]) specs
+        // no linkage required for these specs
+        | RandomiseInitVals
+        | BranchToSub _ -> start, (inOut,spec) :: linkedSpecs
+    specs
+    |> List.sortBy (function | _,RandomiseInitVals -> 0 | _ -> 1)
+    |> List.fold addSpec (start,[]) 
     |> snd
     |> List.rev
+    |> (fun x -> printfn "%A" x; x)
 
 /// Parse lines defining a single test.
 /// Return Result is Test object, or list of line numbers and error messages.
@@ -101,8 +116,7 @@ let parseOneTest initStack dataStart testNum lines =
     
     let testLines,testErrors =
         tbLines
-        |> List.filter (snd >> (<>) "")
-        |> List.map (fun (i,lin) -> parseTbLine (i+1) lin)
+        |> List.collect (fun (i,lin) -> parseTbLine (i+1) lin)
         |> List.splitResult
 
     match testErrors with
@@ -159,36 +173,57 @@ let writeTest (test:Test) =
                         editor?setValue txt
                     | Error _-> showAlert "Error" "What? can't find testbench to write results!"
 
-/// make the initial dataPath (containing test inputs).
+/// Make the initial dataPath (containing test inputs).
 /// test: the Test.
-/// rmap: the initial DataPath created from the memory image of the program being tested.
-let initTestDP test rMap =
-    let rMap' = {rMap with Regs = Map.add R13 test.InitSP rMap.Regs}
+/// lim: the initial LoadImage created from the memory image of the program being tested.
+/// Return result because a test requiring a subroutine may fail at this stage.
+let initTestDP  (lim: LoadImage) test  (dp: DataPath) =
+    let rnd = System.Random()
+    let setRand dp rn = Map.add rn (rnd.Next(-1000,1000) |> uint32) dp
+    let rMap' = {dp with Regs = Map.add R13 test.InitSP dp.Regs}
     let ldSpecs = [
                     test.Ins |> List.map (fun sp -> TbIn,sp)
                     test.Outs |> List.map (fun sp -> TbOut,sp)
                   ] |> List.concat
     let addSpec dp (inout,spec) =
         match inout,spec with
-        | TbOut, TbRegEquals(_, rn,u) -> dp
-        | TbIn, TbRegEquals(_, rn,u) -> {dp with Regs = Map.add rn u dp.Regs}
+        | TbOut, TbRegEquals(_, rn,u) -> Ok dp
+        | TbIn, TbRegEquals(_, rn,u) -> Ok {dp with Regs = Map.add rn u dp.Regs}
         | tbio,TbRegPointsTo(_, rn, start, uLst) ->
             let mm' = ExecutionTop.addWordDataListToMem start dp.MM (uLst |> List.map Dat)
             let dp' = Map.add rn start dp.Regs
-            {dp with Regs = dp'; MM = (match tbio with | TbIn -> mm' | TbOut -> dp.MM)}
-        | _, TbStackProtected _u -> dp
+            Ok {dp with Regs = dp'; MM = (match tbio with | TbIn -> mm' | TbOut -> dp.MM)}
+        | _, TbStackProtected _u -> Ok dp
         | _, APCS rLst -> 
             let rm = List.fold (fun regs (rn,u) -> Map.add rn u regs) dp.Regs rLst
-            {dp with Regs = rm}
-        | _, TbSetDataArea u -> dp
-
-    List.fold addSpec rMap' ldSpecs
+            Ok {dp with Regs = rm}
+        | _, TbSetDataArea u -> Ok dp
+        | _, RandomiseInitVals -> Ok {dp with Regs = List.fold setRand dp.Regs [R0;R1;R2;R3;R4;R5;R6;R7;R8;R9;R10;R11;R12]}
+        | _, BranchToSub subName -> 
+            let subAddr = Map.tryFind subName lim.SymInf.SymTab
+            match subAddr with
+            | None -> Error (sprintf "Can't find subroutine '%s' required by test specification" subName)
+            | Some subA ->
+                dp
+                |> Helpers.setRegRaw R15 subA
+                |> Ok
+    let addSpecBound dpRes spec = match dpRes with | Ok dp -> addSpec dp spec | e -> e
+    List.fold addSpecBound (Ok rMap') ldSpecs
+    |> Result.map (setReg R14 0xFFFFFFFCu)
 
 /// Create a list of errors from a test specification and output DataPath of the tested program.
 /// test: the test specification (which will have generated program inputs)
 /// dp: the Datapath to check against the specification outputs
-let checkTestResults (test:Test) (dp:DataPath) =
+let checkTestResults (test:Test) (dp:DataPath) (subRet:bool)=
     let specs = test.Outs
+    let isSubTest =
+        List.exists (function | BranchToSub _ -> true | _ -> false) test.Ins
+    let exitTest =
+        printfn "isSubTest=%A, subRet=%A" isSubTest subRet
+        match isSubTest, subRet with
+        | false, false | true, true -> []
+        | true, false -> [0u, TbRet "\t>>- Subroutine return detected when normal program end expected", BranchToSub ""]
+        | false, true -> [0u, TbRet "\t>>- Normal program end detected when subroutine return expected", BranchToSub ""]
     let checkSpec spec =
         let checkOneLoc (ma,u) =
             match Map.tryFind (WA ma) dp.MM with
@@ -216,13 +251,15 @@ let checkTestResults (test:Test) (dp:DataPath) =
                                             | false -> [u', TbVal dp.Regs.[rn], APCS [rn,u']])
         | _ -> []
     specs |> List.collect checkSpec
+    |> (fun lst -> exitTest @ lst)
 
 /// Generate one Test of result messages and add them to the testbench buffer.
 /// If no errors mark the Test as Passed.
 /// test: test to add (one of those in the testbench).
 /// dp: DataPath after test simulation ends.
-/// Returns true if test has passed
+/// Returns true if test has passed.
 let addResultsToTestbench (test:Test) (dp:DataPath) =
+    let subRet = dp.Regs.[R15] = 0xFFFFFFFCu
     let displayError (u: uint32, check: tbCheck, spec:TbSpec) =
         match check, spec with
         | TbVal spAct, TbStackProtected sp -> 
@@ -237,9 +274,10 @@ let addResultsToTestbench (test:Test) (dp:DataPath) =
             let offset = int (adr - start)
             sprintf "\t>>- [%A,#%d] -> Actual: %s. expected: %d" ptr offset actTxt uLst.[offset/4] 
         | TbVal act, APCS [rn,exptd] -> sprintf "\t>>- Persistent Register %A -> Actual: %d. expected: %d" rn act exptd
+        | TbRet errMess, _ -> errMess
         | _ -> failwithf "What?: inconsistent specs and check results"
     let errorLines = 
-        checkTestResults test dp
+        checkTestResults test dp subRet
         |> List.map displayError
     let resultLines =
         errorLines
@@ -255,16 +293,19 @@ let getParsedTests dStart =
 
     let processParseErrors (eLst: Result<Test,(int*string) list>list) =
         let highlightErrors tab = 
-            Editors.removeEditorDecorations tab
-            List.iter (fun (lNum, mess) -> Editors.highlightLine tab lNum "editor-line-error")  
+            List.iter (fun (lNum, mess) -> 
+                printfn "Testbench error %d %s." lNum mess
+                Editors.highlightLine tab lNum "editor-line-error")  
         match getTBWithTab() with
         | Error mess -> Error mess
         | Ok (tab,_) ->
+            Editors.removeEditorDecorations tab
             List.iter (Result.mapError (highlightErrors tab) >> ignore) eLst
             match List.errorList eLst with
             | [] -> List.okList eLst |> Ok
-            | _ -> 
+            | x -> 
                 Tabs.selectFileTab tab
+                printfn "%A" x
                 Error "Parse errors in testbench"
 
     let initStack = 0xFF000000u

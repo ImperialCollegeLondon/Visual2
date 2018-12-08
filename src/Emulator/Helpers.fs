@@ -242,7 +242,10 @@ module Helpers
             | R15 -> contents + setPCOffset
             | _ -> contents
         {cpuData with Regs = Map.add reg (adjContents >>> 0) cpuData.Regs }
-    
+
+    let setRegRaw reg contents cpuData =
+        {cpuData with Regs = Map.add reg contents cpuData.Regs }
+
     /// Recursive function for setting multiple registers
     /// Need to check that the lists provided are the same length
     let rec setMultRegs regLst contentsLst cpuData =

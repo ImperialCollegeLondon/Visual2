@@ -52,7 +52,7 @@ type TestSetup = {
     Name: string
     }
 
-type TestT = OkTests | ErrorTests | BetterThanModelTests
+type TestT = OkTests| ErrorTests | BetterThanModelTests
 
 
 let writeDirPath = Refs.appDirName + @"/test-results"
@@ -162,8 +162,8 @@ let handleTestRunError e (pInfo:RunInfo) (ts: TestSetup) =
         match dp.Fl with
         | {N = n ; C = c; V = v; Z = z} -> {FN=n;FC=c;FV=v;FZ=z}
     match e with
+    | TBEXIT
     | EXIT ->
-        //printfn "ts.After=%A" ts.After
         match ts.After with
         | Core.Option.None -> BetterThanModelTests, ts, pInfo, "Visual2 runs when VisuAL gives an error?"
         | Some {TRegs=tr ; TFlags=fl} when tr = regs && fl = flags-> 

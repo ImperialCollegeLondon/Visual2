@@ -107,10 +107,13 @@ type TbSpec =
     | TbStackProtected of uint32 
     | TbSetDataArea of uint32
     | APCS of (RName*uint32) list
+    | RandomiseInitVals
+    | BranchToSub of string
 
 type tbCheck =
     | TbVal of Actual: uint32
     | TbMem of ActualAddress:uint32 * ActualData:uint32 option
+    | TbRet of string
 
 type TbInOut = TbIn | TbOut
 
@@ -405,8 +408,11 @@ let dataPathStep (dp : DataPath, code:CodeMemory<CondInstr*int>) =
     let noFlagChange = Result.map (fun d -> d,uFl) 
     let thisInstr = Map.tryFind (WA pc) code
     match thisInstr with
+    | None when pc = 0xFFFFFFFCu -> 
+        // special case to implement testbenches, terminate on branch to 0xFFFFFFFC
+        None, Error TBEXIT 
     | None ->
-        None, NotInstrMem pc |> Error
+        None, (NotInstrMem pc |> Error)
     | Some ({Cond=cond;InsExec=instr;InsOpCode=iOpc},line) ->
         match condExecute cond dp' with
         | true -> 

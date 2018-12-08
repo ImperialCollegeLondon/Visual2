@@ -123,6 +123,7 @@ let highlightLine tId number className =
         number
         (createObj[
             "isWholeLine" ==> true
+            "isTrusted" ==> true
             "inlineClassName" ==> className
         ])
         None
