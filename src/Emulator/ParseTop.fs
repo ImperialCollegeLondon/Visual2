@@ -30,6 +30,7 @@ module ParseTop
         ISize = 0u
         DSize = Some 0u
         POpCode = ""
+        PStall = 0
     }
 
     /// Split line on whitespace into an list
@@ -47,6 +48,7 @@ module ParseTop
     /// Similarly IMatch here is combination of module IMatches
     let IMatch (ld: LineData) : Parse<Instr> option  =
         let copy cons pa = 
+            // NB need this copy by fields because types do not match
             {
                 PCond = pa.PCond
                 PInstr = Result.map cons pa.PInstr
@@ -54,6 +56,7 @@ module ParseTop
                 POpCode = pa.POpCode
                 ISize = pa.ISize
                 DSize = pa.DSize
+                PStall = pa.PStall
             } |> Some
  
             
@@ -70,6 +73,7 @@ module ParseTop
         Cond: Condition
         InsExec: Instr
         InsOpCode: string
+        Cycles: uint64
         }
 
     let makeParse labOpt la ins =
@@ -80,6 +84,7 @@ module ParseTop
             DSize = Some 0u
             PCond = Cal
             POpCode = ""
+            PStall = 0
         } 
 
 

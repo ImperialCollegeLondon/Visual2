@@ -256,6 +256,8 @@ module Memory
                 | _ -> makeParseError "LDR/STR Effective address" txt "list#single-register-memory-transfer-instructions"
             | _ -> makeParseError "LDR/STR register name" ls.Operands "list#single-register-memory-transfer-instructions"
             |> fun ins -> copyParse ls (Result.map memTypeSingleMap.[uRoot] ins) pCond
+            |> (fun pa -> { pa with PStall = match uRoot with | "LDM" -> 1 | "STM" -> 0 | _ -> 0})
+
 
         /// parse for LDM, STM
         let parseMult (root: string) suffix pCond : Parse<Instr> =
@@ -342,6 +344,8 @@ module Memory
                     makeParseError "valid LDM/STM operands" ls.Operands "list#single-register-memory-transfer-instructions"
 
             copyParse ls (Result.map memTypeMultMap.[root] ops) pCond
+            |> (fun pa -> { pa with PStall = let rootStall = match root with | "LDM" -> 0  |_ -> -1
+                                             match ops with | Ok o -> o.rList.Length + rootStall | _ -> 0})
 
         let parse' (_instrC, (root : string,suffix : string,pCond)) =
             let uRoot = root.ToUpper()

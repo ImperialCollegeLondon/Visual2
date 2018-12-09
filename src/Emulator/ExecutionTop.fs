@@ -274,7 +274,7 @@ let loadLine (lim:LoadImage) ((line,lineNum) : string * int) =
             | 4u, Some 0u -> 
                     match pa.PInstr with
                     | Ok pai -> 
-                        lim.Mem, Map.add (WA lp.PosI) ({Cond=pa.PCond;InsExec=pai;InsOpCode= pa.POpCode} , lineNum) lim.Code
+                        lim.Mem, Map.add (WA lp.PosI) ({Cond=pa.PCond;InsExec=pai;InsOpCode= pa.POpCode; Cycles = uint64 pa.PStall} , lineNum) lim.Code
                     | _ -> lim.Mem, lim.Code
             | i, d -> failwithf "What? Unexpected sizes (I=%d ; D=%A) in parse load" i d
 
@@ -434,7 +434,8 @@ let dataPathStep (dp : DataPath, code:CodeMemory<CondInstr*int>) =
         // NB because PC is incremented after execution all exec instructions that write PC must in fact 
         // write it as (+8-4) of real value. setReg does this.
         |> fun (ins, res) ->
-              ins, Result.map (fun (dp,uF) -> addToPc (4 - 8) dp, uF) res// undo +8 for pipelining added before execution. Add +4 to advance to next instruction
+              ins, Result.map (fun (dp,uF) -> 
+                addToPc (4 - 8) dp, uF) res// undo +8 for pipelining added before execution. Add +4 to advance to next instruction
     
 /// <summary> <para> Top-level function to run an assembly program.
 /// Will run until error, program end, or numSteps instructions have been executed. </para>

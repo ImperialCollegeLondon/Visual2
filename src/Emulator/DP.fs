@@ -165,7 +165,13 @@ let execMove
     let result = trimUint32 <| if negated then ~~~op2val else op2val
         
 
-    let uFlags = {F= {d.Fl with N = setFlagN result ; Z = setFlagZ result ; C = uCarry.Ca}; NZU=true; CU=uCarry.CaU ; VU = false; RegU = []}
+    let uFlags = {
+        F= {d.Fl with N = setFlagN result ; Z = setFlagZ result ; C = uCarry.Ca}; 
+        NZU=true; 
+        CU=uCarry.CaU ; 
+        VU = false; 
+        RegU = []; 
+        }
 
     Ok (writeBack result dst uFlags updateFlags d)
 
@@ -311,7 +317,7 @@ let parseOp2 (subMode: InstrNegativeLiteralMode) (symTable : SymbolTable) (args 
                 parseRegister reg 
                 |> Result.bind (
                     function | R15 -> makeFormatError "Error: operand 2 cannot be PC or R15 if shift is being used" reg ""
-                                | rName -> Ok rName)
+                             | rName -> Ok rName)
                 |> Result.map (makeRegShift shiftType)
             | Ok shiftType, imm when isValidNumericExpression symTable imm ->
                 makeFormatError "Literal constants in instruction operands require '#' prefix" imm ""
@@ -493,6 +499,7 @@ let parse (ls: LineData) : Parse<Instr> option =
                 DSize = Some 0u; 
                 PCond = pCond 
                 POpCode=ls.OpCode
+                PStall = 0
             }
 
         // flags should be updated if S suffix is specified
@@ -512,6 +519,9 @@ let parse (ls: LineData) : Parse<Instr> option =
             {pI with PInstr = Error e}
     Map.tryFind ls.OpCode opCodes
     |> Option.map parse'
+    |> Option.map (fun pa ->
+            let stalls = match pa with | {PInstr = Ok(_ , RegisterWithRegisterShift _)} -> 1 | _ -> 0
+            {pa with PStall = stalls})
 
 let (|IMatch|_|) ld = parse ld
 

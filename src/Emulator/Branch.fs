@@ -42,7 +42,9 @@ module Branch
             | "END",_ when ls.Operands="" -> Ok END
             | "END",_ -> makeParseError "END (no operands)" ls.Operands "list#pseudo-instructions-and-directives"
             | _ -> failwithf "What? Unexpected root in Branch.parse'%s'" root
-            |> fun ins -> copyParse ls ins cond
+            |> fun ins -> 
+                copyParse ls ins cond
+                |> (fun pa -> {pa with PStall = match root with | "B" | "BL" -> 2 | _ -> 0})
         let OPC = ls.OpCode.ToUpper ()
         if  Map.containsKey OPC opCodes // lookup opcode to see if it is known
         then parse' opCodes.[OPC] |> Some

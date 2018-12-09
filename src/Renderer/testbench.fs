@@ -91,8 +91,12 @@ let linkSpecs initStack start specs =
         match spec with
         | TbRegEquals(_lNum, rn,u) -> start, (inOut, spec) :: linkedSpecs
         | TbRegPointsTo(lNum, rn, _start, uLst) ->
-            let n = start + uint32(uLst.Length*4)
-            n, (inOut, TbRegPointsTo(lNum, rn, n, uLst)) :: linkedSpecs
+            let rnOtherPntOpt = List.collect (function | _, TbRegPointsTo(_,rn',pnt,_) when rn' = rn -> [pnt] | _ -> []) linkedSpecs
+            let start', pnt' =
+                match rnOtherPntOpt with
+                | pnt :: _ -> start, pnt
+                | [] -> start + 4u*(uint32 uLst.Length), start
+            start', (inOut, TbRegPointsTo(lNum, rn, pnt', uLst)) :: linkedSpecs
         | TbStackProtected _ -> start, (inOut, TbStackProtected initStack) :: linkedSpecs
         | TbSetDataArea u -> u, (inOut, TbSetDataArea u) :: linkedSpecs
         | APCS regs -> start, (inOut, APCS regs) :: linkedSpecs

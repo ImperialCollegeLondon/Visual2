@@ -63,6 +63,8 @@ module CommonLex
             PCond: Condition
             /// opcode
             POpCode: string
+            /// Number of cycles extra if instruction is executed
+            PStall: int
         }
     
     /// data given to instruction-specific parse function
@@ -88,6 +90,7 @@ module CommonLex
             DSize = Some 0u
             PCond = cond
             POpCode = ld.OpCode
+            PStall = 0
         }
 
     let copyDefault (ld:LineData) cond =
