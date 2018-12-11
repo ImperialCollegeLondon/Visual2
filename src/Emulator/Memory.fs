@@ -138,7 +138,7 @@ module Memory
                 |> Result.map (fun lv -> LDREQUAL ( rd, lv)))
             
             |> (fun ins -> copyParse ls ins pCond)
-            |> (fun pa -> { pa with PStall = 1})
+            |> (fun pa -> { pa with PStall = 2})
 
             
 
@@ -257,7 +257,7 @@ module Memory
                 | _ -> makeParseError "LDR/STR Effective address" txt "list#single-register-memory-transfer-instructions"
             | _ -> makeParseError "LDR/STR register name" ls.Operands "list#single-register-memory-transfer-instructions"
             |> fun ins -> copyParse ls (Result.map memTypeSingleMap.[uRoot] ins) pCond
-            |> (fun pa -> { pa with PStall = match uRoot with | "LDR" -> 1 | "STR" -> 0 | _ -> 0})
+            |> (fun pa -> { pa with PStall = match uRoot with | "LDR" -> 2 | "STR" -> 1 | _ -> 0})
 
 
         /// parse for LDM, STM
@@ -345,7 +345,7 @@ module Memory
                     makeParseError "valid LDM/STM operands" ls.Operands "list#single-register-memory-transfer-instructions"
 
             copyParse ls (Result.map memTypeMultMap.[root] ops) pCond
-            |> (fun pa -> { pa with PStall = let rootStall = match root with | "LDM" -> 0  |_ -> -1
+            |> (fun pa -> { pa with PStall = let rootStall = match root with | "LDM" -> 1  |_ -> 0
                                              match ops with | Ok o -> (max 1 o.rList.Length) + rootStall | _ -> 0})
 
         let parse' (_instrC, (root : string,suffix : string,pCond)) =

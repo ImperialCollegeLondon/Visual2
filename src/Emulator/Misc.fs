@@ -124,7 +124,7 @@ module Misc
         | "FILL", _ -> makeDataDirective None <| makeInstructionError ("Invalid operands for FILL: unresolved symbols")
         | "ADR", RegMatch (Ok rn) :: [ PARSE (Ok addr)] ->
             match checkAddrOffset (int addr - int la) with
-            | Ok _ ->  {pa with PInstr = ADR {AReg=rn ; AVal=addr} |> Ok }
+            | Ok _ ->  {pa with PInstr = ADR {AReg=rn ; AVal=addr} |> Ok ; PStall = (if rn = R15 then 2 else 0)}
             | Error e -> {pa with PInstr = Error e}
         | "ADR", _ops -> {pa with PInstr = makeInstructionError <| "Invalid operands: '" + ls.Operands + "'. ADR must have a register followed by a numeric expression operand."}
         | "EQU", [PARSE op] when opLst <> [] -> makeEQU op

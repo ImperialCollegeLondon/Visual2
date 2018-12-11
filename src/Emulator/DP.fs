@@ -71,7 +71,13 @@ let evalRegister reg d = Map.find reg d.Regs
 let setFlagN value = value > 0x7FFFFFFFu
 let setFlagZ value = (value = 0u)
 
+let destStall rn = match rn with | R15 -> 2 | _ -> 0
 
+let addDestStall rn pRes = Result.map (fun (sOp2, pa) -> destStall rn + sOp2, pa) pRes
+
+let op2Stall = function | RegisterWithRegisterShift _ -> 1 | _ -> 0
+
+let getStallFromOk = function | Ok (st, x) -> st, Ok x | Error e -> 0, Error e
 
 /// compute the resulting uint32 from a flexible op2 definition
 /// returns (value * carry)
@@ -341,14 +347,16 @@ let parseOp2 (subMode: InstrNegativeLiteralMode) (symTable : SymbolTable) (args 
 
 
 /// make an instruction that has the form "XXX op1, flexop2"
-let makeTwoOpInstr subMode fn symTable operands =
+let makeTwoOpInstr hasDest subMode fn symTable operands =
     match operands with
     | op1 :: op2flex ->
         let op1' = parseRegister op1
         let op2' = parseOp2 subMode symTable op2flex
 
         match op1', op2' with
-        | Ok op1'', Ok op2'' -> Ok (fn op1'' op2'', op2'')
+        | Ok op1'', Ok op2'' -> 
+            let stall = op2Stall op2'' + if hasDest then destStall op1'' else 0
+            Ok (stall, (fn op1'' op2'', op2''))
         | Error e, _ -> Error e
         | _, Error e -> Error e
 
@@ -358,18 +366,18 @@ let makeTwoOpInstr subMode fn symTable operands =
 let makeThreeOpInstr subMode fn symTable operands =
     match operands with
     | first :: restOfOps ->
-        parseRegister first |> Result.bind (fun reg -> makeTwoOpInstr subMode (fn reg) symTable restOfOps)
+        parseRegister first |> Result.bind (fun reg -> addDestStall reg (makeTwoOpInstr false subMode (fn reg) symTable restOfOps))
     | _ -> makeDPE  "register, register, flexible operand" ("Not enough operands:'"+ String.concat "," operands + "'")
 
 
 
 /// return a ready-to-execute comparison function from the given operands
 let makeComparisonInstr subMode compType symTable operands _updateFlags =
-    makeTwoOpInstr subMode (execComparison compType) symTable operands
+    makeTwoOpInstr false subMode (execComparison compType) symTable operands
 
 /// return a ready-to-execute move function from the given operands
 let makeMoveInstr subMode negated symTable operands updateFlags =
-    makeTwoOpInstr subMode (execMove negated updateFlags) symTable operands
+    makeTwoOpInstr true subMode (execMove negated updateFlags) symTable operands
 
 /// return a ready-to-execute adr function from the given operands     
 let makeAdrInstr symTable operands updateFlags =
@@ -408,8 +416,7 @@ let makeShiftInstr shiftType symTable operands updateFlags =
                       makeFormatError "Numbers in instruction operands require '#' prefix (#22, #-1)" reg "flexop2"
                 | sftTxt -> makeFormatError "Error in shift specification - should be #N or Rx" sftTxt "flexop2"
  
-
-            Result.map (fun op2' -> execMove false updateFlags dst' op2', op2') op2
+            Result.map (fun op2' -> op2Stall op2' + destStall dst', (execMove false updateFlags dst' op2', op2')) op2
         | Error e, _ -> Error e
         | _, Error e -> Error e
 
@@ -420,7 +427,7 @@ let makeRRXInstr symTable operands updateFlags =
     match operands with
     | [dst ; src] ->
         match parseRegister dst, parseRegister src with
-        | Ok dst', Ok src' -> Ok (execMove false updateFlags dst' (RegisterWithRRX src'), Op2.RegisterWithRRX src')
+        | Ok dst', Ok src' -> Ok (destStall dst', (execMove false updateFlags dst' (RegisterWithRRX src'), Op2.RegisterWithRRX src'))
         | Error e, _ -> Error e
         | _, Error e -> Error e
 
@@ -511,17 +518,15 @@ let parse (ls: LineData) : Parse<Instr> option =
 
         // parse operands
         match (Map.ofList spec).[root] ls.SymTab operands updateFlags with
-        | Ok f -> 
+        | Ok (stall, f) -> 
             // return parse result with executable line of code
-            {pI with PInstr = Executable f}
+            stall, {pI with PInstr = Executable f}
         | Error e ->
             // return parse error
-            {pI with PInstr = Error e}
+            0, {pI with PInstr = Error e}
     Map.tryFind ls.OpCode opCodes
     |> Option.map parse'
-    |> Option.map (fun pa ->
-            let stalls = match pa with | {PInstr = Ok(_ , RegisterWithRegisterShift _)} -> 1 | _ -> 0
-            {pa with PStall = stalls})
+    |> Option.map (fun  (stall,pa) -> {pa with PStall = stall})
 
 let (|IMatch|_|) ld = parse ld
 

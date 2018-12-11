@@ -421,16 +421,19 @@ let dataPathStep (dp : DataPath, code:CodeMemory<CondInstr*int>) =
             match instr with
             | IDP instr' ->
                 executeDP instr' dp' 
+                |> Result.map (fun (dp,ufl) -> dp, ufl)
             | IMEM instr' ->
                 executeMem instr' dp' |> noFlagChange
             | IBRANCH instr' ->
                 executeBranch instr' dp' |> noFlagChange
             | IMISC (Misc.ADR adrInstr) ->
                 //printfn "Executing ADR"
-                (executeADR adrInstr dp', uFl) |> Ok
+                let dp'' = executeADR adrInstr dp'
+                (dp'', uFl) |> Ok
             | IMISC ( x) -> (``Run time error`` ( dp.Regs.[R15], sprintf "Can't execute %A" x)) |> Error
             | ParseTop.EMPTY _ -> failwithf "Shouldn't be executing empty instruction"
             |> fun res -> Some (instr,iOpc,line, cyc |> int64), res
+                     
 
         | false -> None, ((dp', uFl) |> Ok)
         // NB because PC is incremented after execution all exec instructions that write PC must in fact 
