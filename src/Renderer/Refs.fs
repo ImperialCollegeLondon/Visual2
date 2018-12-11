@@ -285,9 +285,9 @@ let statusBar = getHtml "status-bar"
 let setFilePaneBackground color =
     fileViewPane.setAttribute("style", sprintf "background: %s" color)
 
-let updateClockTime (n:uint64) = 
+let updateClockTime (n:uint64, m: uint64) = 
     getHtml "clock-time" 
-    |> INNERHTML (if n = 0uL then "-" else sprintf "%d" n) |> ignore
+    |> INNERHTML (if n = 0uL then "-" else sprintf "%d : %d" n m) |> ignore
 
 // ************************************************************************************
 //                         Utility functions used in this module

@@ -142,7 +142,7 @@ let resetEmulator () =
     resetRegs()
     resetFlags()
     updateRegisters ()
-    updateClockTime 0uL
+    updateClockTime (0uL,0uL)
 
 /// Display current execution state in GUI from stored runMode
 let showInfoFromCurrentMode () =
@@ -160,7 +160,7 @@ let showInfoFromCurrentMode () =
         setRegs dp.Regs
         setFlags uFl
         updateRegisters()
-        updateClockTime (ri.StepsDone |> uint64) |> ignore
+        updateClockTime ((ri.StepsDone |> uint64), (ri.CyclesDone |> uint64)) |> ignore
     | _ -> ()
 
 /// Apply GUI decorations to instruction line of last PC and current PC.
@@ -334,6 +334,7 @@ let getRunInfoFromImageWithInits breakCond (lim:LoadImage) regsInit flagsInit mM
         IMem = lim.Code; 
         LastDP = None
         StepsDone=0L
+        CyclesDone = 0L
         Source = lim.Source
         EditorText = lim.EditorText
         History = []

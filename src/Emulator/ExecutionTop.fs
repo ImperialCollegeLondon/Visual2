@@ -95,6 +95,7 @@ type StackI = { Target: uint32; SP: uint32; RetAddr: uint32}
 
 type Step = {
     NumDone: int64
+    NumCycDone: int64
     Dp: DataPath*UFlags
     SI: StackI list
     }
@@ -132,6 +133,7 @@ type RunInfo = {
     IMem: CodeMemory<CondInstr * int>
     st: AnnotatedSymbolTable
     StepsDone: int64
+    CyclesDone: int64
     dpCurrent: DataPath * DP.UFlags
     State: ProgState
     LastDP: (DataPath * DP.UFlags) option
@@ -413,7 +415,7 @@ let dataPathStep (dp : DataPath, code:CodeMemory<CondInstr*int>) =
         None, Error TBEXIT 
     | None ->
         None, (NotInstrMem pc |> Error)
-    | Some ({Cond=cond;InsExec=instr;InsOpCode=iOpc},line) ->
+    | Some ({Cond=cond;InsExec=instr;InsOpCode=iOpc; Cycles = cyc},line) ->
         match condExecute cond dp' with
         | true -> 
             match instr with
@@ -428,7 +430,7 @@ let dataPathStep (dp : DataPath, code:CodeMemory<CondInstr*int>) =
                 (executeADR adrInstr dp', uFl) |> Ok
             | IMISC ( x) -> (``Run time error`` ( dp.Regs.[R15], sprintf "Can't execute %A" x)) |> Error
             | ParseTop.EMPTY _ -> failwithf "Shouldn't be executing empty instruction"
-            |> fun res -> Some (instr,iOpc,line), res
+            |> fun res -> Some (instr,iOpc,line, cyc |> int64), res
 
         | false -> None, ((dp', uFl) |> Ok)
         // NB because PC is incremented after execution all exec instructions that write PC must in fact 
@@ -452,6 +454,7 @@ let asmStep (numSteps:int64) (ri:RunInfo) =
         // so use this ugly while loop with mutable variables!
         let mutable dp = ri.dpInit, toUFlags ri.dpInit.Fl // initial dataPath
         let mutable stepsDone = 0L // number of instructions completed without error
+        let mutable cyclesDone = 0L // number of cycles completed
         let mutable state = PSRunning
         let mutable lastDP = None
         let mutable lastTi = None
@@ -481,22 +484,30 @@ let asmStep (numSteps:int64) (ri:RunInfo) =
         let runFrom = match ri.BreakCond with | NoBreak -> numSteps | _ -> ri.StepsDone
         let (future,past) = List.partition (fun (st:Step) -> st.NumDone >= runFrom) ri.History
         let mutable history = past
-        match past with | step :: _ -> dp <- step.Dp ; stepsDone <- step.NumDone ; stackInfo <- step.SI ; | _ -> ()   
+        match past with 
+        | step :: _ -> 
+            dp <- step.Dp
+            stepsDone <- step.NumDone
+            cyclesDone <- step.NumCycDone
+            stackInfo <- step.SI ; 
+        | _ -> ()   
         //printf "Stepping before while Done=%d num=%d dp=%A" stepsDone numSteps  dp
         if stepsDone >= numSteps then lastDP <- Some dp;
         while stepsDone < numSteps && running  do
             //printfn "stepsDone=%d, SI=%A" stepsDone stackInfo
             let historyLastRecord = match history with | [] -> 0L | h :: _ -> h.NumDone
             if (stepsDone - historyLastRecord) > historyMaxGap then
-                history <- {Dp=dp; SI=stackInfo; NumDone=stepsDone} :: history
+                history <- {Dp=dp; SI=stackInfo; NumDone=stepsDone; NumCycDone = cyclesDone} :: history
             let ti, stepRes = dataPathStep (fst dp, ri.IMem)
             match stepRes with
-            | Result.Ok (dp',uF') ->                      
+            | Result.Ok (dp',uF') ->
                 lastDP <- Some dp; dp <- dp',uF' ; stepsDone <- stepsDone + 1L; 
             | Result.Error EXIT -> running <- false ; state <- PSExit; 
             | Result.Error e -> running <- false ; state <- PSError e; lastDP <- Some dp;
+            cyclesDone <- cyclesDone + match ti with | Some(_,_,_,cyc) ->  cyc+1L | None -> 1L
             match ti, stepRes, lastDP with
-            | Some (ins, opc, lNum), Result.Ok (dp',uF'), Some (dp,_) -> recordStack dp' dp ins opc lNum
+            | Some (ins, opc, lNum, cyc), Result.Ok (dp',uF'), Some (dp,_) -> 
+                recordStack dp' dp ins opc lNum
             | _ -> ()
         {
             ri with 
@@ -504,6 +515,7 @@ let asmStep (numSteps:int64) (ri:RunInfo) =
                 State = state
                 LastDP = lastDP
                 StepsDone=stepsDone
+                CyclesDone = cyclesDone
                 StackInfo= stackInfo
                 BreakCond = if state = PSBreak then NoBreak else ri.BreakCond
                 History = 

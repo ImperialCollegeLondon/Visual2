@@ -469,7 +469,7 @@ let addFixedToolTips() =
 
     makeTextTT "top" "flags" ["tootip-fixed"] "ARM Status bits (Flags) NZCV. <br> Blue indicates that Flag was written by <br> the most recently executed instruction."
     makeTextTT "bottom" "clock-symbol" ["tootip-fixed"] "Execution time"
-    makeTextTT "bottom" "clock-time" ["tootip-fixed"] "Number of <br> Instructions"
+    makeTextTT "bottom" "clock-time" ["tootip-fixed"] "Instructions : clock cycles"
     makeTextTT "bottom" "BR15" ["tootip-fixed"] "R15 (PC) is the Program Counter <br> It cannot be used as a data register"
     makeTextTT "left" "BR14" ["tootip-fixed"] "R14 (LR) is the Link Register <br> It can be used as a data register"
     makeButtonTT "bottom" "tab-sym" ["tootip-fixed"] "Displays symbols (labels) <br> after execution has started"
