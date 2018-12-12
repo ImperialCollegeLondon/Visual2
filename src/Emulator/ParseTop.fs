@@ -73,7 +73,7 @@ module ParseTop
         Cond: Condition
         InsExec: Instr
         InsOpCode: string
-        Cycles: uint64
+        Cycles: int64
         }
 
     let makeParse labOpt la ins =

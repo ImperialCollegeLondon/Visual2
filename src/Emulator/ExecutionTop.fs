@@ -276,7 +276,7 @@ let loadLine (lim:LoadImage) ((line,lineNum) : string * int) =
             | 4u, Some 0u -> 
                     match pa.PInstr with
                     | Ok pai -> 
-                        lim.Mem, Map.add (WA lp.PosI) ({Cond=pa.PCond;InsExec=pai;InsOpCode= pa.POpCode; Cycles = uint64 pa.PStall} , lineNum) lim.Code
+                        lim.Mem, Map.add (WA lp.PosI) ({Cond=pa.PCond;InsExec=pai;InsOpCode= pa.POpCode; Cycles = int64 pa.PStall} , lineNum) lim.Code
                     | _ -> lim.Mem, lim.Code
             | i, d -> failwithf "What? Unexpected sizes (I=%d ; D=%A) in parse load" i d
 
@@ -415,32 +415,30 @@ let dataPathStep (dp : DataPath, code:CodeMemory<CondInstr*int>) =
         None, Error TBEXIT 
     | None ->
         None, (NotInstrMem pc |> Error)
-    | Some ({Cond=cond;InsExec=instr;InsOpCode=iOpc; Cycles = cyc},line) ->
+    | Some ({Cond=cond;InsExec=instr} as condIns,line) ->
         match condExecute cond dp' with
         | true -> 
             match instr with
             | IDP instr' ->
                 executeDP instr' dp' 
-                |> Result.map (fun (dp,ufl) -> dp, ufl)
             | IMEM instr' ->
                 executeMem instr' dp' |> noFlagChange
             | IBRANCH instr' ->
                 executeBranch instr' dp' |> noFlagChange
             | IMISC (Misc.ADR adrInstr) ->
                 //printfn "Executing ADR"
-                let dp'' = executeADR adrInstr dp'
-                (dp'', uFl) |> Ok
-            | IMISC ( x) -> (``Run time error`` ( dp.Regs.[R15], sprintf "Can't execute %A" x)) |> Error
+                executeADR adrInstr dp' |> Ok |> noFlagChange
+            | IMISC x -> (``Run time error`` ( dp.Regs.[R15], sprintf "Can't execute %A" x)) |> Error
             | ParseTop.EMPTY _ -> failwithf "Shouldn't be executing empty instruction"
-            |> fun res -> Some (instr,iOpc,line, cyc |> int64), res
+            |> fun res ->  Some (line,condIns), res
                      
 
         | false -> None, ((dp', uFl) |> Ok)
         // NB because PC is incremented after execution all exec instructions that write PC must in fact 
         // write it as (+8-4) of real value. setReg does this.
-        |> fun (ins, res) ->
-              ins, Result.map (fun (dp,uF) -> 
-                addToPc (4 - 8) dp, uF) res// undo +8 for pipelining added before execution. Add +4 to advance to next instruction
+        |> fun (lci, res) ->
+                lci, Result.map (fun (dp,uF) -> 
+                    addToPc (4 - 8) dp, uF) res// undo +8 for pipelining added before execution. Add +4 to advance to next instruction
     
 /// <summary> <para> Top-level function to run an assembly program.
 /// Will run until error, program end, or numSteps instructions have been executed. </para>
@@ -467,7 +465,8 @@ let asmStep (numSteps:int64) (ri:RunInfo) =
 
         /// record branches and returns for display and break conditions.
         /// stackInfo is list of StackI that record sp and return or target address
-        let recordStack dp' dp ins (opc:string) lNum =
+        let recordStack dp' dp (opc:string) lNum =
+            let guessComputedBranch opc dp' dp = (String.startsWith "B" opc |> not) && dp'.Regs.[R15] - dp.Regs.[R15] <> 4u
             let opc' = opc.ToUpper()
             if opc'.Length <> 3 && String.startsWith "BL" opc'  then
                 if ri.BreakCond = ToSubroutine && stepsDone > ri.StepsDone then 
@@ -475,7 +474,7 @@ let asmStep (numSteps:int64) (ri:RunInfo) =
                     running <- false
                 let ret = dp.Regs.[R15] + 4u
                 stackInfo <- {Target = dp'.Regs.[R15] ; SP =  dp.Regs.[R13]; RetAddr = ret} :: stackInfo
-            elif (String.startsWith "B" opc' |> not) && dp'.Regs.[R15] - dp.Regs.[R15] <> 4u then
+            elif guessComputedBranch opc dp' dp then
                 match stackInfo with 
                 | {RetAddr=ra} :: rest when ra = dp'.Regs.[R15] -> 
                     stackInfo <- rest
@@ -507,19 +506,19 @@ let asmStep (numSteps:int64) (ri:RunInfo) =
                 lastDP <- Some dp; dp <- dp',uF' ; stepsDone <- stepsDone + 1L; 
             | Result.Error EXIT -> running <- false ; state <- PSExit; 
             | Result.Error e -> running <- false ; state <- PSError e; lastDP <- Some dp;
-            cyclesDone <- cyclesDone + match ti with | Some(_,_,_,cyc) ->  cyc+1L | None -> 1L
+            cyclesDone <- cyclesDone + match ti with | Some(_ , {Cycles=cyc}) -> cyc + 1L | None -> 1L
             match ti, stepRes, lastDP with
-            | Some (ins, opc, lNum, cyc), Result.Ok (dp',uF'), Some (dp,_) -> 
-                recordStack dp' dp ins opc lNum
+            | Some (lNum, ci), Result.Ok (dp',_), Some (dp,_) -> 
+                recordStack dp' dp ci.InsOpCode lNum
             | _ -> ()
         {
             ri with 
                 dpCurrent = dp
                 State = state
                 LastDP = lastDP
-                StepsDone=stepsDone
+                StepsDone = stepsDone
                 CyclesDone = cyclesDone
-                StackInfo= stackInfo
+                StackInfo = stackInfo
                 BreakCond = if state = PSBreak then NoBreak else ri.BreakCond
                 History = 
                     future @ history
