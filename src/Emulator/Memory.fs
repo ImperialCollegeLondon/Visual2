@@ -335,7 +335,12 @@ module Memory
                         |> List.collect matcher
                         |> List.map checker
                         |> condenseResultList (id)
-                        |> Result.map (List.sortBy (fun rn -> rn.RegNum))
+                        |> Result.bind ( fun lst ->
+                            let lst' = List.distinct lst
+                            if lst.Length <> lst'.Length 
+                            then makeParseError "Register list without duplicates" (String.concat "," regList) ""
+                            else Ok lst')
+                        |> Result.map (List.distinct >> List.sortBy (fun rn -> rn.RegNum))
 
 
                     checkedRegs 
