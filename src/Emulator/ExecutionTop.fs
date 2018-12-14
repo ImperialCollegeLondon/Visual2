@@ -142,6 +142,7 @@ type RunInfo = {
     History: Step list
     StackInfo: StackI list
     TestState: TestBenchState
+    Coverage: int Set
     BreakCond: BreakCondition
     }
 
@@ -412,9 +413,9 @@ let dataPathStep (dp : DataPath, code:CodeMemory<CondInstr*int>) =
     match thisInstr with
     | None when pc = 0xFFFFFFFCu -> 
         // special case to implement testbenches, terminate on branch to 0xFFFFFFFC
-        None, Error TBEXIT 
+        (-1,None), Error TBEXIT 
     | None ->
-        None, (NotInstrMem pc |> Error)
+        (-1,None), (NotInstrMem pc |> Error)
     | Some ({Cond=cond;InsExec=instr} as condIns,line) ->
         match condExecute cond dp' with
         | true -> 
@@ -430,10 +431,10 @@ let dataPathStep (dp : DataPath, code:CodeMemory<CondInstr*int>) =
                 executeADR adrInstr dp' |> Ok |> noFlagChange
             | IMISC x -> (``Run time error`` ( dp.Regs.[R15], sprintf "Can't execute %A" x)) |> Error
             | ParseTop.EMPTY _ -> failwithf "Shouldn't be executing empty instruction"
-            |> fun res ->  Some (line,condIns), res
+            |> fun res ->  (line, Some condIns), res
                      
 
-        | false -> None, ((dp', uFl) |> Ok)
+        | false -> (line, None), ((dp', uFl) |> Ok)
         // NB because PC is incremented after execution all exec instructions that write PC must in fact 
         // write it as (+8-4) of real value. setReg does this.
         |> fun (lci, res) ->
@@ -461,6 +462,7 @@ let asmStep (numSteps:int64) (ri:RunInfo) =
         let mutable lastTi = None
         let mutable stackInfo = []
         let mutable running = true // true if no error has yet happened
+        let mutable coverage = ri.Coverage
         let breakCondition = ri.BreakCond
 
         /// record branches and returns for display and break conditions.
@@ -506,11 +508,13 @@ let asmStep (numSteps:int64) (ri:RunInfo) =
                 lastDP <- Some dp; dp <- dp',uF' ; stepsDone <- stepsDone + 1L; 
             | Result.Error EXIT -> running <- false ; state <- PSExit; 
             | Result.Error e -> running <- false ; state <- PSError e; lastDP <- Some dp;
-            cyclesDone <- cyclesDone + match ti with | Some(_ , {Cycles=cyc}) -> cyc + 1L | None -> 1L
+            cyclesDone <- cyclesDone + match ti with | _, Some {Cycles=cyc} -> cyc + 1L | _, None -> 1L
             match ti, stepRes, lastDP with
-            | Some (lNum, ci), Result.Ok (dp',_), Some (dp,_) -> 
+            | (lNum, Some ci), Result.Ok (dp',_), Some (dp,_) -> 
+                coverage <- Set.add lNum coverage
                 recordStack dp' dp ci.InsOpCode lNum
             | _ -> ()
+
         {
             ri with 
                 dpCurrent = dp
@@ -520,6 +524,7 @@ let asmStep (numSteps:int64) (ri:RunInfo) =
                 CyclesDone = cyclesDone
                 StackInfo = stackInfo
                 BreakCond = if state = PSBreak then NoBreak else ri.BreakCond
+                Coverage = coverage
                 History = 
                     future @ history
                     |> List.distinctBy (fun st -> st.NumDone)

@@ -16,11 +16,11 @@ open ExecutionTop
 open Errors
 open Refs
 open Editors
+open TestLib
 open Testbench
-
 open Fable.Core.JsInterop
 open Fable.Import
-open Fable.PowerPack.Keyboard
+
 
 /// Number of execution steps before checking if button has been pressed
 /// and updating displayed state
@@ -339,6 +339,7 @@ let getRunInfoFromImageWithInits breakCond (lim:LoadImage) regsInit flagsInit mM
         EditorText = lim.EditorText
         History = []
         StackInfo = []
+        Coverage = Set []
         TestState = NoTest
         BreakCond = breakCond
     }
