@@ -7,6 +7,7 @@
 
 /// emulate DCD, DCB, FILL, EQU, ADR instructions
 module Misc
+    open EEExtensions
     open CommonData
     open CommonLex
     open Expressions
@@ -37,7 +38,10 @@ module Misc
     //     | LabelRequired
     /// Error types for parsing.
 
-    let commaSplit (x : string) =  x.Split([|','|]) |> Array.toList
+    let commaSplit (x : string) =  
+        x.Split([|','|]) 
+        |> Array.toList
+        |> List.map String.trim
 
     let mergeResults (lst : Result<'T,'E> list) =
         let folder (st:Result<'T list,'E>) (r:Result<'T,'E>) = 
