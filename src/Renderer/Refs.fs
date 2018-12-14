@@ -529,14 +529,7 @@ let writeToFile str path =
 //                                       Mutable state
 // ***********************************************************************************************
 
-/// Sensible initial value of R13 so that code with subroutines works as expected
-let initStackPointer = 0xff000000u
 
-/// initial value of all registers (note special case for SP R13)
-let initialRegMap : Map<CommonData.RName, uint32> = 
-    [0..15]
-    |> List.map ( CommonData.register >> function | R13 -> R13,initStackPointer | rn -> rn,0u)
-    |> Map.ofList
 
 let initialFlags =  { N=false ; Z=false; C=false; V=false}  
 /// File Tab currently selected (and therefore visible) 
@@ -566,7 +559,7 @@ let mutable maxStepsToRun = 50000
 /// Contents of data memory
 let mutable memoryMap : Map<uint32, uint32> = Map.empty
 /// Contents of CPU registers
-let mutable regMap : Map<CommonData.RName,uint32> = initialRegMap
+let mutable regMap : Map<CommonData.RName,uint32> = ExecutionTop.initialRegMap
 /// Contents of CPU flags
 let mutable flags: CommonData.Flags = initialFlags
 /// Values of all Defined Symols

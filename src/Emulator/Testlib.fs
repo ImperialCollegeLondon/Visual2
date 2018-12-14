@@ -20,6 +20,8 @@ type TestResult = {
     TestErrors: TbCheckResult
     }
 
+let maxTestLength = 100000L
+
 let parseTbLine lNum (lin:string) =
 
     let apcsRegs rNumLst =
@@ -251,3 +253,24 @@ let computeTestResults (test:Test) (dp:DataPath) =
         |> function | [] -> [sprintf ">>; Test %d PASSED." test.TNum]
                     | errMess -> sprintf "\t>>- Test %d FAILED." test.TNum :: errMess
     errorLines = [], resultLines
+
+let parseCodeAndRunTest (code:string list) (test:Test) = 
+    let lim = reLoadProgram code
+    if lim.Errors <> []
+    then 
+        Error (sprintf "%A" lim.Errors)
+    else
+        let dp = initTestDP lim test { 
+                Fl = {
+                        C=false
+                        V=false
+                        N=false
+                        Z=false
+                    }; 
+                Regs=initialRegMap; 
+                MM= lim.Mem
+                }
+        match dp with
+        | Ok dp -> getRunInfoFromImageWithInits NoBreak lim dp.Regs dp.Fl Map.empty dp.MM |> Ok 
+        | Error e -> Error e
+        |> Result.map (asmStep maxTestLength)

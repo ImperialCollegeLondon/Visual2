@@ -531,6 +531,55 @@ let asmStep (numSteps:int64) (ri:RunInfo) =
                     |> List.sortByDescending (fun st -> st.NumDone)
         } 
 
+/// Sensible initial value of R13 so that code with subroutines works as expected
+let initStackPointer = 0xff000000u
+
+/// initial value of all registers (note special case for SP R13)
+let initialRegMap : Map<CommonData.RName, uint32> = 
+    [0..15]
+    |> List.map ( CommonData.register >> function | R13 -> R13,initStackPointer | rn -> rn,0u)
+    |> Map.ofList
+
+/// Return initial RunInfo context from a LoadImage
+let getRunInfoFromImageWithInits breakCond (lim:LoadImage) regsInit flagsInit mMap mm=
+    let getSymTyp sym = 
+        match Map.tryFind sym lim.SymInf.SymTypeTab with
+        | Some typ -> typ
+        | None -> failwithf "What? No type info for symbol %s" sym
+
+    let getData map mm : Map<WAddr,Data> =
+        let dLocs = map |> Map.toList
+        List.fold (fun mem -> fun (a, x) -> 
+            if a > 0xFFFFFFFFu then failwithf "What? invalid address in memory image location: %d: %d" a x
+            if x > 0xFFFFFFFFu then failwithf "What? invalid data value in memory image locatio: %d: %d" a x
+            Map.add (WA a) (Dat x) mem) mm dLocs
+    let dp = {
+                Fl = flagsInit
+                Regs = regsInit
+                MM = getData mMap mm
+             } 
+    {
+        dpInit=dp; 
+        dpCurrent = dp, DP.toUFlags dp.Fl
+        State = PSRunning
+        st = 
+            lim.SymInf.SymTab
+            |> Map.map (fun sym addr -> addr, getSymTyp sym) 
+        IMem = lim.Code; 
+        LastDP = None
+        StepsDone=0L
+        CyclesDone = 0L
+        Source = lim.Source
+        EditorText = lim.EditorText
+        History = []
+        StackInfo = []
+        Coverage = Set []
+        TestState = NoTest
+        BreakCond = breakCond
+    }
+
+
+
 
             
     
