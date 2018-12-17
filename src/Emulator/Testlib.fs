@@ -245,8 +245,8 @@ let checkTestResults (test:Test) (outDp:DataPath) (subRet:bool) =
         printfn "isSubTest=%A, subRet=%A" isSubTest subRet
         match isSubTest, subRet with
         | false, false | true, true -> []
-        | true, false -> [0u, TbRet "\t>>- Subroutine return detected when normal program end expected", BranchToSub ""]
-        | false, true -> [0u, TbRet "\t>>- Normal program end detected when subroutine return expected", BranchToSub ""]
+        | false, true -> [0u, TbRet "\t>>- Subroutine return detected when normal program end expected", BranchToSub ""]
+        | true, false -> [0u, TbRet "\t>>- Normal program end detected when subroutine return expected", BranchToSub ""]
         |> List.map (fun (v,c,sp) -> {Actual=v; Check=c; Spec=sp})
     let checkSpec spec =
         let checkOneLoc (ma,u) =
