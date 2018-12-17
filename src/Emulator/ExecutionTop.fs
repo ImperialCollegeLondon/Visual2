@@ -110,6 +110,8 @@ type TbSpec =
     | APCS of (RName*uint32) list
     | RandomiseInitVals
     | BranchToSub of string
+    | Relabel of string * string
+    | AddCode of int * string list
 
 type tbCheck =
     | TbVal of Actual: uint32
@@ -118,7 +120,16 @@ type tbCheck =
 
 type TbInOut = TbIn | TbOut
 
-type Test = { TNum:int; Ins:TbSpec list; Outs:TbSpec list; CheckLines: string list; InitSP: uint32}
+type Test = { 
+        TNum:int; 
+        TName: string; 
+        TAppendCode: string list; 
+        TRelabelSymbols: (string * string) list
+        Ins:TbSpec list; 
+        Outs:TbSpec list; 
+        CheckLines: string list; 
+        InitSP: uint32
+    }
 
 type TestBenchState = NoTest | Testing of Test list
 

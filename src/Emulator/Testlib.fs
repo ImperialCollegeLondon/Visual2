@@ -61,6 +61,12 @@ let parseTbLine lNum (lin:string) =
     | UPPER "PERSISTENTREGS" :: RESOLVE lits -> [Ok(TbIn, APCS (apcsRegs (lits |> List.map int)))]
     | [UPPER "RANDOMISEINITVALS"]->  [Ok (TbIn, RandomiseInitVals)]
     | [UPPER "BRANCHTOSUB"; subName] -> [Ok (TbIn, BranchToSub subName)]
+    | [UPPER "RELABEL" ; symName ; newSymName] -> [Ok (TbIn, Relabel( symName, newSymName))]
+    | [UPPER "APPENDCODE"; num] -> [
+        System.Int32.TryParse num 
+        |> function | false,_-> Error (lNum, "AppendCode expects an integer representing the code block (#BLOCK) to append")
+                    | true, num -> Ok (TbIn,AddCode(num,[]))
+      ]
     | _ -> 
         [Error (lNum,"Parse Error in testbench")]
 
@@ -86,6 +92,8 @@ let linkSpecs initStack start specs =
         | APCS regs -> start, (inOut, APCS regs) :: linkedSpecs
         // no linkage required for these specs
         | RandomiseInitVals
+        | AddCode _ 
+        | Relabel _
         | BranchToSub _ -> start, (inOut,spec) :: linkedSpecs
     specs
     |> List.sortBy (function | _,RandomiseInitVals -> 0 | _ -> 1)
@@ -96,7 +104,7 @@ let linkSpecs initStack start specs =
 
 /// Parse lines defining a single test.
 /// Return Result is Test object, or list of line numbers and error messages.
-let parseOneTest initStack dataStart testNum lines =
+let parseOneTest initStack dataStart testNum testName lines =
 
     let checkRes, tbLines =
         lines
@@ -112,6 +120,9 @@ let parseOneTest initStack dataStart testNum lines =
         let linkedLines = linkSpecs initStack dataStart testLines 
         { 
             TNum = testNum;
+            TName = String.trim testName
+            TAppendCode = []
+            TRelabelSymbols = []
             Ins = List.collect (function | (TbIn,x) -> [x] | _ -> []) linkedLines
             Outs = List.collect (function | (TbOut,x) -> [x] | _ -> []) linkedLines
             CheckLines = (checkRes |> List.map snd)
@@ -119,6 +130,23 @@ let parseOneTest initStack dataStart testNum lines =
         } |> Ok
     | errors -> Error errors
 
+/// Parse lines defining a single code block.
+/// Return Result is Test object.
+let parseOneBlock blockNum blockName lines =
+    match  lines with
+    | [n,_hdr] -> Error <| [n, sprintf "Code block %d must have at least one line!" blockNum]
+    | _ ->
+        { 
+            TNum = blockNum;
+            TName = String.trim blockName
+            TAppendCode = lines |> List.map snd
+            TRelabelSymbols = []
+            Ins = []
+            Outs = []
+            CheckLines = []
+            InitSP = 0u
+        } |> Ok
+    
 
     
 /// Parse testbench file returning as result list of Tests or errors
@@ -128,15 +156,32 @@ let parseTests initStack dStart lines =
         |> snd
         |> String.splitOnWhitespace 
         |> Array.toList
-        |> (function | "#TEST" :: LITERALNUMB (n,"") :: _ -> parseOneTest initStack dStart (int n) (List.tail chunk)
+        |> (function | "#TEST" :: LITERALNUMB (n, testName) :: _ -> parseOneTest initStack dStart (int n) testName (List.tail chunk)
+                     | "#BLOCK" :: LITERALNUMB (n, blockName) :: _ -> parseOneBlock (int n) blockName chunk
                      | x -> Error [1, sprintf "Can't parse test header '%A'" (List.truncate 2 x)])
     lines
     |> List.map String.trim
     |> List.indexed
     |> List.filter (snd >> (<>) "")
     |> List.tail
-    |> List.chunkAt (snd >> String.startsWith "#TEST")
+    |> List.chunkAt (snd >> (fun lin -> String.startsWith "#TEST" lin || String.startsWith "#BLOCK" lin))
     |> List.map (fun chunk -> parseChunk initStack dStart chunk)
+    |> (fun lst ->
+        let tests = List.filter (function | Ok {TAppendCode = []} | Error _ -> true | _ -> false) lst
+        let getBlock n = List.tryFind (function | Ok {TNum=n'; TAppendCode = x} when x <> [] && n'=n -> true | _ -> false) lst
+        let resolveBlocks (tst:Test) =
+            let specs = 
+                tst.Ins |> List.collect (
+                    function | AddCode(n,body) -> 
+                                getBlock n 
+                                |> function | None | Some (Error _) -> [Error (0, sprintf "Can't find #BLOCK %d" n)]
+                                            | Some (Ok tst) -> [AddCode(n, tst.TAppendCode) |> Ok]
+                             | _ -> [])
+            let errors = List.errorList specs
+            if  errors <> [] then Error errors else Ok {tst with Ins = List.okList specs   }  
+        tests
+        |> List.map (Result.bind resolveBlocks))
+
 
 
 
@@ -144,7 +189,17 @@ let parseTests initStack dStart lines =
 /// test: the Test.
 /// lim: the initial LoadImage created from the memory image of the program being tested.
 /// Return result because a test requiring a subroutine may fail at this stage.
-let initTestDP  (lim: LoadImage) test  (dp: DataPath) =
+let initTestDP  (lim: LoadImage) test =
+    let dp = { 
+                Fl = {
+                        C=false
+                        V=false
+                        N=false
+                        Z=false
+                    }; 
+                Regs=initialRegMap; 
+                MM= lim.Mem
+             }
     let rnd = System.Random()
     let setRand dp rn = Map.add rn (rnd.Next(-1000,1000) |> uint32) dp
     let rMap' = {dp with Regs = Map.add R13 test.InitSP dp.Regs}
@@ -174,14 +229,15 @@ let initTestDP  (lim: LoadImage) test  (dp: DataPath) =
                 dp
                 |> Helpers.setRegRaw R15 subA
                 |> Ok
+        | _, _ -> Ok dp
     let addSpecBound dpRes spec = match dpRes with | Ok dp -> addSpec dp spec | e -> e
     List.fold addSpecBound (Ok rMap') ldSpecs
     |> Result.map (setReg R14 0xFFFFFFFCu)
 
-/// Create a list of errors from a test specification and output DataPath of the tested program.
+/// Create a list of TbCheckResult from a test specification and output DataPath of the tested program.
 /// test: the test specification (which will have generated program inputs)
 /// dp: the Datapath to check against the specification outputs
-let checkTestResults (test:Test) (dp:DataPath) (subRet:bool)=
+let checkTestResults (test:Test) (outDp:DataPath) (subRet:bool) =
     let specs = test.Outs
     let isSubTest =
         List.exists (function | BranchToSub _ -> true | _ -> false) test.Ins
@@ -194,19 +250,19 @@ let checkTestResults (test:Test) (dp:DataPath) (subRet:bool)=
         |> List.map (fun (v,c,sp) -> {Actual=v; Check=c; Spec=sp})
     let checkSpec spec =
         let checkOneLoc (ma,u) =
-            match Map.tryFind (WA ma) dp.MM with
+            match Map.tryFind (WA ma) outDp.MM with
             | Some (Dat u') when u = u' -> []
             | Some (Dat u') -> [{Actual = u; Check = TbMem (ma, Some u'); Spec = spec}]
             | _ -> [{ Actual = u; Check = TbMem (ma, None); Spec = spec}]
         match spec with
-        | TbStackProtected sp when dp.Regs.[R13] <> sp -> [{Actual=0u;Check=TbVal dp.Regs.[R13];Spec= spec} ]
+        | TbStackProtected sp when outDp.Regs.[R13] <> sp -> [{Actual=0u;Check=TbVal outDp.Regs.[R13];Spec= spec} ]
         | TbStackProtected sp ->
-            Map.toList dp.MM
+            Map.toList outDp.MM
             |> List.filter (fun (WA u, mm) -> u >= sp )
             |> List.collect (fun (WA u, mm) -> match mm with | Dat m -> [u,m] | CodeSpace -> [])
             |> List.map (fun (u,m) -> {Actual = 0u; Check = TbMem (u, Some m); Spec = spec})
-        | TbRegEquals(lNum, rn, u) when dp.Regs.[rn] = u -> []
-        | TbRegEquals(lNum, rn, u) -> [{Actual =u; Check = TbVal dp.Regs.[rn]; Spec = spec}]
+        | TbRegEquals(lNum, rn, u) when outDp.Regs.[rn] = u -> []
+        | TbRegEquals(lNum, rn, u) -> [{Actual =u; Check = TbVal outDp.Regs.[rn]; Spec = spec}]
         | TbRegPointsTo(_, rn, start, uLst) ->
             uLst
             |> List.indexed
@@ -215,62 +271,88 @@ let checkTestResults (test:Test) (dp:DataPath) (subRet:bool)=
         | APCS rLst -> 
             rLst
             |> List.collect (fun (rn,u') ->
-                    match u' = dp.Regs.[rn] with
+                    match u' = outDp.Regs.[rn] with
                     | true -> [] 
-                    | false -> [ {Actual=u' ; Check = TbVal dp.Regs.[rn]; Spec = APCS [rn,u'] }])
+                    | false -> [ {Actual=u' ; Check = TbVal outDp.Regs.[rn]; Spec = APCS [rn,u'] }])
         | _ -> []
     specs |> List.collect checkSpec
     |> (fun lst -> exitTest @ lst)
 
-/// Generate one Test of result messages and add them to the testbench buffer.
-/// If no errors mark the Test as Passed.
-/// test: test to add (one of those in the testbench).
+
+
+/// Return code transformed by test.
+/// Transformation is idempotent.
+let transformCodeByTest (code:string list) (test:Test) =
+    let transformHdr = ";##TRANSFORM----------code appended by testbench---------"
+    match code with
+    | s :: _ when String.trim s = transformHdr -> code
+    | _ -> 
+        let labelChanges = List.collect (function | Relabel (ol,nl) -> [ol,nl] | _ -> []) test.Ins
+        let changeLabels code (oldLab,newLab) = 
+            List.map (fun lin -> if String.startsWith oldLab lin 
+                                 then newLab + lin.[oldLab.Length..lin.Length-1] 
+                                 else lin) code
+        let appends = 
+            match test.TAppendCode with
+            | [] -> []
+            | x -> transformHdr :: x
+        let code' = List.fold changeLabels code labelChanges @ appends
+        if code' <> code then
+            let hdrComment = 
+                ["; Code modified by testbench before testing!------"] @
+                (labelChanges |> List.map (fun (ol,nl) -> sprintf ";Testbench has changed label '%s' to '%s'" ol nl)) @
+                [";------student code (with label changes)----------"]
+            hdrComment @ code'
+        else
+            code
+
+/// Take assembler code and run test on it (transforming it if needed as per test).
+/// Return Error if code parse fails.
+/// Return Ok runInfo if parse succeeds.
+let parseCodeAndRunTest (code:string list) (test:Test) = 
+    let lim = reLoadProgram (transformCodeByTest code test)
+    if lim.Errors <> []
+    then 
+        Error (sprintf "%A" lim.Errors)
+    else
+        let dp = initTestDP lim test 
+        match dp with
+        | Ok dp -> getRunInfoFromImageWithInits NoBreak lim dp.Regs dp.Fl Map.empty dp.MM |> Ok 
+        | Error e -> Error e
+        |> Result.map (asmStep maxTestLength)
+
+/// Generate a text line explaining a TbCheckResult error.
+/// Input: TbCheckResult.
+/// Output: string containing error message.
+let displayError {Actual = u: uint32 ; Check = check: tbCheck; Spec = spec:TbSpec}  =
+    match check, spec with
+    | TbVal spAct, TbStackProtected sp -> 
+        sprintf "\t>>- Unbalanced Stack. SP: Actual: %d, Expected: %d" spAct sp
+    | TbMem(adr,act), TbStackProtected sp -> 
+        let actTxt = match act with None -> "None" | Some a -> sprintf "%d" a
+        sprintf "\t>>- Caller Stack [%x] -> Actual: %s." adr actTxt
+    | TbVal act, TbRegEquals(n, reg, v) -> 
+        sprintf "\t>>- %A: Actual: %d, Expected: %d" reg act v
+    | TbMem(adr,act), TbRegPointsTo(n, ptr, start, uLst) -> 
+        let actTxt = match act with None -> "None" | Some a -> sprintf "%d" a
+        let offset = int (adr - start)
+        sprintf "\t>>- [%A,#%d] -> Actual: %s. expected: %d" ptr offset actTxt uLst.[offset/4] 
+    | TbVal act, APCS [rn,exptd] -> sprintf "\t>>- Persistent Register %A -> Actual: %d. expected: %d" rn act exptd
+    | TbRet errMess, _ -> errMess
+    | _ -> failwithf "What?: inconsistent specs and check results"
+
+/// Run a single test and generate pass/fail and text lines summarising result
+/// Return (passed, messages) : (bool * string list).
+/// passed: true if test passes
+/// messages: list of lines suitable for testbench buffer insertion
 /// dp: DataPath after test simulation ends.
-/// Returns true if test has passed.
 let computeTestResults (test:Test) (dp:DataPath) =
     let subRet = dp.Regs.[R15] = 0xFFFFFFFCu
-    let displayError {Actual = u: uint32 ; Check = check: tbCheck; Spec = spec:TbSpec} =
-        match check, spec with
-        | TbVal spAct, TbStackProtected sp -> 
-            sprintf "\t>>- Unbalanced Stack. SP: Actual: %d, Expected: %d" spAct sp
-        | TbMem(adr,act), TbStackProtected sp -> 
-            let actTxt = match act with None -> "None" | Some a -> sprintf "%d" a
-            sprintf "\t>>- Caller Stack [%x] -> Actual: %s." adr actTxt
-        | TbVal act, TbRegEquals(n, reg, v) -> 
-            sprintf "\t>>- %A: Actual: %d, Expected: %d" reg act v
-        | TbMem(adr,act), TbRegPointsTo(n, ptr, start, uLst) -> 
-            let actTxt = match act with None -> "None" | Some a -> sprintf "%d" a
-            let offset = int (adr - start)
-            sprintf "\t>>- [%A,#%d] -> Actual: %s. expected: %d" ptr offset actTxt uLst.[offset/4] 
-        | TbVal act, APCS [rn,exptd] -> sprintf "\t>>- Persistent Register %A -> Actual: %d. expected: %d" rn act exptd
-        | TbRet errMess, _ -> errMess
-        | _ -> failwithf "What?: inconsistent specs and check results"
     let errorLines = 
         checkTestResults test dp subRet
         |> List.map displayError
     let resultLines =
         errorLines
-        |> function | [] -> [sprintf ">>; Test %d PASSED." test.TNum]
+        |> function | [] -> [sprintf "\t>>; Test %d PASSED." test.TNum]
                     | errMess -> sprintf "\t>>- Test %d FAILED." test.TNum :: errMess
     errorLines = [], resultLines
-
-let parseCodeAndRunTest (code:string list) (test:Test) = 
-    let lim = reLoadProgram code
-    if lim.Errors <> []
-    then 
-        Error (sprintf "%A" lim.Errors)
-    else
-        let dp = initTestDP lim test { 
-                Fl = {
-                        C=false
-                        V=false
-                        N=false
-                        Z=false
-                    }; 
-                Regs=initialRegMap; 
-                MM= lim.Mem
-                }
-        match dp with
-        | Ok dp -> getRunInfoFromImageWithInits NoBreak lim dp.Regs dp.Fl Map.empty dp.MM |> Ok 
-        | Error e -> Error e
-        |> Result.map (asmStep maxTestLength)

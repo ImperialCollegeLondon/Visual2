@@ -318,16 +318,7 @@ let mutable lastDisplayStepsDone = 0L
 let getTestRunInfo test codeTid breakCond =
     match tryParseAndIndentCode codeTid with
     | Some (lim, _) -> 
-        let dp = initTestDP lim test { 
-                Fl = {
-                    C=false
-                    V=false
-                    N=false
-                    Z=false
-                }; 
-            Regs=initialRegMap; 
-            MM= lim.Mem
-            }
+        let dp = initTestDP lim test 
         Editors.disableEditors()
         match dp with
         | Ok dp -> getRunInfoFromImageWithInits breakCond lim dp.Regs dp.Fl Map.empty dp.MM |> Ok |> Some
