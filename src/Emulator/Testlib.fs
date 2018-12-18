@@ -100,7 +100,6 @@ let linkSpecs initStack start specs =
     |> List.fold addSpec (start,[]) 
     |> snd
     |> List.rev
-    |> (fun x -> printfn "%A" x; x)
 
 /// Parse lines defining a single test.
 /// Return Result is Test object, or list of line numbers and error messages.
@@ -176,7 +175,7 @@ let parseTests initStack dStart lines =
                                 getBlock n 
                                 |> function | None | Some (Error _) -> [Error (0, sprintf "Can't find #BLOCK %d" n)]
                                             | Some (Ok tst) -> [AddCode(n, tst.TAppendCode) |> Ok]
-                             | _ -> [])
+                             | x -> [Ok x])
             let errors = List.errorList specs
             if  errors <> [] then Error errors else Ok {tst with Ins = List.okList specs   }  
         tests
@@ -242,7 +241,7 @@ let checkTestResults (test:Test) (outDp:DataPath) (subRet:bool) =
     let isSubTest =
         List.exists (function | BranchToSub _ -> true | _ -> false) test.Ins
     let exitTest =
-        printfn "isSubTest=%A, subRet=%A" isSubTest subRet
+        //printfn "isSubTest=%A, subRet=%A" isSubTest subRet
         match isSubTest, subRet with
         | false, false | true, true -> []
         | false, true -> [0u, TbRet "\t>>- Subroutine return detected when normal program end expected", BranchToSub ""]
@@ -353,6 +352,6 @@ let computeTestResults (test:Test) (dp:DataPath) =
         |> List.map displayError
     let resultLines =
         errorLines
-        |> function | [] -> [sprintf "\t>>; Test %d PASSED." test.TNum]
-                    | errMess -> sprintf "\t>>- Test %d FAILED." test.TNum :: errMess
+        |> function | [] -> [sprintf ">\t\t>>; Test %d PASSED." test.TNum]
+                    | errMess -> sprintf ">\t\t>>- Test %d FAILED." test.TNum :: errMess
     errorLines = [], resultLines
