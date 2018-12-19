@@ -17,7 +17,11 @@ type TbCheckResult = { Actual: uint32; Check: tbCheck; Spec: TbSpec}
 type TestResult = {
     TestCoverage: int Set
     TestCycles: int64
-    TestErrors: TbCheckResult
+    TestMsgs: string list
+    TestLines: string list
+    TestOk: bool
+    TestNum: int
+    TestName: string
     }
 
 let maxTestLength = 100000L
@@ -126,6 +130,7 @@ let parseOneTest initStack dataStart testNum testName lines =
             Outs = List.collect (function | (TbOut,x) -> [x] | _ -> []) linkedLines
             CheckLines = (checkRes |> List.map snd)
             InitSP = initStack
+            TestLines = lines |> List.map snd
         } |> Ok
     | errors -> Error errors
 
@@ -144,6 +149,7 @@ let parseOneBlock blockNum blockName lines =
             Outs = []
             CheckLines = []
             InitSP = 0u
+            TestLines = lines |> List.map snd
         } |> Ok
     
 
@@ -355,3 +361,32 @@ let computeTestResults (test:Test) (dp:DataPath) =
         |> function | [] -> [sprintf ">\t\t>>; Test %d PASSED." test.TNum]
                     | errMess -> sprintf ">\t\t>>- Test %d FAILED." test.TNum :: errMess
     errorLines = [], resultLines
+
+/// generate test results by simulating code (possibly transformed by test).
+/// cache overall result for efficiency reasons
+/// Note that simulation results are cached independently of this.
+let runTestOnCode =
+    let runTest' ((test, code): Test * string list) =
+            let testRes = parseCodeAndRunTest code test
+            let tr = {
+                    TestCoverage = Set []
+                    TestCycles = 0L
+                    TestOk = false
+                    TestLines = test.TestLines
+                    TestMsgs = []
+                    TestNum = test.TNum
+                    TestName = test.TName
+                }
+            match testRes with
+            | Error e -> { tr with TestMsgs = [e]}
+            | Ok ri ->
+                let ok, msgs = computeTestResults test (fst ri.dpCurrent)
+                {   tr with
+                        TestCoverage = ri.Coverage
+                        TestCycles = ri.CyclesDone
+                        TestOk = ok
+                        TestMsgs = msgs
+                }
+    let rt = cacheLastN 200 runTest'
+    fun test code -> rt (test,code) 
+    

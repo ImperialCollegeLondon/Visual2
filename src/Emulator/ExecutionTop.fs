@@ -129,6 +129,7 @@ type Test = {
         Outs:TbSpec list; 
         CheckLines: string list; 
         InitSP: uint32
+        TestLines: string list
     }
 
 type TestBenchState = NoTest | Testing of Test list
@@ -470,11 +471,9 @@ let asmStep (numSteps:int64) (ri:RunInfo) =
         let mutable cyclesDone = 0L // number of cycles completed
         let mutable state = PSRunning
         let mutable lastDP = None
-        let mutable lastTi = None
         let mutable stackInfo = []
         let mutable running = true // true if no error has yet happened
         let mutable coverage = ri.Coverage
-        let breakCondition = ri.BreakCond
 
         /// record branches and returns for display and break conditions.
         /// stackInfo is list of StackI that record sp and return or target address
