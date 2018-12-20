@@ -28,11 +28,20 @@ let maxTestLength = 100000L
 
 let parseTbLine lNum (lin:string) =
 
-    let apcsRegs rNumLst =
+    let apcsRegs rLst =
         let rnd = System.Random()
-        rNumLst
-        |> List.map register
+        rLst
         |> List.map (fun rn -> rn, rnd.Next(-100,100) |> uint32)
+
+    let (|RESOLVEREGS|_|) lst =
+        let ops = 
+            String.concat " " lst
+            |> String.splitString [|","|] 
+            |> Array.map String.trim
+            |> Array.toList
+        let parseL = List.map parseRegister ops
+        let regs = List.okList parseL
+        if regs.Length = parseL.Length then Some regs else None
 
     let (|RESOLVE|_|) lst =
         let ops = 
@@ -62,7 +71,9 @@ let parseTbLine lNum (lin:string) =
     | UPPER "OUT" :: Defs tbSpec -> [Ok (TbOut, tbSpec)]
     | UPPER "STACKPROTECT" :: _ -> [Ok(TbOut, TbStackProtected 0u)]
     | UPPER "DATAAREA" :: LITERALNUMB (lit,"") :: _ -> [Ok(TbIn, TbSetDataArea lit)]
-    | UPPER "PERSISTENTREGS" :: RESOLVE lits -> [Ok(TbIn, APCS (apcsRegs (lits |> List.map int)))]
+    | UPPER "PERSISTENTREGS" :: RESOLVEREGS regs -> 
+        let regVals = apcsRegs regs
+        [Ok(TbIn, APCS regVals); Ok(TbOut, APCS regVals)]
     | [UPPER "RANDOMISEINITVALS"]->  [Ok (TbIn, RandomiseInitVals)]
     | [UPPER "BRANCHTOSUB"; subName] -> [Ok (TbIn, BranchToSub subName)]
     | [UPPER "RELABEL" ; symName ; newSymName] -> [Ok (TbIn, Relabel( symName, newSymName))]
@@ -358,8 +369,8 @@ let computeTestResults (test:Test) (dp:DataPath) =
         |> List.map displayError
     let resultLines =
         errorLines
-        |> function | [] -> [sprintf ">\t\t>>; Test %d PASSED." test.TNum]
-                    | errMess -> sprintf ">\t\t>>- Test %d FAILED." test.TNum :: errMess
+        |> function | [] -> [sprintf ">>; \t\tTest %d PASSED." test.TNum]
+                    | errMess -> sprintf ">>- \t\tTest %d FAILED." test.TNum :: errMess
     errorLines = [], resultLines
 
 /// generate test results by simulating code (possibly transformed by test).
