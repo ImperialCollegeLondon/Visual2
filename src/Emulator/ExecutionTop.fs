@@ -523,7 +523,7 @@ let asmStep (numSteps:int64) (ri:RunInfo) =
             | (lNum, Some ci), Result.Ok (dp',_), Some (dp,_) -> 
                 coverage <- Set.add lNum coverage
                 recordStack dp' dp ci.InsOpCode lNum
-            | _ -> ()
+            | (lNum, _),_,_ -> coverage <- Set.add lNum coverage
 
         {
             ri with 

@@ -333,8 +333,8 @@ let parseCodeAndRunTest (code:string list) (test:Test) =
     else
         let dp = initTestDP lim test 
         match dp with
-        | Ok dp -> getRunInfoFromImageWithInits NoBreak lim dp.Regs dp.Fl Map.empty dp.MM |> Ok 
-        | Error e -> Error e
+        | Ok dp -> Ok <| getRunInfoFromImageWithInits NoBreak lim dp.Regs dp.Fl Map.empty dp.MM 
+        | Error e -> Error <| ">>-" + e
         |> Result.map (asmStep maxTestLength)
 
 /// Generate a text line explaining a TbCheckResult error.
