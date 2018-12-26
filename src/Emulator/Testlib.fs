@@ -85,6 +85,72 @@ let parseTbLine lNum (lin:string) =
     | _ -> 
         [Error (lNum,"Parse Error in testbench")]
 
+/// Return pseudo-random register values for input seed./// Use own generator for deterministic compatiblity F# and FABLE
+let calcInitRands seed =
+    let ms seed =
+        let state = ref seed
+        (fun (_:unit) ->
+            state := (214013 * !state + 2531011) &&& System.Int32.MaxValue
+            !state / (1<<<16))
+    let rnd = ms seed
+    [0..15] |> List.map (fun n -> register n, ((rnd() % 1000) |> uint32)) |> Map.ofList
+
+
+
+        
+/// Make the initial dataPath (containing test inputs) from image data and Test.
+/// test: the Test.
+/// lim: the initial LoadImage created from the memory image of the program being tested.
+/// Return result because a test requiring a subroutine may fail at this stage.
+let initTestDP  (mm: DataMemory, symTab: Expressions.SymbolTable) test =
+    let initRands = calcInitRands test.TNum
+    let setRegRandom dp rn = 
+        Map.add rn initRands.[rn] dp
+    let dp = { 
+                Fl = {
+                        C=false
+                        V=false
+                        N=false
+                        Z=false
+                    }; 
+                Regs=initialRegMap; 
+                MM= mm
+             }
+    let rMap' = {dp with Regs = Map.add R13 test.InitSP dp.Regs}
+    let ldSpecs = [
+                    test.Ins 
+                    |> List.sortBy (function | APCS _ | RandomiseInitVals -> 0 | _ -> 1)
+                    |> List.map (fun sp -> TbIn,sp)
+
+                    test.Outs 
+                    |> List.map (fun sp -> TbOut,sp)
+                  ] |> List.concat
+    let addSpec dp (inout,spec) =
+        match inout,spec with
+        | TbOut, TbRegEquals(_, rn,u) -> Ok dp
+        | TbIn, TbRegEquals(_, rn,u) -> Ok {dp with Regs = Map.add rn u dp.Regs}
+        | tbio,TbRegPointsTo(_, rn, start, uLst) ->
+            let mm' = ExecutionTop.addWordDataListToMem start dp.MM (uLst |> List.map Dat)
+            let dp' = Map.add rn start dp.Regs
+            Ok {dp with Regs = dp'; MM = (match tbio with | TbIn -> mm' | TbOut -> dp.MM)}
+        | _, TbStackProtected _u -> Ok dp
+        | TbIn, APCS rLst -> 
+            let rm = List.fold (fun regs (rn,u) -> setRegRandom regs rn) dp.Regs rLst
+            Ok {dp with Regs = rm}
+        | _, TbSetDataArea u -> Ok dp
+        | _, RandomiseInitVals -> Ok {dp with Regs = List.fold setRegRandom dp.Regs [R0;R1;R2;R3;R4;R5;R6;R7;R8;R9;R10;R11;R12]}
+        | _, BranchToSub subName -> 
+            let subAddr = Map.tryFind subName symTab
+            match subAddr with
+            | None -> Error (sprintf "Can't find subroutine '%s' required by test specification" subName)
+            | Some subA ->
+                dp
+                |> Helpers.setRegRaw R15 subA
+                |> Ok
+        | _, _ -> Ok dp
+    let addSpecBound dpRes spec = match dpRes with | Ok dp -> addSpec dp spec | e -> e
+    List.fold addSpecBound (Ok rMap') ldSpecs
+    |> Result.map (setReg R14 0xFFFFFFFCu)
 
 
 
@@ -94,7 +160,6 @@ let parseTbLine lNum (lin:string) =
 let linkSpecs initStack start specs =
     let addSpec (start,linkedSpecs) (inOut,spec) =
         match spec with
-        | TbRegEquals(_lNum, rn,u) -> start, (inOut, spec) :: linkedSpecs
         | TbRegPointsTo(lNum, rn, _start, uLst) ->
             let rnOtherPntOpt = List.collect (function | _, TbRegPointsTo(_,rn',pnt,_) when rn' = rn -> [pnt] | _ -> []) linkedSpecs
             let start', pnt' =
@@ -104,17 +169,19 @@ let linkSpecs initStack start specs =
             start', (inOut, TbRegPointsTo(lNum, rn, pnt', uLst)) :: linkedSpecs
         | TbStackProtected _ -> start, (inOut, TbStackProtected initStack) :: linkedSpecs
         | TbSetDataArea u -> u, (inOut, TbSetDataArea u) :: linkedSpecs
-        | APCS regs -> start, (inOut, APCS regs) :: linkedSpecs
         // no linkage required for these specs
-        | RandomiseInitVals
+        | TbRegEquals _ 
+        | APCS _ 
+        | RandomiseInitVals _
         | AddCode _ 
         | Relabel _
         | BranchToSub _ -> start, (inOut,spec) :: linkedSpecs
     specs
-    |> List.sortBy (function | _,RandomiseInitVals -> 0 | _ -> 1)
     |> List.fold addSpec (start,[]) 
     |> snd
     |> List.rev
+    |> (fun spL -> spL)
+            //let regs = initTestDp (Map.empty,Map.empty) spL
 
 /// Parse lines defining a single test.
 /// Return Result is Test object, or list of line numbers and error messages.
@@ -142,7 +209,16 @@ let parseOneTest initStack dataStart testNum testName lines =
             CheckLines = (checkRes |> List.map snd)
             InitSP = initStack
             TestLines = lines |> List.map snd
-        } |> Ok
+        }
+        |> (fun test -> // use final register input values to set PERSISTENTREGS checks
+                initTestDP (Map.empty,Map.empty) {test with Ins = List.collect (function | BranchToSub _ -> [] | sp -> [sp]) test.Ins}
+                |> Result.map (fun dp ->  
+                    let setAPCSVals = List.map (fun (rn,uv) -> rn, dp.Regs.[rn])
+                    let outs' = List.map (function | APCS rvL -> APCS (setAPCSVals rvL) | spec -> spec) test.Outs
+                    {test with Outs = outs'})
+                |> Result.mapError (fun s -> 
+                    printfn "initDP failed with: %s" s
+                    failwithf "What? Should never get error from early eval of dp"))
     | errors -> Error errors
 
 /// Parse lines defining a single code block.
@@ -201,54 +277,6 @@ let parseTests initStack dStart lines =
 
 
 
-/// Make the initial dataPath (containing test inputs).
-/// test: the Test.
-/// lim: the initial LoadImage created from the memory image of the program being tested.
-/// Return result because a test requiring a subroutine may fail at this stage.
-let initTestDP  (lim: LoadImage) test =
-    let dp = { 
-                Fl = {
-                        C=false
-                        V=false
-                        N=false
-                        Z=false
-                    }; 
-                Regs=initialRegMap; 
-                MM= lim.Mem
-             }
-    let rnd = System.Random()
-    let setRand dp rn = Map.add rn (rnd.Next(-1000,1000) |> uint32) dp
-    let rMap' = {dp with Regs = Map.add R13 test.InitSP dp.Regs}
-    let ldSpecs = [
-                    test.Ins |> List.map (fun sp -> TbIn,sp)
-                    test.Outs |> List.map (fun sp -> TbOut,sp)
-                  ] |> List.concat
-    let addSpec dp (inout,spec) =
-        match inout,spec with
-        | TbOut, TbRegEquals(_, rn,u) -> Ok dp
-        | TbIn, TbRegEquals(_, rn,u) -> Ok {dp with Regs = Map.add rn u dp.Regs}
-        | tbio,TbRegPointsTo(_, rn, start, uLst) ->
-            let mm' = ExecutionTop.addWordDataListToMem start dp.MM (uLst |> List.map Dat)
-            let dp' = Map.add rn start dp.Regs
-            Ok {dp with Regs = dp'; MM = (match tbio with | TbIn -> mm' | TbOut -> dp.MM)}
-        | _, TbStackProtected _u -> Ok dp
-        | _, APCS rLst -> 
-            let rm = List.fold (fun regs (rn,u) -> Map.add rn u regs) dp.Regs rLst
-            Ok {dp with Regs = rm}
-        | _, TbSetDataArea u -> Ok dp
-        | _, RandomiseInitVals -> Ok {dp with Regs = List.fold setRand dp.Regs [R0;R1;R2;R3;R4;R5;R6;R7;R8;R9;R10;R11;R12]}
-        | _, BranchToSub subName -> 
-            let subAddr = Map.tryFind subName lim.SymInf.SymTab
-            match subAddr with
-            | None -> Error (sprintf "Can't find subroutine '%s' required by test specification" subName)
-            | Some subA ->
-                dp
-                |> Helpers.setRegRaw R15 subA
-                |> Ok
-        | _, _ -> Ok dp
-    let addSpecBound dpRes spec = match dpRes with | Ok dp -> addSpec dp spec | e -> e
-    List.fold addSpecBound (Ok rMap') ldSpecs
-    |> Result.map (setReg R14 0xFFFFFFFCu)
 
 /// Create a list of TbCheckResult from a test specification and output DataPath of the tested program.
 /// test: the test specification (which will have generated program inputs)
@@ -331,7 +359,7 @@ let parseCodeAndRunTest (code:string list) (test:Test) =
     then 
         Error (sprintf "%A" lim.Errors)
     else
-        let dp = initTestDP lim test 
+        let dp = initTestDP (lim.Mem, lim.SymInf.SymTab) test 
         match dp with
         | Ok dp -> Ok <| getRunInfoFromImageWithInits NoBreak lim dp.Regs dp.Fl Map.empty dp.MM 
         | Error e -> Error <| ">>-" + e
@@ -343,7 +371,7 @@ let parseCodeAndRunTest (code:string list) (test:Test) =
 let displayError {Actual = u: uint32 ; Check = check: tbCheck; Spec = spec:TbSpec}  =
     match check, spec with
     | TbVal spAct, TbStackProtected sp -> 
-        sprintf "\t>>- Unbalanced Stack. SP: Actual: %d, Expected: %d" spAct sp
+        sprintf "\t>>- Unbalanced Stack. SP: Actual: %x, Expected: %x" spAct sp
     | TbMem(adr,act), TbStackProtected sp -> 
         let actTxt = match act with None -> "None" | Some a -> sprintf "%d" a
         sprintf "\t>>- Caller Stack [%x] -> Actual: %s." adr actTxt
@@ -353,7 +381,7 @@ let displayError {Actual = u: uint32 ; Check = check: tbCheck; Spec = spec:TbSpe
         let actTxt = match act with None -> "None" | Some a -> sprintf "%d" a
         let offset = int (adr - start)
         sprintf "\t>>- [%A,#%d] -> Actual: %s. expected: %d" ptr offset actTxt uLst.[offset/4] 
-    | TbVal act, APCS [rn,exptd] -> sprintf "\t>>- Persistent Register %A -> Actual: %d. expected: %d" rn act exptd
+    | TbVal act, APCS [rn,exptd] -> sprintf "\t>>- Persistent Register %A -> Actual: %d. expected: %d" rn (int32 act) (int32 exptd)
     | TbRet errMess, _ -> errMess
     | _ -> failwithf "What?: inconsistent specs and check results"
 
