@@ -336,9 +336,11 @@ module Memory
                         |> List.map checker
                         |> condenseResultList (id)
                         |> Result.bind ( fun lst ->
+                            let makeListError wanted = makeParseError wanted (String.concat "," regList) ""
                             let lst' = List.distinct lst
                             if lst.Length <> lst'.Length 
-                            then makeParseError "Register list without duplicates" (String.concat "," regList) ""
+                            then makeListError "Register list without duplicates"
+                            elif List.contains rOp1 lst then makeListError <| sprintf "Register list not containing index register '%A'" rOp1
                             else Ok lst')
                         |> Result.map (List.distinct >> List.sortBy (fun rn -> rn.RegNum))
 
