@@ -1,4 +1,4 @@
-(* 
+(*
     High Level Programming @ Imperial College London # Spring 2018
     Project: A user-friendly ARM emulator in F# and Web Technologies ( Github Electron & Fable Compiler )
     Module: Renderer.Renderer
@@ -6,8 +6,8 @@
 *)
 
 /// Top-level renderer process function: calls everything else
-module Renderer
 
+module Renderer
 open Fable.Core
 open Fable.Core.JsInterop
 open Fable.Import
@@ -24,9 +24,9 @@ open MenuBar
 /// set from command line arguments of main process.
 /// 0 => production. 1 => dev. 2 => debug.
 let setDebugLevel() =
-    let argV = 
-        electron.remote.``process``.argv 
-        |> Seq.toList 
+    let argV =
+        electron.remote.``process``.argv
+        |> Seq.toList
         |> List.tail
         |> List.map (fun s -> s.ToLower())
     let isArg s = List.contains s argV
@@ -57,53 +57,53 @@ let resizeGUI() =
 
 /// Initialization after `index.html` is loaded.
 /// Equivalent of main() function
-let init () =
+let init() =
 
     setDebugLevel()
     printfn "Debug level = %d" debugLevel
     // Show the body once we are ready to go!
     document.getElementById("vis-body").classList.remove("invisible")
-    
+
     // Set up window close interlock using IPC from/to main process
-    electron.ipcRenderer.on("closingWindow", (fun (event) ->
-        MenuBar.ExitIfOK ()        
+    electron.ipcRenderer.on ("closingWindow", (fun event ->
+        MenuBar.ExitIfOK()
         )) |> ignore
-    
-    electron.ipcRenderer.on("resizeWindow", (fun (event) ->
-        resizeGUI ()        
+
+    electron.ipcRenderer.on ("resizeWindow", (fun event ->
+        resizeGUI()
         )) |> ignore
 
 
 
 
     // Actions for the buttons
-    Refs.openFileBtn.addEventListener_click (fun _ -> MenuBar.interlock "open file" MenuBar.openFile )
-    
-    Refs.saveFileBtn.addEventListener_click (fun _ -> MenuBar.interlock "save file" Files.saveFile) 
-    
+    Refs.openFileBtn.addEventListener_click (fun _ -> MenuBar.interlock "open file" MenuBar.openFile)
+
+    Refs.saveFileBtn.addEventListener_click (fun _ -> MenuBar.interlock "save file" Files.saveFile)
+
     Refs.runSimulationBtn.addEventListener_click (fun _ ->
         Stats.readOnlineInfo Stats.RunningCode
         Integration.runCode ExecutionTop.NoBreak () :> obj
     )
-    stepForwardBtn.addEventListener_click(fun _ ->
-        Integration.stepCode ()  :> obj
+    stepForwardBtn.addEventListener_click (fun _ ->
+        Integration.stepCode() :> obj
     )
-    stepBackBtn.addEventListener_click(fun _ ->
-        Integration.stepCodeBack () :> obj
+    stepBackBtn.addEventListener_click (fun _ ->
+        Integration.stepCodeBack() :> obj
     )
 
-    resetSimulationBtn.addEventListener_click(fun _ ->
+    resetSimulationBtn.addEventListener_click (fun _ ->
         let tabId = Refs.currentFileTabId
         if tabId >= 0 then
-            Refs.editors.[tabId]?focus()
-        Integration.resetEmulator() :>  obj
+            Refs.editors.[tabId]?focus ()
+        Integration.resetEmulator() :> obj
     )
 
     mapClickAttacher repToId Refs.representation (fun rep ->
         Browser.console.log (sprintf "Representation changed to %A" rep) |> ignore
         Views.setRepresentation rep |> ignore
-        Views.updateMemory ()
-        Views.updateSymTable () :> obj
+        Views.updateMemory()
+        Views.updateSymTable() :> obj
     )
 
     mapClickAttacher viewToIdTab Refs.viewTab (fun view ->
@@ -113,14 +113,14 @@ let init () =
 
     (Refs.byteViewBtn).addEventListener_click(fun _ ->
         Browser.console.log "Toggling byte view" |> ignore
-        Views.toggleByteView ()
-        Views.updateMemory () :> obj
+        Views.toggleByteView()
+        Views.updateMemory() :> obj
     )
 
     (Refs.reverseViewBtn).addEventListener_click(fun _ ->
         Browser.console.log "Toggling reverse view" |> ignore
-        Views.toggleReverseView ()
-        Views.updateMemory () :> obj
+        Views.toggleReverseView()
+        Views.updateMemory() :> obj
     )
 
     (Refs.newFileTab).addEventListener_click(fun _ ->
@@ -131,7 +131,7 @@ let init () =
     MenuBar.mainMenu()
 
     // Create an empty tab to start with
-    Tabs.createFileTab () |> ignore
+    Tabs.createFileTab() |> ignore
     printfn "Ending renderer init"
     vSettings <- checkSettings (getJSONSettings())
     Editors.updateAllEditors false
@@ -142,26 +142,26 @@ let init () =
 
 /// top-level function that runs the renderer code
 let handleMonacoReady = { new EventListenerObject with
-    member x.handleEvent (_: Event) = init () 
-}
+    member x.handleEvent (_ : Event) = init()
+ }
 
 let handlePreventDefault = { new EventListenerObject with
-    member x.handleEvent (e: Event) = e.preventDefault()
-}
+    member x.handleEvent (e : Event) = e.preventDefault()
+ }
 
 
 let handleDrop = { new EventListenerObject with
-    member x.handleEvent (e: Event) = 
+    member x.handleEvent (e : Event) =
         e.preventDefault()
         let files = (e :?> DragEvent).dataTransfer.files
-        let num  = (files.length |> int)
+        let num = (files.length |> int)
         let paths =
-                [0..num-1]
-                |> List.map (fun s-> files.[s]?path)
-        interlock "open files" (fun () -> openListOfFiles paths |> ignore) |> ignore      
-}
+                [ 0..num - 1 ]
+                |> List.map (fun s -> files.[s]?path)
+        interlock "open files" (fun () -> openListOfFiles paths |> ignore) |> ignore
+ }
 
-document.addEventListener("monaco-ready", U2.Case2 handleMonacoReady)
-document.addEventListener("dragover", U2.Case2 handlePreventDefault)
-document.addEventListener("drop", U2.Case2 handleDrop)
+document.addEventListener ("monaco-ready", U2.Case2 handleMonacoReady)
+document.addEventListener ("dragover", U2.Case2 handlePreventDefault)
+document.addEventListener ("drop", U2.Case2 handleDrop)
 
