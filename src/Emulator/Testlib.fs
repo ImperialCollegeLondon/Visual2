@@ -5,7 +5,7 @@
     Description: File for self-contained test code and checking FABLE compiler bugs
 *)
 
-module Testlib
+module TestLib
 
 open EEExtensions
 open Helpers

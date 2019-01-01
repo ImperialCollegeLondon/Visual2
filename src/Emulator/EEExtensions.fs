@@ -222,6 +222,13 @@ module String =
             //Some (List.head mLst, List.tail mLst)
         else None
 
+    /// convert a System.XXX numeric parse function to idiomatic F# option.
+    /// e.g. String.TryParsewith System.Int32 will return Some n on successful Int32 parse or None.
+    [<CompiledName("TryParseWith")>]
+    let tryParseWith (tryParseFunc: string -> bool*'T) = tryParseFunc >> function
+        | true, v    -> Some v
+        | false, _   -> None
+
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 [<RequireQualifiedAccess>]
@@ -270,12 +277,6 @@ module List =
     let splitResult resL =
         List.fold (fun (rl,el) -> function | Error e -> rl, e :: el | Ok r -> r :: rl, el) ([],[]) resL
 
-    /// convert a System.XXX numeric parse function to idiomatic F# option.
-    /// e.g. String.tryParsewith System.Int32 will return Some n on successful Int32 parse or None.
-    [<CompiledName("TryParseWith")>]
-    let tryParseWith (tryParseFunc: string -> bool*'T) = tryParseFunc >> function
-        | true, v    -> Some v
-        | false, _   -> None
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 [<RequireQualifiedAccess>]

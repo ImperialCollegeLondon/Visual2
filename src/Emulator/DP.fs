@@ -343,7 +343,8 @@ let parseOp2 (subMode : InstrNegativeLiteralMode) (symTable : SymbolTable) (args
     | [] -> makeFormatError "Error in flexible op2" "operands ended too early" "flexop2"
     | [ imm ] when isValidNumericExpression symTable imm ->
         makeFormatError "Literal constants in instruction operands require '#' prefix" imm "flexop2"
-    | ops -> makeFormatError "Valid op2 consists of: immediate, register, register with shift expression" (String.concat "," ops) "flexop2"
+    | ops -> 
+        makeFormatError "Valid op2 consists of: immediate, register, register with shift expression" (String.concat "," ops) "flexop2"
 
 
 /// make an instruction that has the form "XXX op1, flexop2"
