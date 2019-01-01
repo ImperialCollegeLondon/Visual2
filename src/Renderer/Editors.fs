@@ -255,9 +255,9 @@ let toolTipInfo (v : int, orientation : string)
                     TROWS <| if isIncr then [] else [ "Offset"; (offset |> sprintf "%+d") ]
                     TROWS [ "Increment"; (if isIncr then offset else 0) |> (fun n -> sprintf "%+d" n) ]
                     TROWS [ "Data"; match ins.LSType with
-                                   | LOAD -> match mData with | Ok dat -> dat | _ -> 0u
-                                   | STORE -> dp.Regs.[ins.Rd]
-                                   |> fun d ->
+                                    | LOAD -> match mData with | Ok dat -> dat | _ -> 0u
+                                    | STORE -> dp.Regs.[ins.Rd]
+                                    |> fun d ->
                                         match ins.MemSize with
                                         | MWord -> sprintf "0x%08X" d
                                         | MByte -> sprintf "0x%02X" ((uint32 d) % 256u) ]

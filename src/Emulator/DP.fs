@@ -110,17 +110,17 @@ let evalOp2 op2 d =
                         then src, false
                         else rotateRight src (int (shiftBy % 32u)), (src >>> int ((shiftBy - 1u) % 32u)) &&& 1u = 1u
         // carry is always unchanged if no shift happens
-        newVal, ( if shiftBy <> 0u then { Ca = carryBit; CaU = true } else toUCarry d.Fl.C
+        newVal, ( if shiftBy <> 0u then { Ca = carryBit; CaU = true } else toUCarry d.Fl.C)
 
-    ) let evalNumberLiteral (l : uint32) rot sub oldC =
+    let evalNumberLiteral (l : uint32) rot sub oldC =
         let u, carry = evalShift (uint32 l) ROR rot
         match sub with
         | NoNegLit -> u
         | InvertedLit -> ~~~u
         | NegatedLit -> (uint32 -(int u))
-        |> fun u -> u, ( if rot = 0u then toUCarry oldC else carry
+        |> fun u -> u, ( if rot = 0u then toUCarry oldC else carry)
 
-    ) match op2 with
+    match op2 with
     | NumberLiteral(l, rot, sub) -> evalNumberLiteral l (uint32 rot) sub d.Fl.C // carry possibly is changed
     | RegisterWithShift(rSrc, shiftType, shiftBy) -> evalShift d.Regs.[rSrc] shiftType shiftBy
     | RegisterWithRRX rSrc -> evalRrx d.Regs.[rSrc] d.Fl.C
