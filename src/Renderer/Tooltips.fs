@@ -183,8 +183,8 @@ let textInBox (width, height) (boxClass : string) (txtClass : string) (rhTopX, r
             SVGAttr.Height(fS height)
             SVGAttr.Width(fS width)
             !!("dominantBaseline", "middle") //align vertically on centre
-                                      SVGAttr.TextAnchor "middle" // align horizontally on centre
-                                      !!("className", boxClass)
+            SVGAttr.TextAnchor "middle" // align horizontally on centre
+            !!("className", boxClass)
         ] []
         text [
             X(rhTopX + width / 2.0 |> fS);
