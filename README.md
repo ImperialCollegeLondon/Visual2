@@ -149,9 +149,11 @@ It works around the fact that _packaging tools_ do not understand the non-standa
 
 ## Getting Started
 
+If you just want to run Visual2 go to the [binaries repo](https://github.com/tomcl/V2releases)
+
 1. Follow instructions to install [yarn](https://yarnpkg.com/lang/en/docs/install/) (which tell you to install Node as well).
 
-2. Download and install the latest (> 2.0) [Dotnet Core SDK](https://www.microsoft.com/net/learn/get-started).  
+2. Download and install the latest (2.x) [Dotnet Core SDK](https://www.microsoft.com/net/learn/get-started).  
 For Mac users, download and install [Mono](http://www.mono-project.com/download/stable/) from official website (the version from brew is incomplete, may lead to MSB error on step 7).
 
 3. Download & unzip the Visual2 repo, or if contributing clone it locally, or fork it on github and then clone it locally.
@@ -159,7 +161,7 @@ For Mac users, download and install [Mono](http://www.mono-project.com/download/
 4. Navigate to the project root directory (which contains this README) in a command-line interpreter. For Windows usage make sure if possible for convenience that you have a _tabbed_ command-line interpreter that can be started direct from file explorer within a specific directory (by right-clicking on the explorer directory view). That makes things a lot more pleasant. I recommend [_Hyper_](https://github.com/zeit/hyper/releases), for example, runs multiple tabs and will split window between two tabs, great for running start and launch scripts concurrently in a single window. Beware that under Windows `Hyper` uses `ctrl-shift-C`, `ctrl-shift-V` for copy and paste.
 
 
-5. Fetch the required `npm` packages by executing `yarn install`. This project consistently uses `yarn` Node package manager instead of the older and less competent `npm`.
+5. Fetch the required `npm` packages by executing `yarn install`. This project consistently uses `yarn` Node package manager instead of `npm`.
 
 6. On macOS or linux ensure you have [paket installed](https://fsprojects.github.io/Paket/installation.html). Run `setup.bat` (on Windows) or `sh setup.sh` (on linux or macOS). This downloads and updates the submodules, and installs their packages individually (necessary because of the submodule structure), then restores the global packages. On other systems run the statements in this file (modified if needed for your system) individually. If MSB error occur while running the script (on macOS) and you were using Mono installed by brew previously, run `brew uninstall mono` and refer to step 2 for install Mono correctly).
 
@@ -169,7 +171,7 @@ For Mac users, download and install [Mono](http://www.mono-project.com/download/
 
 9. Open your `electron` app in a new terminal tab by running `yarn launch`. This command will start the application and also _hot reload_ it whenever source files are recompiled, or CSS files changed. Therefore it normally also runs continuously through development. The total time from saving an updated F# source file to reload is typically 5s. Make sure you have this development environment working effectively for you: an HD screen without scaling is helpful because it allows your editor, the Visual2 app, and the command windows all to be visible simultaneously. Using *Hyper* `File->Split Horizontally is useful to run `lauch` and `start` concurrently.
 
-10. Run `yarn pack-win, yarn pack-linux, yarn pack-osx` at any time to create a set of system-specific self-contained binaries in `./dist/os-name/*` and a zip in `./dist`. Each binary distribution consists of a portable directory with all dependencies, so use the appropriate one of these if you just want to run Visual2 and do not need to develop code.  Note that some host-target combinations will not correctly generate.
+10. Run `yarn pack-win, yarn pack-linux, yarn pack-osx` at any time to create a set of system-specific self-contained binaries in `./dist/os-name/*` and a zip in `./dist`. Each binary distribution consists of a portable directory with all dependencies, so use the appropriate one of these if you just want to run Visual2 and do not need to develop code.  Note that some host-target combinations will not correctly generate: `pack-osx must be executed on os-x. See also [binaries repo](https://github.com/tomcl/V2releases) for instructions on how to run binaries for different platforms.
 
 11. To see console debug printout etc from the running Visual2 app press `Ctrl-Shift-I` to toggle electron dev tools on and note that any F# printout and errors will be displayed under the console tab.
 
@@ -198,7 +200,7 @@ Useful shortcuts for specific common target OS:
 * `yarn pack-osx` (macOS - but see below if running from windows host)
 * `yarn pack-win` (windows)
 * `yarn pack-linux` (linux)
-* `./run-packager-all.bat`. For windows hosts runs `yarn pack-all` with admin priviledges needed to generate macOS binaries (but note these cannot be packaged as dmg except on a mac).
+
 
 **Note on macOS binaries**. These cannot be packaged as DMG (and therefore used) except on a macOS host. On macOS you need to run `yarn make-osx-dmg` which will FIRST run `yarn pack-osx` and then generate the macOS DMG file as `./dist/visual2-osx.dmg`. 
 
