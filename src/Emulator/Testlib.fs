@@ -338,9 +338,8 @@ let checkTestResults (test : Test) (outDp : DataPath) (subRet : bool) =
 /// Transformation is idempotent.
 let transformCodeByTest (code : string list) (test : Test) =
     let transformHdr = ";##TRANSFORM----------code appended by testbench---------"
-    match code with
-    | s :: _ when String.trim s = transformHdr -> code
-    | _ ->
+    if List.exists (fun s -> String.trim s = transformHdr) code then code
+    else
         let labelChanges = List.collect (function | Relabel(ol, nl) -> [ ol, nl ] | _ -> []) test.Ins
         let changeLabels code (oldLab, newLab) =
             List.map (fun lin -> if String.startsWith oldLab lin
@@ -359,6 +358,11 @@ let transformCodeByTest (code : string list) (test : Test) =
             hdrComment @ code'
         else
             code
+    |> (fun code -> 
+        //printfn "%s" (String.concat "\r\n" code); 
+        //System.Console.ReadKey() 
+        //|> ignore; 
+        code)
 
 /// Take assembler code and run test on it (transforming it if needed as per test).
 /// Return Error if code parse fails.
