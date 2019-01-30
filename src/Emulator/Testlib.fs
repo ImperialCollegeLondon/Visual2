@@ -337,12 +337,15 @@ let checkTestResults (test : Test) (outDp : DataPath) (subRet : bool) =
 /// Return code transformed by test.
 /// Transformation is idempotent.
 let transformCodeByTest (code : string list) (test : Test) =
+    let startsWith (lab:string) (s:string) =
+       let s' = s.Trim()
+       s = lab || s.StartsWith (lab + " ") || s.StartsWith(lab + "\t") 
     let transformHdr = ";##TRANSFORM----------code appended by testbench---------"
     if List.exists (fun s -> String.trim s = transformHdr) code then code
     else
         let labelChanges = List.collect (function | Relabel(ol, nl) -> [ ol, nl ] | _ -> []) test.Ins
         let changeLabels code (oldLab, newLab) =
-            List.map (fun lin -> if String.startsWith oldLab lin
+            List.map (fun lin -> if startsWith oldLab lin
                                  then newLab + lin.[oldLab.Length..lin.Length - 1]
                                  else lin) code
         let appends =
