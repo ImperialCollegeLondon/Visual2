@@ -18,6 +18,7 @@ module Helpers
 
     let pipeShow mess x = printfn "%s:%A" mess x; x
 
+
     /// Visuals apparent minimum data address may be useful?
     let minAddress = 0x100u
     /// Word Length 4 bytes

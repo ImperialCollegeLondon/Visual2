@@ -436,6 +436,8 @@ let runTestOnCode =
                 }
             match testRes with
             | Error e -> { tr with TestMsgs = [ e ] }
+            | Ok {State = ProgState.PSError (Errors.``Run time error``(n,s))} -> 
+                {tr with TestMsgs = [sprintf ">>- Run time error at memory address 0x%x: %s" n s]}
             | Ok ri ->
                 let ok, msgs = computeTestResults test (fst ri.dpCurrent)
                 { tr with
