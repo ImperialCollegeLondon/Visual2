@@ -1,8 +1,8 @@
 ﻿(*
     VisUAL2 @ Imperial College London
     Project: A user-friendly ARM emulator in F# and Web Technologies ( Github Electron & Fable Compiler )
-    Module: Renderer.Playground
-    Description: File for self-contained test code and checking FABLE compiler bugs
+    Module: Emulator.TestLib
+    Description: Low-level library types and functions for implementing file-based testbenches
 *)
 
 module TestLib
