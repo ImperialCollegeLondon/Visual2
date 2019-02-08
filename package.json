@@ -18,6 +18,7 @@
     "make-osx-dmg": "yarn electron-installer-dmg --overwrite --icon=app/visual.ico.icns dist/visual2-darwin-x64 dist/visual2-osx"
   },
   "dependencies": {
+    "lodash": ">=4.17.11",
     "babel-plugin-transform-runtime": "^6.23.0",
     "babel-runtime": "^6.26.0",
     "copyfiles": "^2.0.0",
