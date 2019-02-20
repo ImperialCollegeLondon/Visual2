@@ -26,6 +26,8 @@ open System.Drawing
 //                            HELPER FUNCTIONS
 //**************************************************************************************
 
+/// memoises objFunc by storing the last N results and 
+/// returning a stored result if the same input is presented
 let cacheLastN N objFunc =
     let mutable cache = []
     fun inDat ->
@@ -56,21 +58,30 @@ let mutable minDataStart : uint32 = 0x200u
 
 type ErrResolveBase = { lineNumber : uint32; error : ParseError }
 
+/// Used to track current code and data section load position when loading
+/// instructions and data into memory from a program to make a loadImage
 type LoadPos = {
     PosI : uint32;
     PosD : uint32 option;
     DStart : uint32
     }
 
+/// Differentiate symbol type according to how it is defined in assembly
 type SymbolType =
-    | CalculatedSymbol
-    | DataSymbol
-    | CodeSymbol
+    | CalculatedSymbol // label defined by EQU - code be code or data
+    | DataSymbol // label of DCD etc in data space
+    | CodeSymbol // label of code in code space
 
 
-
+/// resolved symbol table mapping symbol name to its type and value
 type AnnotatedSymbolTable = Map<string, uint32 * SymbolType>
 
+/// symbol info used during the parse and symbol resolution process
+/// forward references get resolved if this is possible by multiple
+/// loadProgram calls made by reLoadProgram
+/// each time loadprogram is called the initial symbol table contains
+/// more defined symbols. Calls continue until no more symbols 
+/// can be defined
 type SymbolInfo = {
     SymTab : SymbolTable;
     SymTypeTab : Map<string, SymbolType>
@@ -319,7 +330,12 @@ let addTermination (lim : LoadImage) =
     | [] -> loadLine lim ("END", 1)
     | _ -> loadLine lim ("END", -1) // used if no line for END
 
-
+/// loadProgram creates a new loadImage from the symbol table in the 
+/// old loadImage and the pogram text in lines.
+/// Multiple loadProgram calls are made by reLoadProgram.
+/// each time loadProgram is called the initial symbol table contains
+/// more defined symbols. Calls continue until no more symbols 
+/// can be defined
 let loadProgram (lines : string list) (lim : LoadImage) =
     let roundUpHBound n =
         let blkSize = dataSectionAlignment
@@ -333,7 +349,9 @@ let loadProgram (lines : string list) (lim : LoadImage) =
     List.fold loadLine initLim (lines |> List.indexed |> List.map (fun (i, s) -> s, i + 1))
     |> addTermination
 
-
+/// Returns the program in lines with nice uniform indentation
+/// Uses symbol table from lim.
+/// Required the program to parse correctly.
 let indentProgram lim lines =
     let spaces n = if n >= 0 then String.init n (fun _ -> " ") else " "
     let opCols = 8
@@ -374,6 +392,8 @@ let makeDupSymParseErrors (sym, defLst) =
     |> lNos
     |> List.map (fun lineNo -> ``Duplicate symbol`` (sym, eLines), lineNo, "")
 
+/// Top level program which parses and loads a program into a loadimage ready for
+/// execution.
 let reLoadProgram (lines : string list) =
     let findDuplicateSymbols (lim : LoadImage) =
         let symDefs = lim.SymInf.Defs
@@ -417,7 +437,8 @@ let reLoadProgram (lines : string list) =
 let executeADR (ai : ADRInstr) (dp : DataPath) =
     setReg ai.AReg ai.AVal dp
 
-
+/// Execute next instruction as determined by PC using dp as current
+/// register + mem state and code as program
 let dataPathStep (dp : DataPath, code : CodeMemory<CondInstr * int>) =
     let addToPc a dp = { dp with Regs = Map.add R15 ((uint32 a + dp.Regs.[R15]) >>> 0) dp.Regs }
     let pc = dp.Regs.[R15]
