@@ -3,10 +3,10 @@
     <TargetFramework>netstandard2.0</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
-<Compile Include="EEExtensions.fs" />
-<Compile Include="CommonData.fs" />
-<Compile Include="Errors.fs" />
-<Compile Include="Expressions.fs" />
+    <Compile Include="EEExtensions.fs" />
+    <Compile Include="CommonData.fs" />
+    <Compile Include="Errors.fs" />
+    <Compile Include="Expressions.fs" />
     <Compile Include="CommonLex.fs" />
     <Compile Include="Helpers.fs" />
     <Compile Include="Memory.fs" />
@@ -14,6 +14,7 @@
     <Compile Include="Branch.fs" />
     <Compile Include="Misc.fs" />
     <Compile Include="ParseTop.fs" />
+    <Compile Include="HWSimulation.fs" />
     <Compile Include="ExecutionTop.fs" />
     <Compile Include="Testlib.fs" />
   </ItemGroup>
