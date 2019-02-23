@@ -9,6 +9,8 @@ paket-files
 dist/*
 test-results/*
 !test-results
+hlp2019-test/addons/bin/*
+hlp2019-test/addons/obj/*
 
 
 ## Ignore Visual Studio temporary files, build results, and

@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.28307.421
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "addons", "addons.fsproj", "{FDB89836-AD7B-496D-A6A3-F0CABCE1138F}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{FDB89836-AD7B-496D-A6A3-F0CABCE1138F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FDB89836-AD7B-496D-A6A3-F0CABCE1138F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FDB89836-AD7B-496D-A6A3-F0CABCE1138F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FDB89836-AD7B-496D-A6A3-F0CABCE1138F}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {DDCBCB15-AD21-4C03-8B50-339C185B3F5D}
+	EndGlobalSection
+EndGlobal

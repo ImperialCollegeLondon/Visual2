@@ -1,0 +1,33 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>netcoreapp2.1</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="../../src/Emulator/EEExtensions.fs" />
+    <Compile Include="../../src/Emulator/CommonData.fs" />
+    <Compile Include="../../src/Emulator/Errors.fs" />
+    <Compile Include="../../src/Emulator/Expressions.fs" />
+    <Compile Include="../../src/Emulator/CommonLex.fs" />
+    <Compile Include="../../src/Emulator/Helpers.fs" />
+    <Compile Include="../../src/Emulator/Memory.fs" />
+    <Compile Include="../../src/Emulator/DP.fs" />
+    <Compile Include="../../src/Emulator/Branch.fs" />
+    <Compile Include="../../src/Emulator/Misc.fs" />
+    <Compile Include="../../src/Emulator/ParseTop.fs" />
+    <Compile Include="../../src/Emulator/ExecutionTop.fs" />
+    <Compile Include="../../src/Emulator/Testlib.fs" />
+    <Compile Include="RegisterNames.fs" />
+    <Compile Include="ParseHelpers.fs" />
+    <Compile Include="Program.fs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Expecto" Version="8.8.0" />
+    <PackageReference Include="Expecto.FsCheck" Version="8.8.0" />
+    <PackageReference Include="Expecto.VisualStudio.TestAdapter" Version="10.0.2" />
+  </ItemGroup>
+
+</Project>
