@@ -16,6 +16,7 @@
     <Compile Include="Testbench.fs" />
     <Compile Include="Integration.fs" />
     <Compile Include="Tests.fs" />
+    <Compile Include="GuiExamples.fs" />
     <Compile Include="MenuBar.fs" />
     <Compile Include="Renderer.fs" />
   </ItemGroup>
