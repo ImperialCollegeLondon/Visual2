@@ -55,13 +55,13 @@ module CommonLex
             PInstr : Result<'INS, Errors.ParseError>
             /// name and value of `label defined on this line, if one is.
             PLabel : (string * Resolvable) option
-            /// number of bytes in memory taken up by this instruction
+            /// number of bytes in instruction memory area taken up by this instruction
             ISize : uint32
-            /// number of data bytes in memory taken up by this instruction
+            /// number of bytes in data memory area taken up by this instruction, if it needs this
             DSize : uint32 option
             /// execution condition for instruction
             PCond : Condition
-            /// opcode
+            /// opcode: same as LineData.OpCode
             POpCode : string
             /// Number of cycles extra if instruction is executed
             PStall : int
@@ -73,9 +73,9 @@ module CommonLex
         LoadAddr : WAddr
         /// name of label defined on this line, if one exists
         Label : string option
-        /// table of symbols with defined values.
+        /// table of symbols with defined values: see SymbolTable type for info
         SymTab : SymbolTable
-        /// opcode string
+        /// opcode string: this is the whole opcode including suffix and condition if present
         OpCode : string
         /// string of all the operands
         Operands : string
