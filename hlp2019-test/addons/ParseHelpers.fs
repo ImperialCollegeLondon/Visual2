@@ -204,8 +204,8 @@ module ParseHelpers
         match tokLst with
         | Ok (TPTok "}" () :: tL) -> [], Ok tL
         | TPTokLRes "," (TPRNameLRes( Some rn,  TPRegListTailLRes (rnL, toks))) -> rn :: rnL, toks
-        | Ok [] -> [], Error("looking for ', Rn}' or '}'", [])
-        | _ -> failwithf "What? Can't happen"
+        | Ok _ -> [], Error("looking for ', Rn}' or '}'", [])
+        | Error (s,tok) -> [], Error(s, tok)
         |> Some
 
     /// matches a brace enclosed comma separated list of register names
