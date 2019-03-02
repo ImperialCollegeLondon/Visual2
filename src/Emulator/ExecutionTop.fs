@@ -419,9 +419,9 @@ let reLoadProgram (lines : string list) =
         let rec pass lim1 lim2 =
             //printfn "LoadP in pass = %A, n1=%d, n2=%d" lim2.LoadP (unres lim1) (unres lim2)
             match unres lim1, unres lim2 with
-            | n1, n2 when (n2 = 0 && (lim2.LoadP.PosI <= lim2.LoadP.DStart)) || (n2 <> 0 && n1 = n2)
+            | n1, n2 when (n2 = 0 && lim2.LoadP.PosI <= lim2.LoadP.DStart) || (n2 <> 0 && n1 = n2)
                 -> lim2
-            | n1, n2 when n1 = n2 && List.isEmpty lim2.Errors ->
+            | n1, n2 when n1 = n2 && List.isEmpty lim2.Errors && lim2.LoadP.PosI <= lim2.LoadP.DStart->
                 failwithf "What? %d unresolved refs in load image with no errors" n1
             | _ -> pass lim2 (next lim2)
         let final =
