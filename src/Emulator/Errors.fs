@@ -53,6 +53,7 @@ module Errors
         | ``Invalid syntax`` of wanted : string * found : string * page : string
         | ``Invalid format`` of error : string * found : string * page : string
         | ``Invalid instruction`` of reason : string
+        | ``Invalid Label`` of label: string
         | ``Label required`` of reason : string
         | ``Unimplemented parse``
         | ``Undefined symbol`` of symList : (string * string) list

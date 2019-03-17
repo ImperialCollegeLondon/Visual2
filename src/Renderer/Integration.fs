@@ -48,6 +48,7 @@ let highlightErrorParse ((err : ParseError), lineNo) tId opc =
         else ([], (1, 1))
     let link, hover =
         match err with
+        | ``Invalid Label`` lab -> "", ML (sprintf "'%s' is not a valid instruction and single character labels are not allowed" lab)
         | ``Invalid syntax`` (wanted, found, page) ->
             page, (ML <| "Parse error\nLooking for: " + wanted) @ (ML <| "Found: " + found)
         | ``Invalid format`` (error, found, page) ->
@@ -66,8 +67,8 @@ let highlightErrorParse ((err : ParseError), lineNo) tId opc =
             "", ML <| "This line contains an expression with undefined symbol" + symsMsg
         | ``Invalid opCode`` (root, cond, suffix) ->
             "", sprintf "This opcode: %A%A%A is not valid" root cond suffix |> ML
-        | ``Unimplemented instruction`` opcode ->
-            "", sprintf "%s is not a valid UAL instruction" opcode |> ML
+        | ``Unimplemented instruction`` opcode when opcode.Length > 1 -> "", sprintf "%s is not a valid UAL instruction" opcode |> ML
+        | ``Unimplemented instruction`` opcode -> "", sprintf "%s is not a valid UAL instruction, and one character labels are not allowed" opcode |> ML
         | ``Duplicate symbol`` (sym, lines) ->
             let lineMsg = String.concat ", " (List.map (sprintf "%d") lines)
             "", ML(sprintf "%s: duplicate labels on lines: %s\nDuplicate label names are not allowed" sym lineMsg)

@@ -95,12 +95,12 @@ module ParseTop
 
         let isLabel (str : string) =
             let isIdentifierChar ch = System.Char.IsLetterOrDigit ch || ch = '_'
-            str.Length > 0 && System.Char.IsLetter str.[0] && Seq.forall isIdentifierChar str
+            str.Length > 1 && System.Char.IsLetter str.[0] && Seq.forall isIdentifierChar str
 
         /// put parameters into a LineData record and parse
         let (|TRYPARSE|_|) (words : string list) =
             match words with
-            | label :: opcode :: operands ->
+            | label :: opcode :: operands when label = "" || isLabel label ->
                 {
                     OpCode = opcode.ToUpper()
                     Operands = (String.concat " " operands).Trim()
@@ -124,7 +124,10 @@ module ParseTop
             match [ "" ] @ words @ [ "" ] with
                 | "" :: TRYPARSE pa -> pa
                 | TRYPARSE pa -> pa
-                | [ ""; label; "" ] when isLabel label -> defParse (Some label) (EMPTY |> Ok)
+                | [ ""; label; "" ] -> 
+                    if isLabel label 
+                    then defParse (Some label) (EMPTY |> Ok)
+                    else defParse None (``Invalid Label`` label |> Error)
                 | [ ""; "" ] -> defParse None (EMPTY |> Ok)
                 | "" :: opc :: _ ->
                     defParse None (``Unimplemented instruction`` opc |> Error)
