@@ -18,7 +18,6 @@
     "make-osx-dmg": "yarn electron-installer-dmg --overwrite --icon=app/visual.ico.icns dist/visual2-darwin-x64 dist/visual2-osx"
   },
   "dependencies": {
-    "lodash": ">=4.17.11",
     "babel-plugin-transform-runtime": "^6.23.0",
     "babel-runtime": "^6.26.0",
     "copyfiles": "^2.0.0",
@@ -26,6 +25,7 @@
     "electron-context-menu": "^0.9.1",
     "electron-settings": "^3.2.0",
     "electron-tabs": "^0.9.1",
+    "lodash": ">=4.17.11",
     "monaco-editor": "^0.12.0",
     "react": "^16.4.2",
     "react-dom": "^16.4.2",
