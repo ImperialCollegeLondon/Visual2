@@ -22,6 +22,8 @@ type TestResult = {
     TestOk : bool
     TestNum : int
     TestName : string
+    TestCodeSize : int
+    TestStaticDataSize : int
     }
 
 let maxTestLength = 100000L
@@ -381,6 +383,7 @@ let parseCodeAndRunTest (code : string list) (test : Test) =
         | Ok dp -> Ok <| getRunInfoFromImageWithInits NoBreak lim dp.Regs dp.Fl Map.empty dp.MM
         | Error e -> Error <| ">>-" + e
         |> Result.map (asmStep maxTestLength)
+        |> Result.map (fun ri -> ri,lim)
 
 /// Generate a text line explaining a TbCheckResult error.
 /// Input: TbCheckResult.
@@ -433,18 +436,22 @@ let runTestOnCode =
                     TestMsgs = []
                     TestNum = test.TNum
                     TestName = test.TName
+                    TestCodeSize = 0
+                    TestStaticDataSize = 0
                 }
             match testRes with
             | Error e -> { tr with TestMsgs = [ e ] }
-            | Ok {State = ProgState.PSError (Errors.``Run time error``(n,s))} -> 
+            | Ok ({State = ProgState.PSError (Errors.``Run time error``(n,s))}, _)-> 
                 {tr with TestMsgs = [sprintf ">>- Run time error at memory address 0x%x: %s" n s]}
-            | Ok ri ->
+            | Ok (ri,lim) ->
                 let ok, msgs = computeTestResults test (fst ri.dpCurrent)
                 { tr with
                         TestCoverage = ri.Coverage
                         TestCycles = ri.CyclesDone
                         TestOk = ok
                         TestMsgs = msgs
+                        TestCodeSize = lim.Code.Count
+                        TestStaticDataSize=lim.Mem.Count
                 }
     let rt = cacheLastN 200 runTest'
     fun test code -> rt (test, code)
