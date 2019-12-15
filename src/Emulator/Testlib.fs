@@ -68,7 +68,7 @@ let parseTbLine lNum (lin : string) =
         | [] -> ""
         | lin :: _ -> lin.Trim()
     match commentStrippedLine |> String.splitOnWhitespace |> Array.toList with
-    | [ "" ] -> []
+    | [ "" ] | [] -> []
     | UPPER "IN" :: Defs tbSpec -> [ Ok(TbIn, tbSpec) ]
     | UPPER "OUT" :: Defs tbSpec -> [ Ok(TbOut, tbSpec) ]
     | UPPER "STACKPROTECT" :: _ -> [ Ok(TbOut, TbStackProtected 0u) ]
@@ -84,8 +84,8 @@ let parseTbLine lNum (lin : string) =
         |> function | false, _ -> Error(lNum, "AppendCode expects an integer representing the code block (#BLOCK) to append")
                     | true, num -> Ok(TbIn, AddCode(num, []))
       ]
-    | _ ->
-        [ Error(lNum, "Parse Error in testbench") ]
+    | errS ->
+        [ Error(lNum, sprintf "Parse Error in testbench from '%A'" errS) ]
 
 /// Return pseudo-random register values for input seed./// Use own generator for deterministic compatiblity F# and FABLE
 let calcInitRands seed =
@@ -393,16 +393,16 @@ let displayError { Actual = u : uint32; Check = check : tbCheck; Spec = spec : T
     | TbVal spAct, TbStackProtected sp ->
         sprintf "\t>>- Unbalanced Stack. SP: Actual: %x, Expected: %x" spAct sp
     | TbMem(adr, act), TbStackProtected sp ->
-        let actTxt = match act with | None -> "None" | Some a -> sprintf "%d" a
-        sprintf "\t>>- Caller Stack [%x] -> Actual: %s." adr actTxt
+        let actTxt = match act with | None -> "None" | Some a -> sprintf "0x%x" a
+        sprintf "\t>>- Caller Stack [0x%x] -> Actual: %s." adr actTxt
     | TbVal act, TbRegEquals(n, reg, v) ->
-        sprintf "\t>>- %A: Actual: %d, Expected: %d" reg act v
+        sprintf "\t>>- %A: Actual: 0x%x (%d), Expected: 0x%x (%d)" reg act act  v v
     | TbMem(adr, act), TbRegPointsTo(n, ptr, start, uLst) ->
-        let actTxt = match act with | None -> "None" | Some a -> sprintf "%d" a
+        let actTxt = match act with | None -> "None" | Some a -> sprintf "0x%x (%d)" a a
         let offset = int (adr - start)
-        sprintf "\t>>- [%A,#%d] -> Actual: %s. expected: %d" ptr offset actTxt uLst.[offset / 4]
+        sprintf "\t>>- [%A,#%d] -> Actual: %s. expected: 0x%x (%d)" ptr offset actTxt uLst.[offset / 4] uLst.[offset / 4]
     | TbVal act, APCS [ rn, exptd ] ->
-        sprintf "\t>>- Persistent Register %A -> Actual: %d. expected: %d" rn (int32 act) (int32 exptd)
+        sprintf "\t>>- Persistent Register %A -> Actual: 0x%x (%d). expected: 0x%x (%d)" rn (int32 act) (int32 act) (int32 exptd) (int32 exptd)
     | TbRet errMess, _ -> errMess
     | _ -> failwithf "What?: inconsistent specs and check results"
 
