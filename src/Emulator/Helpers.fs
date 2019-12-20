@@ -136,7 +136,7 @@ module Helpers
             try
                 ((uint32 (num.ToLower())) >>> 0, rst) |> Some
             with
-                | e -> failwithf "Exception in Expr: uint32(%A)" num
+                | e -> failwithf "Exception in Expr: uint32(%A), txt=%s" num txt
         | Expressions.RegexPrefix "&[0-9a-fA-F]+" (num, rst) ->
             ("0x" + (num.Trim()).[1..] |> uint32, rst) |> Some
         | _ -> None
